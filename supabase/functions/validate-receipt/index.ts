@@ -103,6 +103,40 @@ serve(async (req) => {
       );
     }
 
+    // Fetch the image and convert to base64
+    let imageBase64: string;
+    try {
+      console.log('Fetching image from:', imageUrl);
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        console.error('Failed to fetch image:', imageResponse.status);
+        return new Response(
+          JSON.stringify({ status: 'pending', notes: 'فشل في تحميل صورة الإيصال' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const uint8Array = new Uint8Array(imageBuffer);
+      
+      // Convert to base64
+      let binary = '';
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+      }
+      imageBase64 = btoa(binary);
+      
+      // Determine content type
+      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      imageBase64 = `data:${contentType};base64,${imageBase64}`;
+      console.log('Image converted to base64 successfully');
+    } catch (fetchError) {
+      console.error('Error fetching image:', fetchError);
+      return new Response(
+        JSON.stringify({ status: 'pending', notes: 'خطأ في معالجة صورة الإيصال' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Call AI to validate the receipt with STRICT checking - auto approve or reject
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -161,7 +195,7 @@ serve(async (req) => {
               },
               {
                 type: 'image_url',
-                image_url: { url: imageUrl }
+                image_url: { url: imageBase64 }
               }
             ]
           }
@@ -171,7 +205,8 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      console.error('AI API error:', response.status);
+      const errorText = await response.text();
+      console.error('AI API error:', response.status, errorText);
       return new Response(
         JSON.stringify({ status: 'pending', notes: 'فحص الذكاء الاصطناعي غير متاح مؤقتاً' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -179,9 +214,19 @@ serve(async (req) => {
     }
 
     const aiResult = await response.json();
+    console.log('AI Raw Response:', JSON.stringify(aiResult));
     const content = aiResult.choices?.[0]?.message?.content || '';
     
-    console.log('AI Response:', content);
+    console.log('AI Content:', content);
+    
+    // If AI returned empty content, try again with a simpler prompt
+    if (!content || content.trim() === '') {
+      console.log('Empty AI response, returning pending');
+      return new Response(
+        JSON.stringify({ status: 'pending', notes: 'لم يتمكن الذكاء الاصطناعي من قراءة الإيصال' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     // Try to parse the AI response as JSON
     let validationResult: ValidationResult = { status: 'pending', notes: 'لم يتم التحقق بشكل كامل' };
@@ -196,9 +241,19 @@ serve(async (req) => {
           notes: parsed.notes || 'تم فحص الإيصال',
           extractedData: parsed.extractedData
         };
+        console.log('Parsed validation result:', JSON.stringify(validationResult));
+      } else {
+        console.log('No JSON found in AI response');
+        // If no JSON, try to determine pass/fail from text
+        if (content.includes('pass') || content.includes('مقبول') || content.includes('صحيح')) {
+          validationResult = { status: 'pass', notes: content.substring(0, 200) };
+        } else if (content.includes('fail') || content.includes('مرفوض') || content.includes('خطأ')) {
+          validationResult = { status: 'fail', notes: content.substring(0, 200) };
+        }
       }
     } catch (parseError) {
       console.error('Error parsing AI response:', parseError);
+      validationResult = { status: 'pending', notes: 'خطأ في تحليل رد الذكاء الاصطناعي' };
     }
 
     // Send Telegram notification for valid receipts
