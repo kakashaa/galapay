@@ -95,10 +95,12 @@ serve(async (req) => {
     const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
     const TELEGRAM_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID');
     
+    console.log('LOVABLE_API_KEY exists:', !!LOVABLE_API_KEY);
+    
     if (!LOVABLE_API_KEY) {
-      console.log('LOVABLE_API_KEY not configured, skipping AI validation');
+      console.error('LOVABLE_API_KEY not configured - rejecting receipt');
       return new Response(
-        JSON.stringify({ status: 'pending', notes: 'فحص الذكاء الاصطناعي غير مفعل' }),
+        JSON.stringify({ status: 'fail', notes: 'فحص الذكاء الاصطناعي غير مفعل. يرجى التواصل مع الإدارة.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -167,9 +169,10 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      console.error('AI API error:', response.status);
+      const errorText = await response.text();
+      console.error('AI API error:', response.status, errorText);
       return new Response(
-        JSON.stringify({ status: 'pending', notes: 'فحص الذكاء الاصطناعي غير متاح مؤقتاً' }),
+        JSON.stringify({ status: 'fail', notes: 'فحص الذكاء الاصطناعي غير متاح مؤقتاً. حاول مرة أخرى.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -180,18 +183,22 @@ serve(async (req) => {
     console.log('AI Response:', content);
     
     // Try to parse the AI response as JSON
-    let validationResult: ValidationResult = { status: 'pending', notes: 'لم يتم التحقق بشكل كامل' };
+    let validationResult: ValidationResult = { status: 'fail', notes: 'فشل في تحليل استجابة الذكاء الاصطناعي' };
     
     try {
       // Extract JSON from the response (it might have markdown code blocks)
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
+        // STRICT: Only pass if explicitly "pass", otherwise fail
         validationResult = {
           status: parsed.status === 'pass' ? 'pass' : 'fail',
           notes: parsed.notes || 'تم فحص الإيصال',
           extractedData: parsed.extractedData
         };
+        console.log('Parsed validation result:', validationResult);
+      } else {
+        console.error('No JSON found in AI response');
       }
     } catch (parseError) {
       console.error('Error parsing AI response:', parseError);
@@ -215,7 +222,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in validate-receipt:', error);
     return new Response(
-      JSON.stringify({ status: 'pending', notes: 'حدث خطأ أثناء الفحص' }),
+      JSON.stringify({ status: 'fail', notes: 'حدث خطأ أثناء الفحص. حاول مرة أخرى.' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

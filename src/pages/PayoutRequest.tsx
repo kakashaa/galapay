@@ -281,7 +281,7 @@ const PayoutRequest = () => {
       if (trackingError) throw trackingError;
 
       // Validate receipt with AI including reference number verification
-      const { data: aiResult } = await supabase.functions.invoke('validate-receipt', {
+      const { data: aiResult, error: aiError } = await supabase.functions.invoke('validate-receipt', {
         body: { 
           imageUrl: urlData.publicUrl,
           expectedAmount: parseFloat(formData.amount),
@@ -289,10 +289,12 @@ const PayoutRequest = () => {
         }
       });
 
-      if (aiResult?.status === 'fail') {
+      // STRICT: Only allow if AI explicitly returns 'pass'
+      // Reject on 'fail', 'pending', or any error
+      if (aiError || aiResult?.status !== 'pass') {
         toast({
           title: 'الإيصال غير صالح',
-          description: aiResult?.notes || 'يرجى التأكد من صحة الإيصال والمعلومات',
+          description: aiResult?.notes || 'فشل التحقق من الإيصال. تأكد أن الإيصال يظهر اسم "غلا لايف" ومعرف 10000 والمبلغ والرقم المرجعي صحيحين.',
           variant: 'destructive',
         });
         setLoading(false);
