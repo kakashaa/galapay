@@ -38,22 +38,6 @@ interface RequiredField {
   required?: boolean;
 }
 
-// Normalize reference numbers (Arabic/English digits, spaces, dashes) to a stable digits-only string.
-const normalizeReferenceNumber = (input: string) => {
-  const arabicIndicMap: Record<string, string> = {
-    '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
-    '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
-    '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
-    '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
-  };
-  return (input || '')
-    .trim()
-    .split('')
-    .map((ch) => (arabicIndicMap[ch] ?? ch))
-    .join('')
-    .replace(/\D/g, '');
-};
-
 const PayoutRequest = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -156,8 +140,7 @@ const PayoutRequest = () => {
 
   // Check if reference number already exists
   const checkReferenceNumber = async (refNumber: string) => {
-    const normalized = normalizeReferenceNumber(refNumber);
-    if (!normalized || normalized.length < 3) {
+    if (!refNumber || refNumber.length < 3) {
       setReferenceError(null);
       return;
     }
@@ -165,13 +148,23 @@ const PayoutRequest = () => {
     setCheckingReference(true);
     const { data } = await supabase
       .from('payout_requests')
-      .select('id')
-      .eq('reference_number', normalized)
+      .select('id, zalal_life_account_id')
+      .eq('reference_number', refNumber.trim())
       .maybeSingle();
     
     setCheckingReference(false);
     
-    setReferenceError(data ? 'هذا الرقم المرجعي مرفوع مسبقاً' : null);
+    if (data) {
+      // Reject only if the reference number belongs to a DIFFERENT account
+      const currentAccountId = formData.zalalLifeAccountId.trim();
+      if (currentAccountId && data.zalal_life_account_id && data.zalal_life_account_id !== currentAccountId) {
+        setReferenceError('هذا الرقم المرجعي مستخدم مسبقاً من حساب آخر');
+      } else {
+        setReferenceError(null);
+      }
+    } else {
+      setReferenceError(null);
+    }
   };
 
   // Check daily limit - only 1 request per day per account ID
@@ -226,8 +219,7 @@ const PayoutRequest = () => {
     }
 
     // Validate reference number
-    const normalizedRef = normalizeReferenceNumber(formData.referenceNumber);
-    if (!normalizedRef || normalizedRef.length < 3) {
+    if (!formData.referenceNumber || formData.referenceNumber.trim().length < 3) {
       toast({
         title: 'خطأ',
         description: 'يرجى إدخال الرقم المرجعي من الإيصال',
@@ -260,17 +252,20 @@ const PayoutRequest = () => {
     // Double-check reference number before submission
     const { data: existingRef } = await supabase
       .from('payout_requests')
-      .select('id')
-      .eq('reference_number', normalizedRef)
+      .select('id, zalal_life_account_id')
+      .eq('reference_number', formData.referenceNumber.trim())
       .maybeSingle();
 
     if (existingRef) {
+      const currentAccountId = formData.zalalLifeAccountId.trim();
+      if (currentAccountId && existingRef.zalal_life_account_id && existingRef.zalal_life_account_id !== currentAccountId) {
       toast({
         title: 'خطأ',
-        description: 'الطلب هذا مرفوع مسبقاً',
+        description: 'هذا الرقم المرجعي مستخدم مسبقاً. لا يمكن استخدام نفس الإيصال مرتين.',
         variant: 'destructive',
       });
       return;
+      }
     }
 
     setLoading(true);
@@ -299,7 +294,7 @@ const PayoutRequest = () => {
         body: { 
           imageUrl: urlData.publicUrl,
           expectedAmount: parseFloat(formData.amount),
-          expectedReferenceNumber: normalizedRef,
+          expectedReferenceNumber: formData.referenceNumber.trim(),
           requestDetails: {
             // Used server-side only for duplicate checks (same ref allowed only for same account)
             zalalLifeAccountId: formData.zalalLifeAccountId.trim(),
@@ -345,7 +340,7 @@ const PayoutRequest = () => {
           phone_number: formData.phoneNumber,
           method_fields: formData.methodFields,
           user_receipt_image_url: urlData.publicUrl,
-          reference_number: normalizedRef,
+          reference_number: formData.referenceNumber.trim(),
           ai_receipt_status: aiResult?.status || 'pending',
           ai_notes: aiResult?.notes || null,
           status: 'pending',
@@ -372,7 +367,7 @@ const PayoutRequest = () => {
             country: selectedCountry.country_name_arabic,
             payoutMethod: selectedMethod.nameArabic || selectedMethod.name,
             phoneNumber: formData.phoneNumber,
-            referenceNumber: normalizedRef,
+            referenceNumber: formData.referenceNumber.trim(),
             walletNumber: walletNumber,
             methodFields: formData.methodFields,
           }
@@ -615,10 +610,10 @@ const PayoutRequest = () => {
                     required
                     value={formData.referenceNumber}
                     onChange={(e) => {
-                      const value = normalizeReferenceNumber(e.target.value);
+                      const value = e.target.value;
                       setFormData(prev => ({ ...prev, referenceNumber: value }));
-                      if (value.length >= 3) {
-                        checkReferenceNumber(value);
+                      if (value.trim().length >= 3) {
+                        checkReferenceNumber(value.trim());
                       } else {
                         setReferenceError(null);
                       }
