@@ -480,7 +480,7 @@ const PayoutRequest = () => {
                 <img
                   src="/sample-receipt.jpeg"
                   alt="نموذج إيصال"
-                  className="w-full object-contain max-h-80"
+                  className="w-full"
                 />
                 <div className="p-3 bg-blue-500/10 text-xs text-muted-foreground space-y-1">
                   <p>✅ اسم المستخدم: <span className="font-bold text-foreground">غلا لايف</span></p>
