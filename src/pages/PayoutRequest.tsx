@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Upload, X, Loader2, Wallet, Building, Globe, Send, Smartphone } from 'lucide-react';
+import { ArrowRight, Upload, X, Loader2, Wallet } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -13,15 +13,19 @@ interface Country {
 }
 
 interface PayoutMethod {
-  nameArabic: string;
+  name: string;
+  nameArabic?: string;
   iconUrl: string;
   requiredFields: RequiredField[];
+  recommended?: boolean;
 }
 
 interface RequiredField {
   name: string;
-  labelArabic: string;
+  label: string;
+  labelArabic?: string;
   type: string;
+  placeholder?: string;
   optional?: boolean;
 }
 
@@ -106,10 +110,15 @@ const PayoutRequest = () => {
   };
 
   const handleMethodChange = (methodName: string) => {
-    const method = selectedCountry?.methods.find(m => m.nameArabic === methodName);
+    const method = selectedCountry?.methods.find(m => (m.name || m.nameArabic) === methodName);
     setSelectedMethod(method || null);
     setFormData(prev => ({ ...prev, methodFields: {} }));
   };
+
+  
+  // Countries with USDT recommendation notice
+  const usdtRecommendedCountries = ['EG', 'DZ', 'MA', 'TN', 'JO'];
+  const showUSDTNotice = selectedCountry && usdtRecommendedCountries.includes(selectedCountry.country_code);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,7 +202,7 @@ const PayoutRequest = () => {
           currency: 'USD',
           country: selectedCountry.country_name_arabic,
           country_dial_code: selectedCountry.dial_code,
-          payout_method: selectedMethod.nameArabic,
+          payout_method: selectedMethod.name || selectedMethod.nameArabic,
           phone_number: formData.phoneNumber,
           method_fields: formData.methodFields,
           user_receipt_image_url: urlData.publicUrl,
@@ -393,6 +402,26 @@ const PayoutRequest = () => {
           </select>
         </div>
 
+        {/* USDT Recommendation Notice */}
+        {showUSDTNotice && (
+          <div className="p-4 bg-green-500/10 rounded-xl border border-green-500/30">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                <img src="/wallets/usdt.png" alt="USDT" className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-green-600 dark:text-green-400 mb-1">
+                  💡 ننصح باستخدام USDT (ERC20)
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  لتحويل أسرع وأسهل إلى بلدك، يفضل استخدام محفظة USDT على شبكة ERC20.
+                  الطرق الأخرى متاحة ولكن قد تستغرق وقتاً أطول.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Payout Method Selection */}
         {selectedCountry && (
           <div>
@@ -400,44 +429,56 @@ const PayoutRequest = () => {
               طريقة الصرف <span className="text-destructive">*</span>
             </label>
             <div className="grid grid-cols-2 gap-3">
-              {selectedCountry.methods.map((method) => (
-                <button
-                  key={method.nameArabic}
-                  type="button"
-                  onClick={() => handleMethodChange(method.nameArabic)}
-                  className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                    selectedMethod?.nameArabic === method.nameArabic
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-primary/30'
-                  }`}
-                >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden ${
-                    selectedMethod?.nameArabic === method.nameArabic
-                      ? 'ring-2 ring-primary ring-offset-2'
-                      : ''
-                  }`}>
-                    {isImagePath(method.iconUrl) ? (
-                      <img 
-                        src={method.iconUrl} 
-                        alt={method.nameArabic}
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.parentElement!.innerHTML = '<div class="w-full h-full bg-muted flex items-center justify-center"><svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg></div>';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <Wallet className="w-5 h-5 text-muted-foreground" />
+              {selectedCountry.methods.map((method) => {
+                const methodName = method.name || method.nameArabic || '';
+                const isSelected = (selectedMethod?.name || selectedMethod?.nameArabic) === methodName;
+                return (
+                  <button
+                    key={methodName}
+                    type="button"
+                    onClick={() => handleMethodChange(methodName)}
+                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 relative ${
+                      isSelected
+                        ? 'border-primary bg-primary/5'
+                        : method.recommended
+                        ? 'border-green-500/50 bg-green-500/5 hover:border-green-500'
+                        : 'border-border hover:border-primary/30'
+                    }`}
+                  >
+                    {/* Recommended Badge */}
+                    {method.recommended && (
+                      <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                        موصى به
                       </div>
                     )}
-                  </div>
-                  <span className="text-sm font-medium text-foreground text-center">
-                    {method.nameArabic}
-                  </span>
-                </button>
-              ))}
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden ${
+                      isSelected
+                        ? 'ring-2 ring-primary ring-offset-2'
+                        : ''
+                    }`}>
+                      {isImagePath(method.iconUrl) ? (
+                        <img 
+                          src={method.iconUrl} 
+                          alt={methodName}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = '<div class="w-full h-full bg-muted flex items-center justify-center"><svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg></div>';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <Wallet className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium text-foreground text-center">
+                      {methodName}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -464,7 +505,7 @@ const PayoutRequest = () => {
         {selectedMethod?.requiredFields.map((field) => (
           <div key={field.name}>
             <label className="block text-sm font-medium text-foreground mb-2">
-              {field.labelArabic} {!field.optional && <span className="text-destructive">*</span>}
+              {field.label || field.labelArabic} {!field.optional && <span className="text-destructive">*</span>}
             </label>
             <input
               type={field.type}
@@ -475,7 +516,7 @@ const PayoutRequest = () => {
                 methodFields: { ...prev.methodFields, [field.name]: e.target.value }
               }))}
               className="input-field"
-              placeholder={field.labelArabic}
+              placeholder={field.placeholder || field.label || field.labelArabic}
             />
           </div>
         ))}
