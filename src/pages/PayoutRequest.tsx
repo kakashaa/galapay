@@ -304,7 +304,7 @@ const PayoutRequest = () => {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">ما يعادل بالريال السعودي:</span>
                 <span className="text-lg font-bold text-primary" dir="ltr">
-                  {(parseFloat(formData.amount) * 3.75).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR
+                  {(parseFloat(formData.amount) * 3.70).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR
                 </span>
               </div>
             </div>
