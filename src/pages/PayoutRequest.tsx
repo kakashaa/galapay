@@ -281,44 +281,62 @@ const PayoutRequest = () => {
           />
         </div>
 
-        {/* Amount */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
+        {/* Amount Section */}
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-foreground">
             المبلغ الذي تريد استلامه بالدولار <span className="text-destructive">*</span>
           </label>
-          <input
-            type="number"
-            required
-            min="1"
-            step="0.01"
-            value={formData.amount}
-            onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-            className="input-field"
-            placeholder="0.00"
-            dir="ltr"
-          />
+          
+          {/* Amount Input with USD label */}
+          <div className="relative">
+            <input
+              type="number"
+              required
+              min="1"
+              step="0.01"
+              value={formData.amount}
+              onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+              className="input-field text-xl font-bold pl-16"
+              placeholder="0.00"
+              dir="ltr"
+            />
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+              USD
+            </span>
+          </div>
           
           {/* SAR Conversion Display */}
           {formData.amount && parseFloat(formData.amount) > 0 && (
-            <div className="mt-3 p-3 bg-primary/5 rounded-xl border border-primary/20">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">ما يعادل بالريال السعودي:</span>
-                <span className="text-lg font-bold text-primary" dir="ltr">
-                  {(parseFloat(formData.amount) * 3.70).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR
-                </span>
+            <div className="p-4 bg-primary/10 rounded-xl border border-primary/30">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">ما يعادل بالريال السعودي</span>
+                <div className="flex items-baseline gap-2" dir="ltr">
+                  <span className="text-2xl font-bold text-primary">
+                    {(parseFloat(formData.amount) * 3.70).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className="text-sm font-medium text-primary/70">SAR</span>
+                </div>
               </div>
             </div>
           )}
 
           {/* Transfer Fees Notice */}
-          <div className="mt-3 p-3 bg-warning/10 rounded-xl border border-warning/20">
-            <p className="text-sm text-warning-foreground">
-              <strong>ملاحظة:</strong> سيتم خصم رسوم التحويل من المبلغ:
+          <div className="p-4 bg-muted/50 rounded-xl border border-border">
+            <p className="text-sm font-medium text-foreground mb-2">
+              ⚠️ رسوم التحويل:
             </p>
-            <ul className="text-xs text-muted-foreground mt-2 space-y-1 list-disc list-inside">
-              <li>اليمن أو السعودية: <span className="font-bold text-foreground">3%</span></li>
-              <li>باقي الدول: <span className="font-bold text-foreground">10%</span></li>
-            </ul>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-primary"></span>
+                <span className="text-muted-foreground">اليمن / السعودية:</span>
+                <span className="font-bold text-foreground">3%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-warning"></span>
+                <span className="text-muted-foreground">دول أخرى:</span>
+                <span className="font-bold text-foreground">10%</span>
+              </div>
+            </div>
           </div>
         </div>
 
