@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, DollarSign, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, DollarSign, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -40,6 +40,9 @@ interface RequiredField {
 
 const PayoutRequest = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPreviewMode = location.state?.previewMode === true;
+  
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState<Country[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
@@ -158,6 +161,16 @@ const PayoutRequest = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Block submission in preview mode
+    if (isPreviewMode) {
+      toast({
+        title: 'وضع المعاينة',
+        description: 'هذا وضع التصفح فقط. لا يمكنك إرسال طلب حقيقي.',
+        variant: 'default',
+      });
+      return;
+    }
     
     if (!receiptImage || !selectedCountry || !selectedMethod) {
       toast({
@@ -319,17 +332,31 @@ const PayoutRequest = () => {
 
   return (
     <div className="min-h-screen bg-background pb-8">
+      {/* Preview Mode Banner */}
+      {isPreviewMode && (
+        <div className="bg-warning text-warning-foreground py-3 px-4 text-center sticky top-0 z-20">
+          <div className="flex items-center justify-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            <span className="font-medium text-sm">
+              وضع التصفح فقط - لن يتم إرسال أي طلب أو تحويل أي مبلغ
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+      <div className={`sticky ${isPreviewMode ? 'top-[44px]' : 'top-0'} bg-background/95 backdrop-blur-sm border-b border-border z-10`}>
         <div className="max-w-md mx-auto p-4">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/confirm')}
+              onClick={() => navigate(isPreviewMode ? '/' : '/confirm')}
               className="p-2 -mr-2 rounded-full hover:bg-muted transition-colors"
             >
               <ArrowRight className="w-5 h-5 text-muted-foreground" />
             </button>
-            <h1 className="text-xl font-bold text-foreground">طلب صرف جديد</h1>
+            <h1 className="text-xl font-bold text-foreground">
+              {isPreviewMode ? 'معاينة طريقة رفع الراتب' : 'طلب صرف جديد'}
+            </h1>
           </div>
           
           {/* Progress Steps */}
