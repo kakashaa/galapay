@@ -103,6 +103,8 @@ export type Database = {
           method_fields: Json | null
           payout_method: string
           phone_number: string
+          processed_at: string | null
+          processed_by: string | null
           recipient_full_name: string
           reference_number: string | null
           rejection_reason: string | null
@@ -127,6 +129,8 @@ export type Database = {
           method_fields?: Json | null
           payout_method: string
           phone_number: string
+          processed_at?: string | null
+          processed_by?: string | null
           recipient_full_name: string
           reference_number?: string | null
           rejection_reason?: string | null
@@ -151,6 +155,8 @@ export type Database = {
           method_fields?: Json | null
           payout_method?: string
           phone_number?: string
+          processed_at?: string | null
+          processed_by?: string | null
           recipient_full_name?: string
           reference_number?: string | null
           rejection_reason?: string | null
@@ -198,9 +204,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "staff" | "user"
+      app_role: "admin" | "staff" | "user" | "super_admin"
       request_status: "pending" | "review" | "paid" | "rejected"
     }
     CompositeTypes: {
@@ -329,7 +336,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff", "user"],
+      app_role: ["admin", "staff", "user", "super_admin"],
       request_status: ["pending", "review", "paid", "rejected"],
     },
   },

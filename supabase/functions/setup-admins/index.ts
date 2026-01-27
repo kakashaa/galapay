@@ -6,9 +6,10 @@ const corsHeaders = {
 }
 
 const ADMIN_ACCOUNTS = [
-  { username: 'جنجون', email: 'jnjun@ghala.admin', password: 'gnassaf11' },
-  { username: 'بيسو', email: 'biso@ghala.admin', password: 'bsassaf11' },
-  { username: 'ريلاكس', email: 'relax@ghala.admin', password: 'rxassaf11' },
+  { username: 'جنجون', email: 'jnjun@ghala.admin', password: 'gnassaf11', role: 'admin' },
+  { username: 'بيسو', email: 'biso@ghala.admin', password: 'bsassaf11', role: 'admin' },
+  { username: 'ريلاكس', email: 'relax@ghala.admin', password: 'rxassaf11', role: 'admin' },
+  { username: 'naz', email: 'naz@ghala.admin', password: '1653814$$', role: 'super_admin' },
 ]
 
 Deno.serve(async (req) => {
@@ -43,15 +44,15 @@ Deno.serve(async (req) => {
         continue
       }
 
-      // Add admin role
+      // Add role
       const { error: roleError } = await supabaseAdmin
         .from('user_roles')
-        .insert({ user_id: userData.user.id, role: 'admin' })
+        .insert({ user_id: userData.user.id, role: account.role })
 
       if (roleError) {
         results.push({ username: account.username, status: 'user created, role error', error: roleError.message })
       } else {
-        results.push({ username: account.username, status: 'success' })
+        results.push({ username: account.username, status: 'success', role: account.role })
       }
     }
 

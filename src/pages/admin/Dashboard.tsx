@@ -8,31 +8,58 @@ import {
   Search,
   Wallet,
   TrendingUp,
+  Download,
+  Filter,
+  Trash2,
+  User,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import RequestDetailsModal from '@/components/admin/RequestDetailsModal';
+import { exportToExcel } from '@/lib/excel-export';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface PayoutRequest {
   id: string;
   tracking_code: string;
   zalal_life_account_id: string;
+  zalal_life_username: string | null;
   recipient_full_name: string;
   amount: number;
   currency: string;
   country: string;
   payout_method: string;
+  phone_number: string;
   status: 'pending' | 'review' | 'paid' | 'rejected';
   created_at: string;
   ai_receipt_status: string | null;
+  reference_number: string | null;
+  processed_by: string | null;
+  processed_at: string | null;
+}
+
+interface AdminUser {
+  id: string;
+  username: string;
 }
 
 interface Stats {
   total: number;
   pending: number;
   paid: number;
+  rejected: number;
   totalPending: number;
   totalPaid: number;
+}
+
+interface UserRole {
+  role: 'admin' | 'staff' | 'super_admin';
 }
 
 const statusLabels = {
@@ -45,19 +72,30 @@ const statusLabels = {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<PayoutRequest[]>([]);
-  const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, paid: 0, totalPending: 0, totalPaid: 0 });
+  const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, paid: 0, rejected: 0, totalPending: 0, totalPaid: 0 });
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'staff' | 'super_admin'>('admin');
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [adminUsers, setAdminUsers] = useState<Map<string, string>>(new Map());
+  const [countries, setCountries] = useState<string[]>([]);
   const [filters, setFilters] = useState({
-    status: '',
-    country: '',
+    status: 'all',
+    country: 'all',
     search: '',
+    payoutMethod: 'all',
   });
 
   useEffect(() => {
     checkAuth();
-    fetchData();
-  }, [filters]);
+  }, []);
+
+  useEffect(() => {
+    if (currentUserId) {
+      fetchData();
+      fetchCountries();
+    }
+  }, [filters, currentUserId]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -66,16 +104,51 @@ const AdminDashboard = () => {
       return;
     }
 
+    setCurrentUserId(session.user.id);
+
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', session.user.id)
-      .in('role', ['admin', 'staff'])
+      .in('role', ['admin', 'staff', 'super_admin'])
       .maybeSingle();
 
     if (!roleData) {
       await supabase.auth.signOut();
       navigate('/admin/login');
+      return;
+    }
+
+    setUserRole(roleData.role as 'admin' | 'staff' | 'super_admin');
+
+    // Fetch admin users for mapping processed_by
+    const { data: users } = await supabase.auth.admin?.listUsers?.() || { data: null };
+    if (!users) {
+      // Fallback: fetch from user_roles
+      const { data: roleUsers } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('role', ['admin', 'staff', 'super_admin']);
+      
+      if (roleUsers) {
+        const userMap = new Map<string, string>();
+        roleUsers.forEach(u => {
+          // Use a generic name since we can't access user metadata easily
+          userMap.set(u.user_id, `مدير ${u.role === 'super_admin' ? '(مسؤول)' : ''}`);
+        });
+        setAdminUsers(userMap);
+      }
+    }
+  };
+
+  const fetchCountries = async () => {
+    const { data } = await supabase
+      .from('countries_methods')
+      .select('country_name_arabic')
+      .eq('is_active', true);
+    
+    if (data) {
+      setCountries(data.map(c => c.country_name_arabic));
     }
   };
 
@@ -91,6 +164,7 @@ const AdminDashboard = () => {
           total: allRequests.length,
           pending: allRequests.filter(r => r.status === 'pending' || r.status === 'review').length,
           paid: allRequests.filter(r => r.status === 'paid').length,
+          rejected: allRequests.filter(r => r.status === 'rejected').length,
           totalPending: allRequests
             .filter(r => r.status === 'pending' || r.status === 'review')
             .reduce((sum, r) => sum + Number(r.amount), 0),
@@ -104,17 +178,17 @@ const AdminDashboard = () => {
       // Fetch filtered requests
       let query = supabase
         .from('payout_requests')
-        .select('id, tracking_code, zalal_life_account_id, recipient_full_name, amount, currency, country, payout_method, status, created_at, ai_receipt_status')
+        .select('id, tracking_code, zalal_life_account_id, zalal_life_username, recipient_full_name, amount, currency, country, payout_method, phone_number, status, created_at, ai_receipt_status, reference_number, processed_by, processed_at')
         .order('created_at', { ascending: false });
 
-      if (filters.status) {
+      if (filters.status && filters.status !== 'all') {
         query = query.eq('status', filters.status as 'pending' | 'review' | 'paid' | 'rejected');
       }
-      if (filters.country) {
+      if (filters.country && filters.country !== 'all') {
         query = query.eq('country', filters.country);
       }
       if (filters.search) {
-        query = query.or(`tracking_code.ilike.%${filters.search}%,zalal_life_account_id.ilike.%${filters.search}%`);
+        query = query.or(`tracking_code.ilike.%${filters.search}%,zalal_life_account_id.ilike.%${filters.search}%,reference_number.ilike.%${filters.search}%`);
       }
 
       const { data, error } = await query;
@@ -143,12 +217,91 @@ const AdminDashboard = () => {
     setSelectedRequest(null);
   };
 
+  const handleDeleteRequest = async (requestId: string) => {
+    if (userRole !== 'super_admin') {
+      toast({
+        title: 'غير مصرح',
+        description: 'فقط المسؤول يمكنه حذف الطلبات',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!confirm('هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('payout_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'تم الحذف',
+        description: 'تم حذف الطلب بنجاح',
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: 'خطأ',
+        description: 'فشل في حذف الطلب',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (userRole !== 'super_admin') {
+      toast({
+        title: 'غير مصرح',
+        description: 'فقط المسؤول يمكنه تحميل البيانات',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const exportData = requests.map(r => ({
+      ...r,
+      processed_by_name: r.processed_by ? (adminUsers.get(r.processed_by) || 'غير معروف') : '',
+    }));
+
+    const filterParts = [];
+    if (filters.status !== 'all') filterParts.push(statusLabels[filters.status as keyof typeof statusLabels] || filters.status);
+    if (filters.country !== 'all') filterParts.push(filters.country);
+    
+    const fileName = `طلبات_الصرف_${filterParts.length > 0 ? filterParts.join('_') + '_' : ''}${new Date().toLocaleDateString('ar-EG')}`;
+    
+    exportToExcel(exportData, fileName);
+
+    toast({
+      title: 'تم التحميل',
+      description: 'تم تحميل الملف بنجاح',
+    });
+  };
+
+  const getProcessedByName = (processedBy: string | null) => {
+    if (!processedBy) return '-';
+    return adminUsers.get(processedBy) || 'مدير';
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 bg-primary text-primary-foreground p-4 z-20">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold">لوحة التحكم</h1>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold">لوحة التحكم</h1>
+            {userRole === 'super_admin' && (
+              <span className="px-2 py-1 bg-primary-foreground/20 rounded-full text-xs">
+                مسؤول
+              </span>
+            )}
+          </div>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 px-4 py-2 bg-primary-foreground/10 rounded-lg hover:bg-primary-foreground/20 transition-colors"
@@ -159,9 +312,9 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      <main className="p-4 max-w-6xl mx-auto">
+      <main className="p-4 max-w-7xl mx-auto">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="glass-card p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -189,6 +342,18 @@ const AdminDashboard = () => {
           <div className="glass-card p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+              </div>
+              <div>
+                <p className="text-muted-foreground text-sm">تم التحويل</p>
+                <p className="text-2xl font-bold text-foreground">{stats.paid}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-success" />
               </div>
               <div>
@@ -201,7 +366,7 @@ const AdminDashboard = () => {
           <div className="glass-card p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-success" />
+                <TrendingUp className="w-5 h-5 text-success" />
               </div>
               <div>
                 <p className="text-muted-foreground text-sm">تم صرفه</p>
@@ -213,6 +378,11 @@ const AdminDashboard = () => {
 
         {/* Filters */}
         <div className="glass-card p-4 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-muted-foreground" />
+            <span className="font-medium text-foreground">تصفية النتائج</span>
+          </div>
+          
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
@@ -221,36 +391,52 @@ const AdminDashboard = () => {
                   type="text"
                   value={filters.search}
                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  placeholder="بحث بكود التتبع أو رقم الحساب"
+                  placeholder="بحث بكود التتبع أو رقم الحساب أو الرقم المرجعي"
                   className="input-field pr-10"
                 />
               </div>
             </div>
 
-            <select
+            <Select
               value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-              className="input-field w-auto min-w-[150px]"
+              onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
             >
-              <option value="">كل الحالات</option>
-              <option value="pending">قيد الانتظار</option>
-              <option value="review">قيد المراجعة</option>
-              <option value="paid">تم التحويل</option>
-              <option value="rejected">مرفوض</option>
-            </select>
+              <SelectTrigger className="w-auto min-w-[150px] bg-background">
+                <SelectValue placeholder="كل الحالات" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل الحالات</SelectItem>
+                <SelectItem value="pending">قيد الانتظار</SelectItem>
+                <SelectItem value="review">قيد المراجعة</SelectItem>
+                <SelectItem value="paid">تم التحويل</SelectItem>
+                <SelectItem value="rejected">مرفوض</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <select
+            <Select
               value={filters.country}
-              onChange={(e) => setFilters(prev => ({ ...prev, country: e.target.value }))}
-              className="input-field w-auto min-w-[150px]"
+              onValueChange={(value) => setFilters(prev => ({ ...prev, country: value }))}
             >
-              <option value="">كل البلدان</option>
-              <option value="اليمن">اليمن</option>
-              <option value="مصر">مصر</option>
-              <option value="السعودية">السعودية</option>
-              <option value="الإمارات">الإمارات</option>
-              <option value="الأردن">الأردن</option>
-            </select>
+              <SelectTrigger className="w-auto min-w-[150px] bg-background">
+                <SelectValue placeholder="كل البلدان" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل البلدان</SelectItem>
+                {countries.map(country => (
+                  <SelectItem key={country} value={country}>{country}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {userRole === 'super_admin' && (
+              <button
+                onClick={handleExportExcel}
+                className="flex items-center gap-2 px-4 py-2 bg-success text-success-foreground rounded-lg hover:bg-success/90 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span>تحميل Excel</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -265,6 +451,7 @@ const AdminDashboard = () => {
                   <th className="text-right p-4 font-medium text-foreground">المبلغ</th>
                   <th className="text-right p-4 font-medium text-foreground">البلد</th>
                   <th className="text-right p-4 font-medium text-foreground">الحالة</th>
+                  <th className="text-right p-4 font-medium text-foreground">تمت المعالجة بواسطة</th>
                   <th className="text-right p-4 font-medium text-foreground">التاريخ</th>
                   <th className="text-right p-4 font-medium text-foreground">إجراء</th>
                 </tr>
@@ -288,23 +475,45 @@ const AdminDashboard = () => {
                         <span className="mr-2 text-xs text-destructive">⚠️ AI</span>
                       )}
                     </td>
+                    <td className="p-4">
+                      {request.processed_by ? (
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">{getProcessedByName(request.processed_by)}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </td>
                     <td className="p-4 text-muted-foreground text-sm" dir="ltr">
                       {new Date(request.created_at).toLocaleDateString('ar-EG')}
                     </td>
                     <td className="p-4">
-                      <button
-                        onClick={() => setSelectedRequest(request.id)}
-                        className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedRequest(request.id)}
+                          className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title="عرض التفاصيل"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        {userRole === 'super_admin' && (
+                          <button
+                            onClick={() => handleDeleteRequest(request.id)}
+                            className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                            title="حذف الطلب"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
 
                 {requests.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
                       لا توجد طلبات
                     </td>
                   </tr>
@@ -312,6 +521,11 @@ const AdminDashboard = () => {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Results count */}
+        <div className="mt-4 text-center text-muted-foreground text-sm">
+          عرض {requests.length} طلب
         </div>
       </main>
 
@@ -321,6 +535,8 @@ const AdminDashboard = () => {
           requestId={selectedRequest}
           onClose={() => setSelectedRequest(null)}
           onUpdate={handleRequestUpdate}
+          userRole={userRole}
+          currentUserId={currentUserId}
         />
       )}
     </div>

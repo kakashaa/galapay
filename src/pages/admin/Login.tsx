@@ -9,6 +9,7 @@ const USERNAME_MAP: Record<string, string> = {
   'جنجون': 'jnjun@ghala.admin',
   'بيسو': 'biso@ghala.admin',
   'ريلاكس': 'relax@ghala.admin',
+  'naz': 'naz@ghala.admin',
 };
 
 const AdminLogin = () => {
@@ -43,12 +44,12 @@ const AdminLogin = () => {
 
       if (error) throw error;
 
-      // Check if user has admin or staff role
+      // Check if user has admin, staff, or super_admin role
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', data.user.id)
-        .in('role', ['admin', 'staff'])
+        .in('role', ['admin', 'staff', 'super_admin'])
         .maybeSingle();
 
       if (roleError) throw roleError;
