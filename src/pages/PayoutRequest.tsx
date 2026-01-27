@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, DollarSign, MapPin, CreditCard, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, DollarSign, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -53,9 +53,12 @@ const PayoutRequest = () => {
     zalalLifeUsername: '',
     recipientFullName: '',
     amount: '',
+    referenceNumber: '',
     phoneNumber: '',
     methodFields: {} as Record<string, string>,
   });
+  const [referenceError, setReferenceError] = useState<string | null>(null);
+  const [checkingReference, setCheckingReference] = useState(false);
 
   useEffect(() => {
     fetchCountries();
@@ -130,6 +133,29 @@ const PayoutRequest = () => {
     return method.requiredFields || method.fields || [];
   };
 
+  // Check if reference number already exists
+  const checkReferenceNumber = async (refNumber: string) => {
+    if (!refNumber || refNumber.length < 3) {
+      setReferenceError(null);
+      return;
+    }
+    
+    setCheckingReference(true);
+    const { data } = await supabase
+      .from('payout_requests')
+      .select('id')
+      .eq('reference_number', refNumber.trim())
+      .maybeSingle();
+    
+    setCheckingReference(false);
+    
+    if (data) {
+      setReferenceError('هذا الرقم المرجعي مستخدم مسبقاً');
+    } else {
+      setReferenceError(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -146,6 +172,41 @@ const PayoutRequest = () => {
       toast({
         title: 'خطأ',
         description: 'يرجى إدخال مبلغ صحيح',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate reference number
+    if (!formData.referenceNumber || formData.referenceNumber.trim().length < 3) {
+      toast({
+        title: 'خطأ',
+        description: 'يرجى إدخال الرقم المرجعي من الإيصال',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (referenceError) {
+      toast({
+        title: 'خطأ',
+        description: referenceError,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Double-check reference number before submission
+    const { data: existingRef } = await supabase
+      .from('payout_requests')
+      .select('id')
+      .eq('reference_number', formData.referenceNumber.trim())
+      .maybeSingle();
+
+    if (existingRef) {
+      toast({
+        title: 'خطأ',
+        description: 'هذا الرقم المرجعي مستخدم مسبقاً. لا يمكن استخدام نفس الإيصال مرتين.',
         variant: 'destructive',
       });
       return;
@@ -211,6 +272,7 @@ const PayoutRequest = () => {
           phone_number: formData.phoneNumber,
           method_fields: formData.methodFields,
           user_receipt_image_url: urlData.publicUrl,
+          reference_number: formData.referenceNumber.trim(),
           ai_receipt_status: aiResult?.status || 'pending',
           ai_notes: aiResult?.notes || null,
           status: 'pending',
@@ -241,7 +303,7 @@ const PayoutRequest = () => {
   ];
 
   const isStep1Complete = formData.zalalLifeAccountId && formData.recipientFullName;
-  const isStep2Complete = formData.amount && parseFloat(formData.amount) > 0 && receiptImage;
+  const isStep2Complete = formData.amount && parseFloat(formData.amount) > 0 && receiptImage && formData.referenceNumber && formData.referenceNumber.trim().length >= 3 && !referenceError;
   const isStep3Complete = selectedCountry && selectedMethod && formData.phoneNumber;
 
   return (
@@ -479,6 +541,62 @@ const PayoutRequest = () => {
                 </label>
               )}
             </div>
+
+            {/* Reference Number - Only show after receipt is uploaded */}
+            {receiptPreview && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Hash className="w-4 h-4 text-primary" />
+                  الرقم المرجعي من الإيصال <span className="text-destructive">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={formData.referenceNumber}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({ ...prev, referenceNumber: value }));
+                      // Check reference number after user stops typing
+                      if (value.trim().length >= 3) {
+                        checkReferenceNumber(value.trim());
+                      } else {
+                        setReferenceError(null);
+                      }
+                    }}
+                    className={`w-full px-4 py-3.5 text-lg rounded-xl border-2 ${
+                      referenceError 
+                        ? 'border-destructive bg-destructive/5' 
+                        : formData.referenceNumber && !referenceError 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-border bg-background/50'
+                    } focus:ring-0 transition-colors text-center font-mono tracking-wider`}
+                    placeholder="أدخل الرقم المرجعي"
+                    dir="ltr"
+                  />
+                  {checkingReference && (
+                    <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground animate-spin" />
+                  )}
+                  {!checkingReference && formData.referenceNumber && !referenceError && (
+                    <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
+                  )}
+                  {!checkingReference && referenceError && (
+                    <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-destructive" />
+                  )}
+                </div>
+                
+                {referenceError && (
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+                    <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+                    <p className="text-sm text-destructive font-medium">{referenceError}</p>
+                  </div>
+                )}
+                
+                <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                  💡 الرقم المرجعي موجود في إيصال التحويل ويستخدم مرة واحدة فقط لمنع التكرار
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3">
