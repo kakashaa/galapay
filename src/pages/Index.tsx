@@ -25,7 +25,7 @@ const Index = () => {
           <Wallet className="w-8 h-8 text-primary" />
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-1">
-          Zalal Life Payouts
+          غلا لايف
         </h1>
         <p className="text-muted-foreground">
           طلب صرف الراتب

@@ -224,7 +224,7 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
           {/* Details Grid */}
           <div className="grid grid-cols-2 gap-4">
             <div className="glass-card p-4">
-              <p className="text-sm text-muted-foreground">رقم حساب Zalal</p>
+              <p className="text-sm text-muted-foreground">ايدي حساب غلا لايف</p>
               <p className="font-medium">{request.zalal_life_account_id}</p>
             </div>
             <div className="glass-card p-4">

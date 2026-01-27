@@ -64,7 +64,7 @@ const AdminLogin = () => {
             <Shield className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">لوحة التحكم</h1>
-          <p className="text-muted-foreground">Zalal Life Payouts</p>
+          <p className="text-muted-foreground">غلا لايف</p>
         </div>
 
         {/* Login Form */}
