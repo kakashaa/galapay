@@ -104,6 +104,7 @@ export type Database = {
           payout_method: string
           phone_number: string
           recipient_full_name: string
+          reference_number: string | null
           rejection_reason: string | null
           status: Database["public"]["Enums"]["request_status"]
           tracking_code: string
@@ -127,6 +128,7 @@ export type Database = {
           payout_method: string
           phone_number: string
           recipient_full_name: string
+          reference_number?: string | null
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           tracking_code: string
@@ -150,6 +152,7 @@ export type Database = {
           payout_method?: string
           phone_number?: string
           recipient_full_name?: string
+          reference_number?: string | null
           rejection_reason?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           tracking_code?: string
