@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Search, AlertCircle, CheckCircle2, FileText } from 'lucide-react';
+import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
 import { useSavedRequests } from '@/hooks/use-saved-requests';
+import { FlyingMoney } from '@/components/FlyingMoney';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -22,13 +23,36 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-      {/* Logo and Title */}
-      <div className="text-center mb-10">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/20 flex items-center justify-center">
-          <Wallet className="w-8 h-8 text-primary" />
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Flying Money Background */}
+      <FlyingMoney />
+
+      {/* Promo Banner */}
+      <div className="promo-banner w-full max-w-sm mb-8 z-10">
+        <div className="relative z-10">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-primary animate-bounce-subtle" />
+            <span className="text-xs font-medium text-primary">خدمة سريعة وموثوقة</span>
+            <Sparkles className="w-5 h-5 text-primary animate-bounce-subtle" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground mb-1">
+            ارفع راتبك واستلمه فوراً! 💰
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            حوّل راتبك الشهري واستلمه بأسرع وقت
+          </p>
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-1">
+      </div>
+
+      {/* Logo and Title */}
+      <div className="text-center mb-8 z-10">
+        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-primary/20 flex items-center justify-center relative">
+          <Wallet className="w-10 h-10 text-primary" />
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-success rounded-full flex items-center justify-center animate-bounce-subtle">
+            <DollarSign className="w-4 h-4 text-success-foreground" />
+          </div>
+        </div>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           غلا لايف
         </h1>
         <p className="text-muted-foreground">
@@ -39,9 +63,9 @@ const Index = () => {
       {/* Halo Button */}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
-          <button className="halo-button w-32 h-32 flex flex-col items-center justify-center cursor-pointer">
-            <Wallet className="w-10 h-10 mb-1" />
-            <span className="text-base font-semibold">طلب صرف</span>
+          <button className="halo-button w-36 h-36 flex flex-col items-center justify-center cursor-pointer z-10">
+            <Wallet className="w-12 h-12 mb-2" />
+            <span className="text-lg font-bold">طلب صرف</span>
           </button>
         </SheetTrigger>
         
@@ -111,7 +135,7 @@ const Index = () => {
       {hasSavedRequests && (
         <button
           onClick={() => setMyRequestsOpen(true)}
-          className="mt-8 flex items-center gap-2 px-6 py-3 bg-primary/10 text-primary rounded-xl font-medium transition-all hover:bg-primary/20"
+          className="mt-8 flex items-center gap-2 px-6 py-3 bg-primary/10 text-primary rounded-xl font-medium transition-all hover:bg-primary/20 z-10"
         >
           <FileText className="w-5 h-5" />
           طلباتي السابقة
@@ -119,7 +143,7 @@ const Index = () => {
       )}
 
       {/* Bottom hint */}
-      <p className="text-muted-foreground text-xs mt-6 text-center">
+      <p className="text-muted-foreground text-xs mt-6 text-center z-10">
         اضغط على الزر للبدء
       </p>
 
