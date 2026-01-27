@@ -32,6 +32,20 @@ interface ValidationResult {
   };
 }
 
+// Normalize reference numbers (Arabic/English digits, spaces, dashes) to a stable digits-only string.
+function normalizeReferenceNumber(input: string | undefined | null): string {
+  const s = (input ?? '').trim();
+  if (!s) return '';
+  const map: Record<string, string> = {
+    '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+    '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+    '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+    '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+  };
+  const latin = s.split('').map((ch) => map[ch] ?? ch).join('');
+  return latin.replace(/\D/g, '');
+}
+
 async function sendTelegramNotification(
   botToken: string,
   chatId: string,
@@ -163,7 +177,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-3-flash-preview',
+            model: 'google/gemini-2.5-pro',
             messages: [
               {
                 role: 'system',
@@ -176,6 +190,8 @@ serve(async (req) => {
 3. هل اسم المستخدم (User Name / اسم المستخدم) يحتوي على "غلا لايف" أو "Ghala Life" أو "غلا" أو "Ghala"؟
 4. ما هو مبلغ التحويل (Transfer Amount / مبلغ التحويل) الظاهر في الإيصال؟
 5. ما هو الرقم المرجعي (Reference Number / الرقم المرجعي) في الإيصال؟
+
+مهم جداً: عند استخراج الرقم المرجعي، أرجعه كأرقام فقط بدون مسافات أو رموز.
 
 المبلغ المتوقع من المستخدم: $${expectedAmount || 'غير محدد'}
 الرقم المرجعي الذي أدخله المستخدم: ${expectedReferenceNumber || 'غير محدد'}
@@ -198,15 +214,14 @@ serve(async (req) => {
 - إذا كان المبلغ لا يطابق المبلغ المتوقع (مع تساهل ±1): ارفض
 - إذا لم تكن الصورة إيصال تحويل واضح: ارفض
 - إذا لم يظهر رقم مرجعي في الإيصال: ارفض
-- مهم جداً: قارن الرقم المرجعي الذي أدخله المستخدم مع الرقم الظاهر في الإيصال - إذا لم يتطابقا: ارفض وقل "الرقم المرجعي المُدخل لا يتطابق مع الرقم في الإيصال"
-- إذا كان كل شيء صحيح (معرف 10000 + اسم غلا + مبلغ صحيح + رقم مرجعي متطابق): اقبل بـ "pass"`
+- إذا كان كل شيء صحيح (معرف 10000 + اسم غلا + مبلغ صحيح + رقم مرجعي موجود): اقبل بـ "pass"`
               },
               {
                 role: 'user',
                 content: [
                   {
                     type: 'text',
-                    text: `تحقق من هذا الإيصال. المبلغ المتوقع: $${expectedAmount || 'غير محدد'}. الرقم المرجعي المُدخل: ${expectedReferenceNumber || 'غير محدد'}. تأكد أن الرقم المرجعي المُدخل يتطابق مع الرقم الظاهر في الإيصال.`
+                    text: `تحقق من هذا الإيصال. المبلغ المتوقع: $${expectedAmount || 'غير محدد'}. الرقم المرجعي المُدخل: ${expectedReferenceNumber || 'غير محدد'}. استخرج الرقم المرجعي من الإيصال كأرقام فقط.`
                   },
                   {
                     type: 'image_url',
@@ -287,9 +302,35 @@ serve(async (req) => {
       console.error('Error parsing AI response:', parseError);
     }
 
-    // Check for duplicate reference number in database
-    // Reject only if the reference number exists for a DIFFERENT account.
-    if (validationResult.status === 'pass' && expectedReferenceNumber) {
+    // Enforce reference-number match server-side (more reliable than LLM string matching).
+    const expectedRefNorm = normalizeReferenceNumber(expectedReferenceNumber);
+    const extractedRefNorm = normalizeReferenceNumber(validationResult.extractedData?.referenceNumber);
+    if (validationResult.status === 'pass') {
+      if (!expectedRefNorm) {
+        validationResult = {
+          status: 'fail',
+          notes: 'يرجى إدخال الرقم المرجعي من الإيصال.',
+          extractedData: validationResult.extractedData,
+        };
+      } else if (!extractedRefNorm) {
+        validationResult = {
+          status: 'fail',
+          notes: 'لم نستطع العثور على الرقم المرجعي داخل الإيصال. تأكد أن الصورة واضحة.',
+          extractedData: validationResult.extractedData,
+        };
+      } else if (expectedRefNorm !== extractedRefNorm) {
+        validationResult = {
+          status: 'fail',
+          notes: 'الرقم المرجعي المُدخل لا يتطابق مع الرقم في الإيصال.',
+          extractedData: validationResult.extractedData,
+        };
+      }
+    }
+
+    // Check for duplicate reference number in database (GLOBAL uniqueness)
+    // If the reference number was used before by anyone → reject.
+    const canonicalRef = normalizeReferenceNumber(expectedReferenceNumber);
+    if (validationResult.status === 'pass' && canonicalRef) {
       const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
       
@@ -298,32 +339,19 @@ serve(async (req) => {
         
         const { data: existingRequest, error: dbError } = await supabase
           .from('payout_requests')
-          .select('id, tracking_code, zalal_life_account_id')
-          .eq('reference_number', expectedReferenceNumber)
+          .select('id, tracking_code')
+          .eq('reference_number', canonicalRef)
           .maybeSingle();
         
         if (dbError) {
           console.error('Database error checking duplicate:', dbError);
         } else if (existingRequest) {
-          const currentAccountId = (requestDetails?.zalalLifeAccountId || '').trim();
-          const existingAccountId = (existingRequest.zalal_life_account_id || '').trim();
-
-          // If we can't compare, stay conservative and reject
-          if (!currentAccountId || !existingAccountId) {
-            console.log('Duplicate reference number found (missing account id context):', expectedReferenceNumber);
-            validationResult = {
-              status: 'fail',
-              notes: `الرقم المرجعي "${expectedReferenceNumber}" مستخدم مسبقاً.`,
-              extractedData: validationResult.extractedData
-            };
-          } else if (existingAccountId !== currentAccountId) {
-            console.log('Duplicate reference number found for different account:', expectedReferenceNumber);
-            validationResult = {
-              status: 'fail',
-              notes: `الرقم المرجعي "${expectedReferenceNumber}" مستخدم مسبقاً من حساب آخر. لا يمكن استخدام نفس الرقم مرتين.`,
-              extractedData: validationResult.extractedData
-            };
-          }
+          console.log('Duplicate reference number found:', canonicalRef);
+          validationResult = {
+            status: 'fail',
+            notes: 'الطلب هذا مرفوع مسبقاً',
+            extractedData: validationResult.extractedData,
+          };
         }
       }
     }
