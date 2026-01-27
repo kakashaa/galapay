@@ -126,10 +126,19 @@ const PayoutRequest = () => {
       return;
     }
 
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      toast({
+        title: 'خطأ',
+        description: 'يرجى إدخال مبلغ صحيح',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Upload image
+      // Upload image first
       const fileExt = receiptImage.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       
@@ -149,12 +158,33 @@ const PayoutRequest = () => {
 
       if (trackingError) throw trackingError;
 
-      // Validate receipt with AI
+      // Validate receipt with AI - pass the expected amount and details
       const { data: aiResult } = await supabase.functions.invoke('validate-receipt', {
-        body: { imageUrl: urlData.publicUrl }
+        body: { 
+          imageUrl: urlData.publicUrl,
+          expectedAmount: parseFloat(formData.amount),
+          requestDetails: {
+            trackingCode: trackingData,
+            recipientName: formData.recipientFullName,
+            country: selectedCountry.country_name_arabic,
+            payoutMethod: selectedMethod.nameArabic,
+            phoneNumber: formData.phoneNumber,
+          }
+        }
       });
 
-      // Create payout request
+      // If AI validation failed, show error and stop
+      if (aiResult?.status === 'fail') {
+        toast({
+          title: 'الإيصال غير صالح',
+          description: aiResult?.notes || 'يرجى التأكد من صحة الإيصال والمعلومات',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Create payout request only if validation passed
       const { error: requestError } = await supabase
         .from('payout_requests')
         .insert({
@@ -172,7 +202,7 @@ const PayoutRequest = () => {
           user_receipt_image_url: urlData.publicUrl,
           ai_receipt_status: aiResult?.status || 'pending',
           ai_notes: aiResult?.notes || null,
-          status: aiResult?.status === 'fail' ? 'review' : 'pending',
+          status: 'pending',
         });
 
       if (requestError) throw requestError;
