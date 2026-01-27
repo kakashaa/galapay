@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, Loader2, CheckCircle2, XCircle, Eye } from 'lucide-react';
+import { X, Upload, Loader2, CheckCircle2, XCircle, Eye, Edit3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -7,6 +7,8 @@ interface RequestDetailsModalProps {
   requestId: string;
   onClose: () => void;
   onUpdate: () => void;
+  userRole?: 'admin' | 'staff' | 'super_admin';
+  currentUserId?: string;
 }
 
 interface PayoutRequest {
@@ -29,10 +31,19 @@ interface PayoutRequest {
   admin_notes: string | null;
   admin_final_receipt_image_url: string | null;
   rejection_reason: string | null;
+  reference_number: string | null;
   created_at: string;
+  processed_by: string | null;
+  processed_at: string | null;
 }
 
-const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsModalProps) => {
+const RequestDetailsModal = ({ 
+  requestId, 
+  onClose, 
+  onUpdate, 
+  userRole = 'admin',
+  currentUserId = ''
+}: RequestDetailsModalProps) => {
   const [request, setRequest] = useState<PayoutRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -40,6 +51,10 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
   const [rejectionReason, setRejectionReason] = useState('');
   const [finalReceipt, setFinalReceipt] = useState<File | null>(null);
   const [finalReceiptPreview, setFinalReceiptPreview] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedAmount, setEditedAmount] = useState('');
+
+  const isSuperAdmin = userRole === 'super_admin';
 
   useEffect(() => {
     fetchRequest();
@@ -56,6 +71,7 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
       if (error) throw error;
       setRequest(data as PayoutRequest);
       setAdminNotes(data.admin_notes || '');
+      setEditedAmount(data.amount?.toString() || '');
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -119,10 +135,7 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
         finalReceiptUrl = urlData.publicUrl;
       }
 
-      // Get current user
-      const { data: { session } } = await supabase.auth.getSession();
-
-      // Update request
+      // Update request with processed_by info
       const { error: updateError } = await supabase
         .from('payout_requests')
         .update({
@@ -130,6 +143,8 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
           admin_notes: adminNotes || null,
           admin_final_receipt_image_url: finalReceiptUrl,
           rejection_reason: newStatus === 'rejected' ? rejectionReason : null,
+          processed_by: currentUserId || null,
+          processed_at: new Date().toISOString(),
         })
         .eq('id', requestId);
 
@@ -138,7 +153,7 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
       // Create audit log
       await supabase.from('audit_log').insert({
         request_id: requestId,
-        user_id: session?.user.id,
+        user_id: currentUserId || null,
         action: `Changed status to ${newStatus}`,
         old_status: request?.status,
         new_status: newStatus,
@@ -156,6 +171,109 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
       toast({
         title: 'خطأ',
         description: 'فشل في تحديث الطلب',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleEditRequest = async () => {
+    if (!isSuperAdmin) {
+      toast({
+        title: 'غير مصرح',
+        description: 'فقط المسؤول يمكنه تعديل الطلبات',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUpdating(true);
+
+    try {
+      const { error } = await supabase
+        .from('payout_requests')
+        .update({
+          amount: parseFloat(editedAmount),
+          admin_notes: adminNotes || null,
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      // Create audit log for edit
+      await supabase.from('audit_log').insert({
+        request_id: requestId,
+        user_id: currentUserId || null,
+        action: `Edited request - Amount changed to ${editedAmount}`,
+        notes: adminNotes || null,
+      });
+
+      toast({
+        title: 'تم التعديل',
+        description: 'تم تعديل الطلب بنجاح',
+      });
+
+      setIsEditing(false);
+      fetchRequest();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: 'خطأ',
+        description: 'فشل في تعديل الطلب',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleRevertRejection = async () => {
+    if (!isSuperAdmin) {
+      toast({
+        title: 'غير مصرح',
+        description: 'فقط المسؤول يمكنه التراجع عن الرفض',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUpdating(true);
+
+    try {
+      const { error } = await supabase
+        .from('payout_requests')
+        .update({
+          status: 'pending',
+          rejection_reason: null,
+          processed_by: currentUserId || null,
+          processed_at: new Date().toISOString(),
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      // Create audit log
+      await supabase.from('audit_log').insert({
+        request_id: requestId,
+        user_id: currentUserId || null,
+        action: 'Reverted rejection - Status changed back to pending',
+        old_status: 'rejected',
+        new_status: 'pending',
+        notes: 'تم التراجع عن الرفض بواسطة المسؤول',
+      });
+
+      toast({
+        title: 'تم التراجع',
+        description: 'تم إعادة الطلب إلى قيد الانتظار',
+      });
+
+      onUpdate();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: 'خطأ',
+        description: 'فشل في التراجع عن الرفض',
         variant: 'destructive',
       });
     } finally {
@@ -181,12 +299,23 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
         {/* Header */}
         <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-bold text-foreground">تفاصيل الطلب</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {isSuperAdmin && (request.status === 'pending' || request.status === 'review') && (
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="p-2 hover:bg-muted rounded-lg transition-colors text-primary"
+                title="تعديل الطلب"
+              >
+                <Edit3 className="w-5 h-5" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="p-6 space-y-6">
@@ -206,6 +335,14 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
                request.status === 'paid' ? 'تم التحويل' : 'مرفوض'}
             </span>
           </div>
+
+          {/* Reference Number */}
+          {request.reference_number && (
+            <div className="glass-card p-4">
+              <p className="text-sm text-muted-foreground">الرقم المرجعي</p>
+              <p className="font-mono text-lg font-bold text-primary" dir="ltr">{request.reference_number}</p>
+            </div>
+          )}
 
           {/* AI Status */}
           {request.ai_receipt_status && (
@@ -233,7 +370,16 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
             </div>
             <div className="glass-card p-4">
               <p className="text-sm text-muted-foreground">المبلغ</p>
-              <p className="font-bold text-lg">{request.amount} {request.currency}</p>
+              {isEditing ? (
+                <input
+                  type="number"
+                  value={editedAmount}
+                  onChange={(e) => setEditedAmount(e.target.value)}
+                  className="input-field mt-1"
+                />
+              ) : (
+                <p className="font-bold text-lg">{request.amount} {request.currency}</p>
+              )}
             </div>
             <div className="glass-card p-4">
               <p className="text-sm text-muted-foreground">البلد</p>
@@ -250,7 +396,7 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
           </div>
 
           {/* Method Fields */}
-          {Object.keys(request.method_fields).length > 0 && (
+          {request.method_fields && Object.keys(request.method_fields).length > 0 && (
             <div className="glass-card p-4">
               <p className="text-sm text-muted-foreground mb-2">بيانات إضافية</p>
               <div className="space-y-2">
@@ -274,8 +420,20 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
             />
           </div>
 
+          {/* Edit Mode Save Button */}
+          {isEditing && (
+            <button
+              onClick={handleEditRequest}
+              disabled={updating}
+              className="w-full py-3 px-4 bg-primary text-primary-foreground rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-50"
+            >
+              {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              حفظ التعديلات
+            </button>
+          )}
+
           {/* Admin Section */}
-          {request.status !== 'paid' && request.status !== 'rejected' && (
+          {!isEditing && request.status !== 'paid' && request.status !== 'rejected' && (
             <>
               <hr className="border-border" />
 
@@ -397,6 +555,18 @@ const RequestDetailsModal = ({ requestId, onClose, onUpdate }: RequestDetailsMod
                     className="max-h-60 object-contain rounded-xl"
                   />
                 </div>
+              )}
+
+              {/* Super Admin: Revert Rejection */}
+              {isSuperAdmin && request.status === 'rejected' && (
+                <button
+                  onClick={handleRevertRejection}
+                  disabled={updating}
+                  className="mt-4 w-full py-3 px-4 bg-warning text-warning-foreground rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-warning/90 disabled:opacity-50"
+                >
+                  {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                  التراجع عن الرفض
+                </button>
               )}
             </div>
           )}
