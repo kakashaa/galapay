@@ -76,6 +76,35 @@ ${requestDetails.trackingCode ? `• كود التتبع: \`${requestDetails.tra
   }
 }
 
+// Helper function to convert image URL to base64
+async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string } | null> {
+  try {
+    console.log('Fetching image from URL:', url);
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error('Failed to fetch image:', response.status);
+      return null;
+    }
+    
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    
+    console.log('Image fetched successfully, size:', bytes.byteLength, 'bytes');
+    return { base64, mimeType: contentType };
+  } catch (error) {
+    console.error('Error fetching image:', error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -105,25 +134,43 @@ serve(async (req) => {
       );
     }
 
-    // Call AI to validate the receipt with strict checking
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [
-          {
-            role: 'system',
-            content: `أنت مساعد ذكاء اصطناعي متخصص في التحقق من إيصالات التحويل لتطبيق غلا لايف (Ghala Life).
+    // Fetch image and convert to base64
+    const imageData = await fetchImageAsBase64(imageUrl);
+    if (!imageData) {
+      return new Response(
+        JSON.stringify({ status: 'fail', notes: 'لم نتمكن من تحميل الصورة. تأكد أن رابط الصورة صحيح وحاول مرة أخرى.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const base64ImageUrl = `data:${imageData.mimeType};base64,${imageData.base64}`;
+
+    // Retry logic for AI validation
+    let response: Response | null = null;
+    let lastError: string = '';
+    
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        console.log(`AI validation attempt ${attempt}`);
+        
+        response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: [
+              {
+                role: 'system',
+                content: `أنت مساعد ذكاء اصطناعي متخصص في التحقق من إيصالات التحويل لتطبيق غلا لايف (Ghala Life).
 
 مهمتك هي تحليل صورة الإيصال والتحقق من المعايير التالية بدقة:
 
 1. هل الصورة تظهر إيصال تحويل ناجح (نجاح التحويل / Transfer Successful)؟
 2. هل معرف المستخدم (User ID / معرف المستخدم) = 10000 (هذا هو معرف الوكالة)؟
-3. هل اسم المستخدم (User Name / اسم المستخدم) يحتوي على "غلا لايف" أو "Ghala Life"؟
+3. هل اسم المستخدم (User Name / اسم المستخدم) يحتوي على "غلا لايف" أو "Ghala Life" أو "غلا" أو "Ghala"؟
 4. ما هو مبلغ التحويل (Transfer Amount / مبلغ التحويل) الظاهر في الإيصال؟
 5. ما هو الرقم المرجعي (Reference Number / الرقم المرجعي) في الإيصال؟
 
@@ -142,37 +189,69 @@ serve(async (req) => {
   }
 }
 
-قواعد القبول والرفض الصارمة:
-- إذا كان معرف المستخدم ليس 10000: ارفض وقل "معرف المستخدم يجب أن يكون 10000 - يجب التحويل لحساب غلا لايف"
-- إذا كان اسم المستخدم لا يحتوي على "غلا لايف" أو "غلا" أو "Ghala": ارفض وقل "يجب التحويل إلى حساب غلا لايف فقط"
-- إذا كان المبلغ لا يطابق المبلغ المتوقع: ارفض وقل "المبلغ في الإيصال ($X) لا يطابق المبلغ المدخل ($Y)"
-- إذا كان الرقم المرجعي في الإيصال لا يطابق الرقم المرجعي المدخل: ارفض وقل "الرقم المرجعي في الإيصال لا يطابق الرقم المدخل"
-- إذا لم تكن الصورة إيصال تحويل واضح: ارفض وقل "الصورة ليست إيصال تحويل صالح"
-- فقط إذا كان كل شيء صحيح (معرف 10000 + اسم غلا لايف + المبلغ مطابق + الرقم المرجعي مطابق): اقبل`
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `تحقق من هذا الإيصال. المبلغ المتوقع: $${expectedAmount || 'غير محدد'}`
+قواعد القبول والرفض:
+- إذا كان معرف المستخدم ليس 10000: ارفض وقل "معرف المستخدم يجب أن يكون 10000"
+- إذا كان اسم المستخدم لا يحتوي على "غلا" أو "Ghala" بأي شكل: ارفض
+- إذا كان المبلغ لا يطابق المبلغ المتوقع (مع تساهل ±1): ارفض
+- إذا كان الرقم المرجعي المدخل لا يظهر في الإيصال: ارفض
+- إذا لم تكن الصورة إيصال تحويل واضح: ارفض
+- إذا كان كل شيء صحيح: اقبل بـ "pass"`
               },
               {
-                type: 'image_url',
-                image_url: { url: imageUrl }
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: `تحقق من هذا الإيصال. المبلغ المتوقع: $${expectedAmount || 'غير محدد'}. الرقم المرجعي المتوقع: ${expectedReferenceNumber || 'غير محدد'}`
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: { url: base64ImageUrl }
+                  }
+                ]
               }
-            ]
-          }
-        ],
-        max_tokens: 500,
-      }),
-    });
+            ],
+            max_tokens: 500,
+          }),
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
+        if (response.ok) {
+          break; // Success, exit retry loop
+        }
+        
+        const errorText = await response.text();
+        lastError = errorText;
+        console.error(`AI API error attempt ${attempt}:`, response.status, errorText);
+        
+        // If it's a 400 error related to image, give specific message
+        if (response.status === 400 && errorText.includes('image')) {
+          return new Response(
+            JSON.stringify({ 
+              status: 'fail', 
+              notes: 'لم نتمكن من قراءة الصورة. تأكد أن الصورة واضحة وبصيغة صحيحة (JPG, PNG) وحاول مرة أخرى.' 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Wait before retry
+        if (attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+      } catch (fetchError) {
+        console.error(`Fetch error attempt ${attempt}:`, fetchError);
+        lastError = String(fetchError);
+        if (attempt < 2) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
+    if (!response || !response.ok) {
+      console.error('All AI attempts failed:', lastError);
       return new Response(
-        JSON.stringify({ status: 'fail', notes: 'فحص الذكاء الاصطناعي غير متاح مؤقتاً. حاول مرة أخرى.' }),
+        JSON.stringify({ status: 'fail', notes: 'فحص الذكاء الاصطناعي غير متاح مؤقتاً. حاول مرة أخرى بعد قليل.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
