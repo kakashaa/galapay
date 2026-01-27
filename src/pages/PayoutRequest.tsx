@@ -237,13 +237,6 @@ const PayoutRequest = () => {
         body: { 
           imageUrl: urlData.publicUrl,
           expectedAmount: parseFloat(formData.amount),
-          requestDetails: {
-            trackingCode: trackingData,
-            recipientName: formData.recipientFullName,
-            country: selectedCountry.country_name_arabic,
-            payoutMethod: selectedMethod.nameArabic || selectedMethod.name,
-            phoneNumber: formData.phoneNumber,
-          }
         }
       });
 
@@ -279,6 +272,24 @@ const PayoutRequest = () => {
         });
 
       if (requestError) throw requestError;
+
+      // Send Telegram notification after successful request creation
+      await supabase.functions.invoke('send-telegram-notification', {
+        body: {
+          imageUrl: urlData.publicUrl,
+          requestDetails: {
+            trackingCode: trackingData,
+            zalalLifeAccountId: formData.zalalLifeAccountId,
+            zalalLifeUsername: formData.zalalLifeUsername || null,
+            recipientName: formData.recipientFullName,
+            amount: parseFloat(formData.amount),
+            country: selectedCountry.country_name_arabic,
+            payoutMethod: selectedMethod.nameArabic || selectedMethod.name,
+            phoneNumber: formData.phoneNumber,
+            referenceNumber: formData.referenceNumber.trim(),
+          }
+        }
+      });
 
       navigate('/success', { state: { trackingCode: trackingData } });
 
