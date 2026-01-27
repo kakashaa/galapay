@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, DollarSign, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info } from 'lucide-react';
+import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -148,14 +148,20 @@ const PayoutRequest = () => {
     setCheckingReference(true);
     const { data } = await supabase
       .from('payout_requests')
-      .select('id')
+      .select('id, zalal_life_account_id')
       .eq('reference_number', refNumber.trim())
       .maybeSingle();
     
     setCheckingReference(false);
     
     if (data) {
-      setReferenceError('هذا الرقم المرجعي مستخدم مسبقاً');
+      // Reject only if the reference number belongs to a DIFFERENT account
+      const currentAccountId = formData.zalalLifeAccountId.trim();
+      if (currentAccountId && data.zalal_life_account_id && data.zalal_life_account_id !== currentAccountId) {
+        setReferenceError('هذا الرقم المرجعي مستخدم مسبقاً من حساب آخر');
+      } else {
+        setReferenceError(null);
+      }
     } else {
       setReferenceError(null);
     }
@@ -246,17 +252,20 @@ const PayoutRequest = () => {
     // Double-check reference number before submission
     const { data: existingRef } = await supabase
       .from('payout_requests')
-      .select('id')
+      .select('id, zalal_life_account_id')
       .eq('reference_number', formData.referenceNumber.trim())
       .maybeSingle();
 
     if (existingRef) {
+      const currentAccountId = formData.zalalLifeAccountId.trim();
+      if (currentAccountId && existingRef.zalal_life_account_id && existingRef.zalal_life_account_id !== currentAccountId) {
       toast({
         title: 'خطأ',
         description: 'هذا الرقم المرجعي مستخدم مسبقاً. لا يمكن استخدام نفس الإيصال مرتين.',
         variant: 'destructive',
       });
       return;
+      }
     }
 
     setLoading(true);
@@ -286,12 +295,27 @@ const PayoutRequest = () => {
           imageUrl: urlData.publicUrl,
           expectedAmount: parseFloat(formData.amount),
           expectedReferenceNumber: formData.referenceNumber.trim(),
+          requestDetails: {
+            // Used server-side only for duplicate checks (same ref allowed only for same account)
+            zalalLifeAccountId: formData.zalalLifeAccountId.trim(),
+          },
         }
       });
 
+      // If the function call itself failed, show a technical error (not a "receipt invalid" message)
+      if (aiError) {
+        toast({
+          title: 'تعذر فحص الإيصال الآن',
+          description: aiError.message || 'حدث خطأ أثناء فحص الإيصال. حاول مرة أخرى بعد قليل.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
       // STRICT: Only allow if AI explicitly returns 'pass'
       // Reject on 'fail', 'pending', or any error
-      if (aiError || aiResult?.status !== 'pass') {
+      if (aiResult?.status !== 'pass') {
         toast({
           title: 'الإيصال غير صالح',
           description: aiResult?.notes || 'فشل التحقق من الإيصال. تأكد أن الإيصال يظهر اسم "غلا لايف" ومعرف 10000 والمبلغ والرقم المرجعي صحيحين.',
