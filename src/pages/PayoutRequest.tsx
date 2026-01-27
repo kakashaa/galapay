@@ -299,11 +299,6 @@ const PayoutRequest = () => {
         return;
       }
 
-      // Determine status based on AI validation result
-      // pass = approved automatically, fail = rejected, pending = needs review
-      const requestStatus = aiResult?.status === 'pass' ? 'paid' : 
-                           aiResult?.status === 'fail' ? 'rejected' : 'pending';
-
       const { error: requestError } = await supabase
         .from('payout_requests')
         .insert({
@@ -322,8 +317,7 @@ const PayoutRequest = () => {
           reference_number: formData.referenceNumber.trim(),
           ai_receipt_status: aiResult?.status || 'pending',
           ai_notes: aiResult?.notes || null,
-          status: requestStatus,
-          rejection_reason: aiResult?.status === 'fail' ? aiResult?.notes : null,
+          status: 'pending',
         });
 
       if (requestError) throw requestError;
