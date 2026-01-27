@@ -42,7 +42,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an AI assistant that validates transfer receipts for Zalal Life payouts.
+            content: `You are an AI assistant that validates transfer receipts for Ghala Life (غلا لايف) payouts.
             
 Your task is to analyze the receipt image and determine:
 1. Is this a valid transfer/payment receipt (not a random photo)?

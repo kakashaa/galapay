@@ -207,10 +207,10 @@ const PayoutRequest = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 max-w-md mx-auto space-y-5">
-        {/* Zalal Life Account ID */}
+        {/* Ghala Life Account ID */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">
-            رقم حساب Zalal Life <span className="text-destructive">*</span>
+            ايدي حسابك في غلا لايف <span className="text-destructive">*</span>
           </label>
           <input
             type="text"
@@ -218,21 +218,21 @@ const PayoutRequest = () => {
             value={formData.zalalLifeAccountId}
             onChange={(e) => setFormData(prev => ({ ...prev, zalalLifeAccountId: e.target.value }))}
             className="input-field"
-            placeholder="أدخل رقم الحساب"
+            placeholder="أدخل ايدي الحساب"
           />
         </div>
 
-        {/* Zalal Life Username */}
+        {/* Ghala Life Username */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">
-            اسم المستخدم في Zalal Life <span className="text-muted-foreground">(اختياري)</span>
+            اسم حسابك في غلا لايف <span className="text-muted-foreground">(اختياري)</span>
           </label>
           <input
             type="text"
             value={formData.zalalLifeUsername}
             onChange={(e) => setFormData(prev => ({ ...prev, zalalLifeUsername: e.target.value }))}
             className="input-field"
-            placeholder="اسم المستخدم"
+            placeholder="اسم الحساب"
           />
         </div>
 
