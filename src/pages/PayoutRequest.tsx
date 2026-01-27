@@ -25,12 +25,9 @@ interface RequiredField {
   optional?: boolean;
 }
 
-const iconMap: Record<string, React.ReactNode> = {
-  wallet: <Wallet className="w-5 h-5" />,
-  building: <Building className="w-5 h-5" />,
-  globe: <Globe className="w-5 h-5" />,
-  send: <Send className="w-5 h-5" />,
-  smartphone: <Smartphone className="w-5 h-5" />,
+// Helper function to check if iconUrl is a path to an image
+const isImagePath = (iconUrl: string) => {
+  return iconUrl.startsWith('/') || iconUrl.startsWith('http');
 };
 
 const PayoutRequest = () => {
@@ -414,14 +411,29 @@ const PayoutRequest = () => {
                       : 'border-border hover:border-primary/30'
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden ${
                     selectedMethod?.nameArabic === method.nameArabic
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
+                      ? 'ring-2 ring-primary ring-offset-2'
+                      : ''
                   }`}>
-                    {iconMap[method.iconUrl] || <Wallet className="w-5 h-5" />}
+                    {isImagePath(method.iconUrl) ? (
+                      <img 
+                        src={method.iconUrl} 
+                        alt={method.nameArabic}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.parentElement!.innerHTML = '<div class="w-full h-full bg-muted flex items-center justify-center"><svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg></div>';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <Wallet className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    )}
                   </div>
-                  <span className="text-sm font-medium text-foreground">
+                  <span className="text-sm font-medium text-foreground text-center">
                     {method.nameArabic}
                   </span>
                 </button>
