@@ -29,10 +29,6 @@ interface RequiredField {
   optional?: boolean;
 }
 
-// Helper function to check if iconUrl is a path to an image
-const isImagePath = (iconUrl: string) => {
-  return iconUrl.startsWith('/') || iconUrl.startsWith('http');
-};
 
 const PayoutRequest = () => {
   const navigate = useNavigate();
@@ -407,7 +403,7 @@ const PayoutRequest = () => {
           <div className="p-4 bg-green-500/10 rounded-xl border border-green-500/30">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                <img src="/wallets/usdt.png" alt="USDT" className="w-6 h-6" />
+                <Wallet className="w-5 h-5 text-green-500" />
               </div>
               <div>
                 <p className="text-sm font-bold text-green-600 dark:text-green-400 mb-1">
@@ -422,64 +418,27 @@ const PayoutRequest = () => {
           </div>
         )}
 
-        {/* Payout Method Selection */}
+        {/* Payout Method Selection - Dropdown */}
         {selectedCountry && (
           <div>
-            <label className="block text-sm font-medium text-foreground mb-3">
+            <label className="block text-sm font-medium text-foreground mb-2">
               طريقة الصرف <span className="text-destructive">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <select
+              value={selectedMethod?.name || selectedMethod?.nameArabic || ''}
+              onChange={(e) => handleMethodChange(e.target.value)}
+              className="input-field"
+            >
+              <option value="">اختر طريقة الصرف</option>
               {selectedCountry.methods.map((method) => {
                 const methodName = method.name || method.nameArabic || '';
-                const isSelected = (selectedMethod?.name || selectedMethod?.nameArabic) === methodName;
                 return (
-                  <button
-                    key={methodName}
-                    type="button"
-                    onClick={() => handleMethodChange(methodName)}
-                    className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 relative ${
-                      isSelected
-                        ? 'border-primary bg-primary/5'
-                        : method.recommended
-                        ? 'border-green-500/50 bg-green-500/5 hover:border-green-500'
-                        : 'border-border hover:border-primary/30'
-                    }`}
-                  >
-                    {/* Recommended Badge */}
-                    {method.recommended && (
-                      <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                        موصى به
-                      </div>
-                    )}
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden ${
-                      isSelected
-                        ? 'ring-2 ring-primary ring-offset-2'
-                        : ''
-                    }`}>
-                      {isImagePath(method.iconUrl) ? (
-                        <img 
-                          src={method.iconUrl} 
-                          alt={methodName}
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            target.parentElement!.innerHTML = '<div class="w-full h-full bg-muted flex items-center justify-center"><svg class="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg></div>';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <Wallet className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-foreground text-center">
-                      {methodName}
-                    </span>
-                  </button>
+                  <option key={methodName} value={methodName}>
+                    {methodName} {method.recommended ? '⭐ موصى به' : ''}
+                  </option>
                 );
               })}
-            </div>
+            </select>
           </div>
         )}
 
