@@ -147,6 +147,83 @@
     }
   }
 
+  @keyframes float-up {
+    0% {
+      transform: translateY(100vh) rotate(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.6;
+    }
+    90% {
+      opacity: 0.6;
+    }
+    100% {
+      transform: translateY(-100px) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes bounce-subtle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  .animate-float-up {
+    animation: float-up linear infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsla(145, 70%, 45%, 0.3),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
+  }
+
+  .promo-banner {
+    @apply relative overflow-hidden rounded-2xl p-4 text-center;
+    background: linear-gradient(135deg, 
+      hsla(145, 70%, 45%, 0.15), 
+      hsla(145, 75%, 50%, 0.05)
+    );
+    border: 1px solid hsla(145, 70%, 45%, 0.2);
+  }
+
+  .promo-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsla(145, 70%, 45%, 0.1),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+
   .glass-card {
     @apply bg-card/80 backdrop-blur-md border border-border/50 rounded-2xl;
     box-shadow: var(--shadow-md);
