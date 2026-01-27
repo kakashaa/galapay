@@ -284,7 +284,7 @@ const PayoutRequest = () => {
         {/* Amount */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">
-            المبلغ المراد صرفه (USD) <span className="text-destructive">*</span>
+            المبلغ الذي تريد استلامه بالدولار <span className="text-destructive">*</span>
           </label>
           <input
             type="number"
@@ -295,7 +295,31 @@ const PayoutRequest = () => {
             onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
             className="input-field"
             placeholder="0.00"
+            dir="ltr"
           />
+          
+          {/* SAR Conversion Display */}
+          {formData.amount && parseFloat(formData.amount) > 0 && (
+            <div className="mt-3 p-3 bg-primary/5 rounded-xl border border-primary/20">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">ما يعادل بالريال السعودي:</span>
+                <span className="text-lg font-bold text-primary" dir="ltr">
+                  {(parseFloat(formData.amount) * 3.75).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Transfer Fees Notice */}
+          <div className="mt-3 p-3 bg-warning/10 rounded-xl border border-warning/20">
+            <p className="text-sm text-warning-foreground">
+              <strong>ملاحظة:</strong> سيتم خصم رسوم التحويل من المبلغ:
+            </p>
+            <ul className="text-xs text-muted-foreground mt-2 space-y-1 list-disc list-inside">
+              <li>اليمن أو السعودية: <span className="font-bold text-foreground">3%</span></li>
+              <li>باقي الدول: <span className="font-bold text-foreground">10%</span></li>
+            </ul>
+          </div>
         </div>
 
         {/* Receipt Upload */}
