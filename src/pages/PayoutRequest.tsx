@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Upload, X, Loader2, Wallet } from 'lucide-react';
+import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, DollarSign, MapPin, CreditCard, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Country {
   id: string;
@@ -16,7 +23,8 @@ interface PayoutMethod {
   name: string;
   nameArabic?: string;
   iconUrl: string;
-  requiredFields: RequiredField[];
+  requiredFields?: RequiredField[];
+  fields?: RequiredField[];
   recommended?: boolean;
 }
 
@@ -27,8 +35,8 @@ interface RequiredField {
   type: string;
   placeholder?: string;
   optional?: boolean;
+  required?: boolean;
 }
-
 
 const PayoutRequest = () => {
   const navigate = useNavigate();
@@ -38,6 +46,7 @@ const PayoutRequest = () => {
   const [selectedMethod, setSelectedMethod] = useState<PayoutMethod | null>(null);
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const [formData, setFormData] = useState({
     zalalLifeAccountId: '',
@@ -111,10 +120,15 @@ const PayoutRequest = () => {
     setFormData(prev => ({ ...prev, methodFields: {} }));
   };
 
-  
   // Countries with USDT recommendation notice
   const usdtRecommendedCountries = ['EG', 'DZ', 'MA', 'TN', 'JO'];
   const showUSDTNotice = selectedCountry && usdtRecommendedCountries.includes(selectedCountry.country_code);
+
+  // Get method fields (support both requiredFields and fields)
+  const getMethodFields = (method: PayoutMethod | null) => {
+    if (!method) return [];
+    return method.requiredFields || method.fields || [];
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +154,6 @@ const PayoutRequest = () => {
     setLoading(true);
 
     try {
-      // Upload image first
       const fileExt = receiptImage.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       
@@ -154,13 +167,11 @@ const PayoutRequest = () => {
         .from('receipts')
         .getPublicUrl(`user-receipts/${fileName}`);
 
-      // Generate tracking code
       const { data: trackingData, error: trackingError } = await supabase
         .rpc('generate_tracking_code');
 
       if (trackingError) throw trackingError;
 
-      // Validate receipt with AI - pass the expected amount and details
       const { data: aiResult } = await supabase.functions.invoke('validate-receipt', {
         body: { 
           imageUrl: urlData.publicUrl,
@@ -169,13 +180,12 @@ const PayoutRequest = () => {
             trackingCode: trackingData,
             recipientName: formData.recipientFullName,
             country: selectedCountry.country_name_arabic,
-            payoutMethod: selectedMethod.nameArabic,
+            payoutMethod: selectedMethod.nameArabic || selectedMethod.name,
             phoneNumber: formData.phoneNumber,
           }
         }
       });
 
-      // If AI validation failed, show error and stop
       if (aiResult?.status === 'fail') {
         toast({
           title: 'الإيصال غير صالح',
@@ -186,7 +196,6 @@ const PayoutRequest = () => {
         return;
       }
 
-      // Create payout request only if validation passed
       const { error: requestError } = await supabase
         .from('payout_requests')
         .insert({
@@ -223,278 +232,509 @@ const PayoutRequest = () => {
     }
   };
 
+  // Progress steps
+  const steps = [
+    { id: 1, title: 'معلوماتك', icon: User },
+    { id: 2, title: 'المبلغ', icon: DollarSign },
+    { id: 3, title: 'الاستلام', icon: MapPin },
+    { id: 4, title: 'التأكيد', icon: CheckCircle2 },
+  ];
+
+  const isStep1Complete = formData.zalalLifeAccountId && formData.recipientFullName;
+  const isStep2Complete = formData.amount && parseFloat(formData.amount) > 0 && receiptImage;
+  const isStep3Complete = selectedCountry && selectedMethod && formData.phoneNumber;
+
   return (
     <div className="min-h-screen bg-background pb-8">
       {/* Header */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border p-4 z-10">
-        <div className="flex items-center gap-3 max-w-md mx-auto">
-          <button
-            onClick={() => navigate('/confirm')}
-            className="p-2 -mr-2"
-          >
-            <ArrowRight className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <h1 className="text-xl font-bold text-foreground">طلب صرف جديد</h1>
+      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+        <div className="max-w-md mx-auto p-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/confirm')}
+              className="p-2 -mr-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <ArrowRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+            <h1 className="text-xl font-bold text-foreground">طلب صرف جديد</h1>
+          </div>
+          
+          {/* Progress Steps */}
+          <div className="flex items-center justify-between mt-4 px-2">
+            {steps.map((step, index) => (
+              <div key={step.id} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    currentStep >= step.id 
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' 
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    <step.icon className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] mt-1 font-medium ${
+                    currentStep >= step.id ? 'text-primary' : 'text-muted-foreground'
+                  }`}>
+                    {step.title}
+                  </span>
+                </div>
+                {index < steps.length - 1 && (
+                  <div className={`w-8 h-0.5 mx-1 transition-colors duration-300 ${
+                    currentStep > step.id ? 'bg-primary' : 'bg-muted'
+                  }`} />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 max-w-md mx-auto space-y-5">
-        {/* Ghala Life Account ID */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            ايدي حسابك في غلا لايف <span className="text-destructive">*</span>
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.zalalLifeAccountId}
-            onChange={(e) => setFormData(prev => ({ ...prev, zalalLifeAccountId: e.target.value }))}
-            className="input-field"
-            placeholder="أدخل ايدي الحساب"
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="max-w-md mx-auto">
+        {/* Step 1: Personal Info */}
+        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 1 ? 'block' : 'hidden'}`}>
+          <div className="bg-card rounded-2xl p-5 border border-border space-y-5">
+            <div className="flex items-center gap-3 pb-3 border-b border-border">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-bold text-foreground">معلومات الحساب</h2>
+                <p className="text-xs text-muted-foreground">بيانات حسابك في غلا لايف</p>
+              </div>
+            </div>
 
-        {/* Ghala Life Username */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            اسم حسابك في غلا لايف <span className="text-muted-foreground">(اختياري)</span>
-          </label>
-          <input
-            type="text"
-            value={formData.zalalLifeUsername}
-            onChange={(e) => setFormData(prev => ({ ...prev, zalalLifeUsername: e.target.value }))}
-            className="input-field"
-            placeholder="اسم الحساب"
-          />
-        </div>
+            {/* Account ID */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">1</span>
+                ايدي حسابك في غلا لايف
+                <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={formData.zalalLifeAccountId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, zalalLifeAccountId: e.target.value }))}
+                  className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
+                  placeholder="أدخل ايدي الحساب"
+                />
+                {formData.zalalLifeAccountId && (
+                  <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
+                )}
+              </div>
+            </div>
 
-        {/* Recipient Full Name */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            اسم المستلم الكامل (3-4 أجزاء) <span className="text-destructive">*</span>
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.recipientFullName}
-            onChange={(e) => setFormData(prev => ({ ...prev, recipientFullName: e.target.value }))}
-            className="input-field"
-            placeholder="الاسم الرباعي كما في الهوية"
-          />
-        </div>
+            {/* Username */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-muted text-muted-foreground text-xs flex items-center justify-center font-bold">2</span>
+                اسم حسابك
+                <span className="text-muted-foreground text-xs">(اختياري)</span>
+              </label>
+              <input
+                type="text"
+                value={formData.zalalLifeUsername}
+                onChange={(e) => setFormData(prev => ({ ...prev, zalalLifeUsername: e.target.value }))}
+                className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
+                placeholder="اسم الحساب"
+              />
+            </div>
 
-        {/* Amount Section */}
-        <div className="space-y-4">
-          <label className="block text-sm font-medium text-foreground">
-            المبلغ الذي تريد استلامه بالدولار <span className="text-destructive">*</span>
-          </label>
-          
-          {/* Amount Input with USD label */}
-          <div className="relative">
-            <input
-              type="number"
-              required
-              min="1"
-              step="0.01"
-              value={formData.amount}
-              onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-              className="input-field text-xl font-bold pl-16"
-              placeholder="0.00"
-              dir="ltr"
-            />
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
-              USD
-            </span>
+            {/* Recipient Name */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">3</span>
+                اسم المستلم الكامل
+                <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={formData.recipientFullName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, recipientFullName: e.target.value }))}
+                  className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
+                  placeholder="الاسم الرباعي كما في الهوية"
+                />
+                {formData.recipientFullName && (
+                  <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">يجب أن يكون 3-4 أجزاء مطابقاً للهوية</p>
+            </div>
           </div>
-          
-          {/* SAR Conversion Display */}
-          {formData.amount && parseFloat(formData.amount) > 0 && (
-            <div className="p-4 bg-primary/10 rounded-xl border border-primary/30">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">ما يعادل بالريال السعودي</span>
-                <div className="flex items-baseline gap-2" dir="ltr">
-                  <span className="text-2xl font-bold text-primary">
-                    {(parseFloat(formData.amount) * 3.70).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                  <span className="text-sm font-medium text-primary/70">SAR</span>
+
+          <button
+            type="button"
+            onClick={() => isStep1Complete && setCurrentStep(2)}
+            disabled={!isStep1Complete}
+            className="w-full py-4 rounded-xl font-bold text-lg bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-primary/90 active:scale-[0.98]"
+          >
+            التالي
+          </button>
+        </div>
+
+        {/* Step 2: Amount & Receipt */}
+        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 2 ? 'block' : 'hidden'}`}>
+          <div className="bg-card rounded-2xl p-5 border border-border space-y-5">
+            <div className="flex items-center gap-3 pb-3 border-b border-border">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-bold text-foreground">المبلغ والإيصال</h2>
+                <p className="text-xs text-muted-foreground">أدخل المبلغ وارفق إيصال التحويل</p>
+              </div>
+            </div>
+
+            {/* Amount Input */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground">
+                المبلغ بالدولار <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                  className="w-full px-4 py-5 text-3xl font-bold rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors text-center"
+                  placeholder="0.00"
+                  dir="ltr"
+                />
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-primary">
+                  USD
+                </span>
+              </div>
+
+              {/* SAR Conversion */}
+              {formData.amount && parseFloat(formData.amount) > 0 && (
+                <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">يعادل بالريال</span>
+                    <div className="text-left" dir="ltr">
+                      <span className="text-2xl font-bold text-primary">
+                        {(parseFloat(formData.amount) * 3.70).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-sm text-primary/70 mr-1">SAR</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Fees */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/30 rounded-xl p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">اليمن / السعودية</p>
+                  <p className="text-lg font-bold text-primary">3%</p>
+                </div>
+                <div className="bg-muted/30 rounded-xl p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">دول أخرى</p>
+                  <p className="text-lg font-bold text-warning">10%</p>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Transfer Fees Notice */}
-          <div className="p-4 bg-muted/50 rounded-xl border border-border">
-            <p className="text-sm font-medium text-foreground mb-2">
-              ⚠️ رسوم التحويل:
-            </p>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary"></span>
-                <span className="text-muted-foreground">اليمن / السعودية:</span>
-                <span className="font-bold text-foreground">3%</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-warning"></span>
-                <span className="text-muted-foreground">دول أخرى:</span>
-                <span className="font-bold text-foreground">10%</span>
-              </div>
+            {/* Receipt Upload */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground">
+                صورة إيصال التحويل <span className="text-destructive">*</span>
+              </label>
+              
+              {receiptPreview ? (
+                <div className="relative rounded-xl overflow-hidden border-2 border-primary">
+                  <img
+                    src={receiptPreview}
+                    alt="Receipt preview"
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-3 right-3 flex items-center gap-2 text-white text-sm">
+                    <CheckCircle2 className="w-5 h-5 text-primary" />
+                    تم رفع الإيصال
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-3 left-3 p-2 bg-destructive text-white rounded-full shadow-lg hover:bg-destructive/90 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center h-44 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <Upload className="w-7 h-7 text-primary" />
+                  </div>
+                  <span className="font-medium text-foreground">اضغط لرفع الإيصال</span>
+                  <span className="text-xs text-muted-foreground mt-1">PNG, JPG حتى 5MB</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
             </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(1)}
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-muted text-foreground transition-all hover:bg-muted/80 active:scale-[0.98]"
+            >
+              السابق
+            </button>
+            <button
+              type="button"
+              onClick={() => isStep2Complete && setCurrentStep(3)}
+              disabled={!isStep2Complete}
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-primary/90 active:scale-[0.98]"
+            >
+              التالي
+            </button>
           </div>
         </div>
 
-        {/* Receipt Upload */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            صورة إيصال التحويل <span className="text-destructive">*</span>
-          </label>
-          
-          {receiptPreview ? (
-            <div className="relative">
-              <img
-                src={receiptPreview}
-                alt="Receipt preview"
-                className="w-full h-48 object-cover rounded-xl border border-border"
-              />
-              <button
-                type="button"
-                onClick={removeImage}
-                className="absolute top-2 left-2 p-2 bg-destructive text-destructive-foreground rounded-full"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 transition-colors">
-              <Upload className="w-10 h-10 text-muted-foreground mb-2" />
-              <span className="text-muted-foreground">اضغط لرفع الصورة</span>
-              <span className="text-xs text-muted-foreground mt-1">الحد الأقصى: 5 ميجابايت</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </label>
-          )}
-        </div>
-
-        {/* Country Selection */}
-        <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            بلد الاستلام <span className="text-destructive">*</span>
-          </label>
-          <select
-            required
-            value={selectedCountry?.id || ''}
-            onChange={(e) => handleCountryChange(e.target.value)}
-            className="input-field"
-          >
-            <option value="">اختر البلد</option>
-            {countries.map((country) => (
-              <option key={country.id} value={country.id}>
-                {country.country_name_arabic} ({country.dial_code})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* USDT Recommendation Notice */}
-        {showUSDTNotice && (
-          <div className="p-4 bg-green-500/10 rounded-xl border border-green-500/30">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                <Wallet className="w-5 h-5 text-green-500" />
+        {/* Step 3: Payout Details */}
+        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 3 ? 'block' : 'hidden'}`}>
+          <div className="bg-card rounded-2xl p-5 border border-border space-y-5">
+            <div className="flex items-center gap-3 pb-3 border-b border-border">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-bold text-green-600 dark:text-green-400 mb-1">
-                  💡 ننصح باستخدام USDT (ERC20)
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  لتحويل أسرع وأسهل إلى بلدك، يفضل استخدام محفظة USDT على شبكة ERC20.
-                  الطرق الأخرى متاحة ولكن قد تستغرق وقتاً أطول.
-                </p>
+                <h2 className="font-bold text-foreground">بيانات الاستلام</h2>
+                <p className="text-xs text-muted-foreground">اختر البلد وطريقة الصرف</p>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Payout Method Selection - Dropdown */}
-        {selectedCountry && (
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              طريقة الصرف <span className="text-destructive">*</span>
-            </label>
-            <select
-              value={selectedMethod?.name || selectedMethod?.nameArabic || ''}
-              onChange={(e) => handleMethodChange(e.target.value)}
-              className="input-field"
+            {/* Country Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                بلد الاستلام <span className="text-destructive">*</span>
+              </label>
+              <Select value={selectedCountry?.id || ''} onValueChange={handleCountryChange}>
+                <SelectTrigger className="w-full h-14 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary">
+                  <SelectValue placeholder="اختر البلد" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border border-border rounded-xl shadow-xl">
+                  {countries.map((country) => (
+                    <SelectItem 
+                      key={country.id} 
+                      value={country.id}
+                      className="py-3 cursor-pointer hover:bg-muted focus:bg-muted"
+                    >
+                      <span className="font-medium">{country.country_name_arabic}</span>
+                      <span className="text-muted-foreground mr-2">({country.dial_code})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* USDT Notice */}
+            {showUSDTNotice && (
+              <div className="bg-gradient-to-r from-green-500/10 to-green-500/5 rounded-xl p-4 border border-green-500/20">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <Wallet className="w-5 h-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-green-400 mb-1">💡 ننصح باستخدام USDT</p>
+                    <p className="text-xs text-muted-foreground">
+                      للتحويل الأسرع، استخدم محفظة USDT على شبكة ERC20
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Payout Method */}
+            {selectedCountry && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  طريقة الصرف <span className="text-destructive">*</span>
+                </label>
+                <Select 
+                  value={selectedMethod?.name || selectedMethod?.nameArabic || ''} 
+                  onValueChange={handleMethodChange}
+                >
+                  <SelectTrigger className="w-full h-14 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary">
+                    <SelectValue placeholder="اختر طريقة الصرف" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border border-border rounded-xl shadow-xl max-h-72">
+                    {selectedCountry.methods.map((method) => {
+                      const methodName = method.name || method.nameArabic || '';
+                      return (
+                        <SelectItem 
+                          key={methodName} 
+                          value={methodName}
+                          className="py-3 cursor-pointer hover:bg-muted focus:bg-muted"
+                        >
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium">{methodName}</span>
+                            {method.recommended && (
+                              <span className="bg-green-500/20 text-green-400 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                                ⭐ موصى به
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Phone Number */}
+            {selectedCountry && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground" />
+                  رقم الهاتف <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                  className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
+                  placeholder={selectedCountry.dial_code}
+                  dir="ltr"
+                />
+              </div>
+            )}
+
+            {/* Dynamic Method Fields */}
+            {getMethodFields(selectedMethod).map((field) => (
+              <div key={field.name} className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  {field.label || field.labelArabic}
+                  {(field.required !== false && !field.optional) && <span className="text-destructive"> *</span>}
+                </label>
+                <input
+                  type={field.type}
+                  required={field.required !== false && !field.optional}
+                  value={formData.methodFields[field.name] || ''}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    methodFields: { ...prev.methodFields, [field.name]: e.target.value }
+                  }))}
+                  className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
+                  placeholder={field.placeholder || field.label || field.labelArabic}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(2)}
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-muted text-foreground transition-all hover:bg-muted/80 active:scale-[0.98]"
             >
-              <option value="">اختر طريقة الصرف</option>
-              {selectedCountry.methods.map((method) => {
-                const methodName = method.name || method.nameArabic || '';
-                return (
-                  <option key={methodName} value={methodName}>
-                    {methodName} {method.recommended ? '⭐ موصى به' : ''}
-                  </option>
-                );
-              })}
-            </select>
+              السابق
+            </button>
+            <button
+              type="button"
+              onClick={() => isStep3Complete && setCurrentStep(4)}
+              disabled={!isStep3Complete}
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-primary/90 active:scale-[0.98]"
+            >
+              التالي
+            </button>
           </div>
-        )}
+        </div>
 
-        {/* Phone Number */}
-        {selectedCountry && (
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              رقم الهاتف <span className="text-destructive">*</span>
-            </label>
-            <input
-              type="tel"
-              required
-              value={formData.phoneNumber}
-              onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
-              className="input-field"
-              placeholder={selectedCountry.dial_code}
-              dir="ltr"
-            />
+        {/* Step 4: Confirmation */}
+        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 4 ? 'block' : 'hidden'}`}>
+          <div className="bg-card rounded-2xl p-5 border border-border space-y-4">
+            <div className="flex items-center gap-3 pb-3 border-b border-border">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-bold text-foreground">تأكيد الطلب</h2>
+                <p className="text-xs text-muted-foreground">راجع البيانات قبل الإرسال</p>
+              </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="space-y-3">
+              {/* Amount Card */}
+              <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">المبلغ</span>
+                  <span className="text-2xl font-bold text-primary" dir="ltr">
+                    ${formData.amount || '0'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Details */}
+              <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-sm text-muted-foreground">ايدي الحساب</span>
+                  <span className="font-medium">{formData.zalalLifeAccountId || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-sm text-muted-foreground">اسم المستلم</span>
+                  <span className="font-medium">{formData.recipientFullName || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-sm text-muted-foreground">بلد الاستلام</span>
+                  <span className="font-medium">{selectedCountry?.country_name_arabic || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-sm text-muted-foreground">طريقة الصرف</span>
+                  <span className="font-medium">{selectedMethod?.name || selectedMethod?.nameArabic || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-muted-foreground">رقم الهاتف</span>
+                  <span className="font-medium" dir="ltr">{formData.phoneNumber || '-'}</span>
+                </div>
+              </div>
+
+              {/* Receipt Preview */}
+              {receiptPreview && (
+                <div className="rounded-xl overflow-hidden border border-border">
+                  <img src={receiptPreview} alt="Receipt" className="w-full h-32 object-cover" />
+                </div>
+              )}
+            </div>
           </div>
-        )}
 
-        {/* Dynamic Method Fields */}
-        {selectedMethod?.requiredFields.map((field) => (
-          <div key={field.name}>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              {field.label || field.labelArabic} {!field.optional && <span className="text-destructive">*</span>}
-            </label>
-            <input
-              type={field.type}
-              required={!field.optional}
-              value={formData.methodFields[field.name] || ''}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                methodFields: { ...prev.methodFields, [field.name]: e.target.value }
-              }))}
-              className="input-field"
-              placeholder={field.placeholder || field.label || field.labelArabic}
-            />
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(3)}
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-muted text-foreground transition-all hover:bg-muted/80 active:scale-[0.98]"
+            >
+              تعديل
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-primary/90 active:scale-[0.98] shadow-lg shadow-primary/30"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  جاري الإرسال...
+                </span>
+              ) : (
+                'إرسال الطلب'
+              )}
+            </button>
           </div>
-        ))}
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="mobile-btn-primary mt-8"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 inline-block animate-spin ml-2" />
-              جاري الإرسال...
-            </>
-          ) : (
-            'إرسال الطلب'
-          )}
-        </button>
+        </div>
       </form>
     </div>
   );
