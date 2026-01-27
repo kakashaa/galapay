@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Search, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Wallet, Search, AlertCircle, CheckCircle2, FileText } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { MyRequestsSheet } from '@/components/MyRequestsSheet';
+import { useSavedRequests } from '@/hooks/use-saved-requests';
 
 const Index = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [myRequestsOpen, setMyRequestsOpen] = useState(false);
+  const { hasSavedRequests } = useSavedRequests();
 
   const handleProceed = () => {
     setIsOpen(false);
@@ -103,10 +107,24 @@ const Index = () => {
         </SheetContent>
       </Sheet>
 
+      {/* My Requests Button - Only show if user has saved requests */}
+      {hasSavedRequests && (
+        <button
+          onClick={() => setMyRequestsOpen(true)}
+          className="mt-8 flex items-center gap-2 px-6 py-3 bg-primary/10 text-primary rounded-xl font-medium transition-all hover:bg-primary/20"
+        >
+          <FileText className="w-5 h-5" />
+          طلباتي السابقة
+        </button>
+      )}
+
       {/* Bottom hint */}
-      <p className="text-muted-foreground text-xs mt-10 text-center">
+      <p className="text-muted-foreground text-xs mt-6 text-center">
         اضغط على الزر للبدء
       </p>
+
+      {/* My Requests Sheet */}
+      <MyRequestsSheet open={myRequestsOpen} onOpenChange={setMyRequestsOpen} />
     </div>
   );
 };

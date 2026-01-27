@@ -1,11 +1,21 @@
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { CheckCircle2, Copy, AlertTriangle, Search } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useSavedRequests } from '@/hooks/use-saved-requests';
 
 const Success = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { saveTrackingCode } = useSavedRequests();
   const trackingCode = location.state?.trackingCode;
+
+  // Save tracking code to localStorage when page loads
+  useEffect(() => {
+    if (trackingCode) {
+      saveTrackingCode(trackingCode);
+    }
+  }, [trackingCode, saveTrackingCode]);
 
   if (!trackingCode) {
     return <Navigate to="/" replace />;
