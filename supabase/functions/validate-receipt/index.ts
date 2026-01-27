@@ -288,7 +288,7 @@ serve(async (req) => {
     }
 
     // Check for duplicate reference number in database
-    // Reject only if the reference number exists for a DIFFERENT account.
+    // STRICT: Reject ANY duplicate reference number regardless of account
     if (validationResult.status === 'pass' && expectedReferenceNumber) {
       const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -296,34 +296,21 @@ serve(async (req) => {
       if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         
-        const { data: existingRequest, error: dbError } = await supabase
+        // Check if this reference number exists in ANY previous request
+        const { data: existingRequests, error: dbError } = await supabase
           .from('payout_requests')
-          .select('id, tracking_code, zalal_life_account_id')
-          .eq('reference_number', expectedReferenceNumber)
-          .maybeSingle();
+          .select('id, tracking_code')
+          .eq('reference_number', expectedReferenceNumber);
         
         if (dbError) {
           console.error('Database error checking duplicate:', dbError);
-        } else if (existingRequest) {
-          const currentAccountId = (requestDetails?.zalalLifeAccountId || '').trim();
-          const existingAccountId = (existingRequest.zalal_life_account_id || '').trim();
-
-          // If we can't compare, stay conservative and reject
-          if (!currentAccountId || !existingAccountId) {
-            console.log('Duplicate reference number found (missing account id context):', expectedReferenceNumber);
-            validationResult = {
-              status: 'fail',
-              notes: `الرقم المرجعي "${expectedReferenceNumber}" مستخدم مسبقاً.`,
-              extractedData: validationResult.extractedData
-            };
-          } else if (existingAccountId !== currentAccountId) {
-            console.log('Duplicate reference number found for different account:', expectedReferenceNumber);
-            validationResult = {
-              status: 'fail',
-              notes: `الرقم المرجعي "${expectedReferenceNumber}" مستخدم مسبقاً من حساب آخر. لا يمكن استخدام نفس الرقم مرتين.`,
-              extractedData: validationResult.extractedData
-            };
-          }
+        } else if (existingRequests && existingRequests.length > 0) {
+          console.log('Duplicate reference number found:', expectedReferenceNumber, 'in', existingRequests.length, 'requests');
+          validationResult = {
+            status: 'fail',
+            notes: `هذا الطلب مرفوع مسبقاً. الرقم المرجعي "${expectedReferenceNumber}" مستخدم في طلب سابق.`,
+            extractedData: validationResult.extractedData
+          };
         }
       }
     }
