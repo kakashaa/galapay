@@ -5,12 +5,24 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
 import { useSavedRequests } from '@/hooks/use-saved-requests';
 import { FlyingMoney } from '@/components/FlyingMoney';
+import { PayoutDisabledDialog } from '@/components/PayoutDisabledDialog';
+import { usePayoutSettings } from '@/hooks/use-payout-settings';
 
 const Index = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [myRequestsOpen, setMyRequestsOpen] = useState(false);
+  const [disabledDialogOpen, setDisabledDialogOpen] = useState(false);
   const { hasSavedRequests } = useSavedRequests();
+  const { payoutEnabled, nextPayoutDate, loading: settingsLoading } = usePayoutSettings();
+
+  const handleMainButtonClick = () => {
+    if (!payoutEnabled) {
+      setDisabledDialogOpen(true);
+    } else {
+      setIsOpen(true);
+    }
+  };
 
   const handleProceed = () => {
     setIsOpen(false);
@@ -61,13 +73,17 @@ const Index = () => {
       </div>
 
       {/* Halo Button */}
+      <button 
+        onClick={handleMainButtonClick}
+        className="halo-button w-36 h-36 flex flex-col items-center justify-center cursor-pointer z-10"
+        disabled={settingsLoading}
+      >
+        <Wallet className="w-12 h-12 mb-2" />
+        <span className="text-lg font-bold">طلب صرف</span>
+      </button>
+
+      {/* Bottom Sheet - Only shows when payout is enabled */}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetTrigger asChild>
-          <button className="halo-button w-36 h-36 flex flex-col items-center justify-center cursor-pointer z-10">
-            <Wallet className="w-12 h-12 mb-2" />
-            <span className="text-lg font-bold">طلب صرف</span>
-          </button>
-        </SheetTrigger>
         
         <SheetContent side="bottom" className="bottom-sheet h-auto max-h-[80vh] overflow-y-auto p-0">
           {/* Handle */}
@@ -149,6 +165,13 @@ const Index = () => {
 
       {/* My Requests Sheet */}
       <MyRequestsSheet open={myRequestsOpen} onOpenChange={setMyRequestsOpen} />
+
+      {/* Payout Disabled Dialog */}
+      <PayoutDisabledDialog 
+        open={disabledDialogOpen} 
+        onOpenChange={setDisabledDialogOpen}
+        nextDate={nextPayoutDate}
+      />
     </div>
   );
 };

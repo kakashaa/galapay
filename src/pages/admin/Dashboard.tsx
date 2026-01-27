@@ -12,11 +12,14 @@ import {
   Filter,
   Trash2,
   User,
+  Power,
+  PowerOff,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import RequestDetailsModal from '@/components/admin/RequestDetailsModal';
 import { exportToExcel } from '@/lib/excel-export';
+import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import {
   Select,
   SelectContent,
@@ -24,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 interface PayoutRequest {
   id: string;
@@ -44,11 +48,6 @@ interface PayoutRequest {
   processed_at: string | null;
 }
 
-interface AdminUser {
-  id: string;
-  username: string;
-}
-
 interface Stats {
   total: number;
   pending: number;
@@ -56,10 +55,6 @@ interface Stats {
   rejected: number;
   totalPending: number;
   totalPaid: number;
-}
-
-interface UserRole {
-  role: 'admin' | 'staff' | 'super_admin';
 }
 
 const statusLabels = {
@@ -85,6 +80,8 @@ const AdminDashboard = () => {
     search: '',
     payoutMethod: 'all',
   });
+  const { payoutEnabled, updateSettings } = usePayoutSettings();
+  const [updatingPayoutStatus, setUpdatingPayoutStatus] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -289,6 +286,36 @@ const AdminDashboard = () => {
     return adminUsers.get(processedBy) || 'مدير';
   };
 
+  const handleTogglePayoutStatus = async () => {
+    if (userRole !== 'super_admin') {
+      toast({
+        title: 'غير مصرح',
+        description: 'فقط المسؤول يمكنه تغيير حالة رفع الراتب',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUpdatingPayoutStatus(true);
+    const result = await updateSettings({ enabled: !payoutEnabled });
+    setUpdatingPayoutStatus(false);
+
+    if (result.success) {
+      toast({
+        title: payoutEnabled ? 'تم إيقاف رفع الراتب' : 'تم تفعيل رفع الراتب',
+        description: payoutEnabled 
+          ? 'لن يتمكن المستخدمون من رفع طلبات جديدة' 
+          : 'يمكن للمستخدمين الآن رفع طلبات جديدة',
+      });
+    } else {
+      toast({
+        title: 'خطأ',
+        description: 'فشل في تحديث الإعدادات',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -302,13 +329,31 @@ const AdminDashboard = () => {
               </span>
             )}
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-foreground/10 rounded-lg hover:bg-primary-foreground/20 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>خروج</span>
-          </button>
+          <div className="flex items-center gap-4">
+            {/* Payout Toggle - Super Admin Only */}
+            {userRole === 'super_admin' && (
+              <div className="flex items-center gap-3 px-4 py-2 bg-primary-foreground/10 rounded-lg">
+                <span className="text-sm">رفع الراتب</span>
+                <Switch
+                  checked={payoutEnabled}
+                  onCheckedChange={handleTogglePayoutStatus}
+                  disabled={updatingPayoutStatus}
+                />
+                {payoutEnabled ? (
+                  <Power className="w-4 h-4 text-success" />
+                ) : (
+                  <PowerOff className="w-4 h-4 text-destructive" />
+                )}
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-foreground/10 rounded-lg hover:bg-primary-foreground/20 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>خروج</span>
+            </button>
+          </div>
         </div>
       </header>
 
