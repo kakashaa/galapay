@@ -8,6 +8,7 @@ const corsHeaders = {
 interface ValidationRequest {
   imageUrl: string;
   expectedAmount: number;
+  expectedReferenceNumber?: string;
   requestDetails?: {
     trackingCode?: string;
     recipientName: string;
@@ -24,6 +25,7 @@ interface ValidationResult {
     amount?: number;
     userId?: string;
     userName?: string;
+    referenceNumber?: string;
   };
 }
 
@@ -80,7 +82,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, expectedAmount, requestDetails }: ValidationRequest = await req.json();
+    const { imageUrl, expectedAmount, expectedReferenceNumber, requestDetails }: ValidationRequest = await req.json();
     
     if (!imageUrl) {
       return new Response(
@@ -117,12 +119,14 @@ serve(async (req) => {
 
 مهمتك هي تحليل صورة الإيصال والتحقق من المعايير التالية بدقة:
 
-1. هل الصورة تظهر إيصال تحويل ناجح (Transfer Successful)؟
-2. هل User ID = 10000 (هذا هو معرف الوكالة)؟
-3. هل User Name يحتوي على "غلا لايف" أو "Ghala Life" أو ما شابه؟
-4. ما هو مبلغ التحويل (Transfer Amount) الظاهر في الإيصال؟
+1. هل الصورة تظهر إيصال تحويل ناجح (نجاح التحويل / Transfer Successful)؟
+2. هل معرف المستخدم (User ID / معرف المستخدم) = 10000 (هذا هو معرف الوكالة)؟
+3. هل اسم المستخدم (User Name / اسم المستخدم) يحتوي على "غلا لايف" أو "Ghala Life"؟
+4. ما هو مبلغ التحويل (Transfer Amount / مبلغ التحويل) الظاهر في الإيصال؟
+5. ما هو الرقم المرجعي (Reference Number / الرقم المرجعي) في الإيصال؟
 
 المبلغ المتوقع من المستخدم: $${expectedAmount || 'غير محدد'}
+الرقم المرجعي المتوقع: ${expectedReferenceNumber || 'غير محدد'}
 
 يجب أن ترد بـ JSON فقط بهذا الشكل (بدون أي نص آخر):
 {
@@ -131,16 +135,18 @@ serve(async (req) => {
   "extractedData": {
     "amount": الرقم المستخرج من الإيصال,
     "userId": "معرف المستخدم المستخرج",
-    "userName": "اسم المستخدم المستخرج"
+    "userName": "اسم المستخدم المستخرج",
+    "referenceNumber": "الرقم المرجعي المستخرج"
   }
 }
 
-قواعد القبول والرفض:
-- إذا كان User ID ليس 10000: ارفض وقل "User ID يجب أن يكون 10000"
-- إذا كان User Name لا يحتوي على غلا لايف: ارفض وقل "يجب التحويل إلى حساب غلا لايف"
-- إذا كان المبلغ لا يطابق المبلغ المتوقع: ارفض وقل "المبلغ في الإيصال لا يطابق المبلغ المدخل"
-- إذا لم تكن الصورة إيصال تحويل: ارفض وقل "الصورة ليست إيصال تحويل صالح"
-- إذا كان كل شيء صحيح: اقبل`
+قواعد القبول والرفض الصارمة:
+- إذا كان معرف المستخدم ليس 10000: ارفض وقل "معرف المستخدم يجب أن يكون 10000 - يجب التحويل لحساب غلا لايف"
+- إذا كان اسم المستخدم لا يحتوي على "غلا لايف" أو "غلا" أو "Ghala": ارفض وقل "يجب التحويل إلى حساب غلا لايف فقط"
+- إذا كان المبلغ لا يطابق المبلغ المتوقع: ارفض وقل "المبلغ في الإيصال ($X) لا يطابق المبلغ المدخل ($Y)"
+- إذا كان الرقم المرجعي في الإيصال لا يطابق الرقم المرجعي المدخل: ارفض وقل "الرقم المرجعي في الإيصال لا يطابق الرقم المدخل"
+- إذا لم تكن الصورة إيصال تحويل واضح: ارفض وقل "الصورة ليست إيصال تحويل صالح"
+- فقط إذا كان كل شيء صحيح (معرف 10000 + اسم غلا لايف + المبلغ مطابق + الرقم المرجعي مطابق): اقبل`
           },
           {
             role: 'user',

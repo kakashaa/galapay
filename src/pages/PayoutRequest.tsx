@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, DollarSign, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, DollarSign, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -50,6 +50,7 @@ const PayoutRequest = () => {
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [dailyLimitError, setDailyLimitError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     zalalLifeAccountId: '',
@@ -62,6 +63,7 @@ const PayoutRequest = () => {
   });
   const [referenceError, setReferenceError] = useState<string | null>(null);
   const [checkingReference, setCheckingReference] = useState(false);
+  const [showSampleReceipt, setShowSampleReceipt] = useState(false);
 
   useEffect(() => {
     fetchCountries();
@@ -159,6 +161,26 @@ const PayoutRequest = () => {
     }
   };
 
+  // Check daily limit - only 1 request per day per account ID
+  const checkDailyLimit = async (accountId: string): Promise<boolean> => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const { data, error } = await supabase
+      .from('payout_requests')
+      .select('id')
+      .eq('zalal_life_account_id', accountId.trim())
+      .gte('created_at', today.toISOString())
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error checking daily limit:', error);
+      return true; // Allow on error
+    }
+    
+    return !data; // Return true if no request found today
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -209,6 +231,18 @@ const PayoutRequest = () => {
       return;
     }
 
+    // Check daily limit
+    const canSubmit = await checkDailyLimit(formData.zalalLifeAccountId);
+    if (!canSubmit) {
+      setDailyLimitError('لقد قمت برفع طلب اليوم بالفعل. يمكنك رفع طلب واحد فقط يومياً.');
+      toast({
+        title: 'حد الطلبات اليومي',
+        description: 'يمكنك رفع طلب واحد فقط في اليوم',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Double-check reference number before submission
     const { data: existingRef } = await supabase
       .from('payout_requests')
@@ -246,10 +280,12 @@ const PayoutRequest = () => {
 
       if (trackingError) throw trackingError;
 
+      // Validate receipt with AI including reference number verification
       const { data: aiResult } = await supabase.functions.invoke('validate-receipt', {
         body: { 
           imageUrl: urlData.publicUrl,
           expectedAmount: parseFloat(formData.amount),
+          expectedReferenceNumber: formData.referenceNumber.trim(),
         }
       });
 
@@ -286,6 +322,12 @@ const PayoutRequest = () => {
 
       if (requestError) throw requestError;
 
+      // Get wallet number from method fields
+      const walletNumber = formData.methodFields?.walletNumber || 
+                          formData.methodFields?.wallet_number || 
+                          formData.methodFields?.رقم_المحفظة ||
+                          Object.values(formData.methodFields).find(v => v) || '';
+
       // Send Telegram notification after successful request creation
       await supabase.functions.invoke('send-telegram-notification', {
         body: {
@@ -300,6 +342,8 @@ const PayoutRequest = () => {
             payoutMethod: selectedMethod.nameArabic || selectedMethod.name,
             phoneNumber: formData.phoneNumber,
             referenceNumber: formData.referenceNumber.trim(),
+            walletNumber: walletNumber,
+            methodFields: formData.methodFields,
           }
         }
       });
@@ -318,16 +362,16 @@ const PayoutRequest = () => {
     }
   };
 
-  // Progress steps
+  // Progress steps - reordered: Receipt first
   const steps = [
-    { id: 1, title: 'معلوماتك', icon: User },
-    { id: 2, title: 'المبلغ', icon: DollarSign },
+    { id: 1, title: 'الإيصال', icon: Image },
+    { id: 2, title: 'معلوماتك', icon: User },
     { id: 3, title: 'الاستلام', icon: MapPin },
     { id: 4, title: 'التأكيد', icon: CheckCircle2 },
   ];
 
-  const isStep1Complete = formData.zalalLifeAccountId && formData.recipientFullName;
-  const isStep2Complete = formData.amount && parseFloat(formData.amount) > 0 && receiptImage && formData.referenceNumber && formData.referenceNumber.trim().length >= 3 && !referenceError;
+  const isStep1Complete = receiptImage && formData.referenceNumber && formData.referenceNumber.trim().length >= 3 && !referenceError && formData.amount && parseFloat(formData.amount) > 0;
+  const isStep2Complete = formData.zalalLifeAccountId && formData.recipientFullName;
   const isStep3Complete = selectedCountry && selectedMethod && formData.phoneNumber;
 
   return (
@@ -389,108 +433,67 @@ const PayoutRequest = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-        {/* Step 1: Personal Info */}
+        {/* Step 1: Receipt & Reference (MOVED TO FIRST) */}
         <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 1 ? 'block' : 'hidden'}`}>
           <div className="bg-card rounded-2xl p-5 border border-border space-y-5">
             <div className="flex items-center gap-3 pb-3 border-b border-border">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <User className="w-5 h-5 text-primary" />
+                <Image className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-bold text-foreground">معلومات الحساب</h2>
-                <p className="text-xs text-muted-foreground">بيانات حسابك في غلا لايف</p>
+                <h2 className="font-bold text-foreground">إيصال التحويل</h2>
+                <p className="text-xs text-muted-foreground">ارفع إيصال تحويلك لغلا لايف</p>
               </div>
             </div>
 
-            {/* Account ID */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">1</span>
-                ايدي حسابك في غلا لايف
-                <span className="text-destructive">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  value={formData.zalalLifeAccountId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, zalalLifeAccountId: e.target.value }))}
-                  className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
-                  placeholder="أدخل ايدي الحساب"
+            {/* Instructions Alert */}
+            <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 rounded-xl p-4 border border-blue-500/20">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  <Info className="w-5 h-5 text-blue-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-blue-400 mb-2">⚠️ تعليمات مهمة</p>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• حوّل المبلغ إلى حساب <span className="font-bold text-foreground">غلا لايف</span></li>
+                    <li>• معرف الحساب: <span className="font-bold text-primary">10000</span></li>
+                    <li>• الإيصال يجب أن يظهر اسم "غلا لايف" ومعرف 10000</li>
+                    <li>• أدخل الرقم المرجعي من الإيصال بالضبط</li>
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => setShowSampleReceipt(!showSampleReceipt)}
+                    className="mt-3 text-xs text-blue-400 font-medium underline"
+                  >
+                    {showSampleReceipt ? 'إخفاء نموذج الإيصال' : '📷 شاهد نموذج إيصال صحيح'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sample Receipt Preview */}
+            {showSampleReceipt && (
+              <div className="rounded-xl overflow-hidden border-2 border-blue-500/30 bg-blue-500/5">
+                <div className="bg-blue-500/20 px-3 py-2 text-center">
+                  <span className="text-xs font-bold text-blue-400">📋 نموذج إيصال صحيح</span>
+                </div>
+                <img
+                  src="/sample-receipt.jpeg"
+                  alt="نموذج إيصال"
+                  className="w-full object-contain max-h-80"
                 />
-                {formData.zalalLifeAccountId && (
-                  <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
-                )}
+                <div className="p-3 bg-blue-500/10 text-xs text-muted-foreground space-y-1">
+                  <p>✅ اسم المستخدم: <span className="font-bold text-foreground">غلا لايف</span></p>
+                  <p>✅ معرف المستخدم: <span className="font-bold text-primary">10000</span></p>
+                  <p>✅ الرقم المرجعي: <span className="font-bold text-foreground">موجود في الإيصال</span></p>
+                </div>
               </div>
-            </div>
-
-            {/* Username */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-muted text-muted-foreground text-xs flex items-center justify-center font-bold">2</span>
-                اسم حسابك
-                <span className="text-muted-foreground text-xs">(اختياري)</span>
-              </label>
-              <input
-                type="text"
-                value={formData.zalalLifeUsername}
-                onChange={(e) => setFormData(prev => ({ ...prev, zalalLifeUsername: e.target.value }))}
-                className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
-                placeholder="اسم الحساب"
-              />
-            </div>
-
-            {/* Recipient Name */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">3</span>
-                اسم المستلم الكامل
-                <span className="text-destructive">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  value={formData.recipientFullName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, recipientFullName: e.target.value }))}
-                  className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
-                  placeholder="الاسم الرباعي كما في الهوية"
-                />
-                {formData.recipientFullName && (
-                  <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">يجب أن يكون 3-4 أجزاء مطابقاً للهوية</p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => isStep1Complete && setCurrentStep(2)}
-            disabled={!isStep1Complete}
-            className="w-full py-4 rounded-xl font-bold text-lg bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-primary/90 active:scale-[0.98]"
-          >
-            التالي
-          </button>
-        </div>
-
-        {/* Step 2: Amount & Receipt */}
-        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 2 ? 'block' : 'hidden'}`}>
-          <div className="bg-card rounded-2xl p-5 border border-border space-y-5">
-            <div className="flex items-center gap-3 pb-3 border-b border-border">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h2 className="font-bold text-foreground">المبلغ والإيصال</h2>
-                <p className="text-xs text-muted-foreground">أدخل المبلغ وارفق إيصال التحويل</p>
-              </div>
-            </div>
+            )}
 
             {/* Amount Input */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-foreground">
-                المبلغ بالدولار <span className="text-destructive">*</span>
+                المبلغ المُحوَّل بالدولار <span className="text-destructive">*</span>
               </label>
               <div className="relative">
                 <input
@@ -523,18 +526,6 @@ const PayoutRequest = () => {
                   </div>
                 </div>
               )}
-
-              {/* Fees */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-muted/30 rounded-xl p-3 text-center">
-                  <p className="text-xs text-muted-foreground mb-1">اليمن / السعودية</p>
-                  <p className="text-lg font-bold text-primary">3%</p>
-                </div>
-                <div className="bg-muted/30 rounded-xl p-3 text-center">
-                  <p className="text-xs text-muted-foreground mb-1">دول أخرى</p>
-                  <p className="text-lg font-bold text-warning">10%</p>
-                </div>
-              </div>
             </div>
 
             {/* Receipt Upload */}
@@ -580,7 +571,7 @@ const PayoutRequest = () => {
               )}
             </div>
 
-            {/* Reference Number - Only show after receipt is uploaded */}
+            {/* Reference Number */}
             {receiptPreview && (
               <div className="space-y-3">
                 <label className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -595,7 +586,6 @@ const PayoutRequest = () => {
                     onChange={(e) => {
                       const value = e.target.value;
                       setFormData(prev => ({ ...prev, referenceNumber: value }));
-                      // Check reference number after user stops typing
                       if (value.trim().length >= 3) {
                         checkReferenceNumber(value.trim());
                       } else {
@@ -631,10 +621,121 @@ const PayoutRequest = () => {
                 )}
                 
                 <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                  💡 الرقم المرجعي موجود في إيصال التحويل ويستخدم مرة واحدة فقط لمنع التكرار
+                  💡 الرقم المرجعي موجود في إيصال التحويل ويستخدم مرة واحدة فقط
                 </p>
               </div>
             )}
+
+            {/* Fees Notice */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-muted/30 rounded-xl p-3 text-center">
+                <p className="text-xs text-muted-foreground mb-1">اليمن / السعودية</p>
+                <p className="text-lg font-bold text-primary">3%</p>
+              </div>
+              <div className="bg-muted/30 rounded-xl p-3 text-center">
+                <p className="text-xs text-muted-foreground mb-1">دول أخرى</p>
+                <p className="text-lg font-bold text-warning">10%</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => isStep1Complete && setCurrentStep(2)}
+            disabled={!isStep1Complete}
+            className="w-full py-4 rounded-xl font-bold text-lg bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-primary/90 active:scale-[0.98]"
+          >
+            التالي
+          </button>
+        </div>
+
+        {/* Step 2: Personal Info */}
+        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 2 ? 'block' : 'hidden'}`}>
+          <div className="bg-card rounded-2xl p-5 border border-border space-y-5">
+            <div className="flex items-center gap-3 pb-3 border-b border-border">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-bold text-foreground">معلومات الحساب</h2>
+                <p className="text-xs text-muted-foreground">بيانات حسابك في غلا لايف</p>
+              </div>
+            </div>
+
+            {/* Daily Limit Error */}
+            {dailyLimitError && (
+              <div className="flex items-center gap-2 p-4 bg-destructive/10 border border-destructive/20 rounded-xl">
+                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+                <p className="text-sm text-destructive font-medium">{dailyLimitError}</p>
+              </div>
+            )}
+
+            {/* Account ID */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">1</span>
+                ايدي حسابك في غلا لايف
+                <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={formData.zalalLifeAccountId}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, zalalLifeAccountId: e.target.value }));
+                    setDailyLimitError(null);
+                  }}
+                  className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
+                  placeholder="أدخل ايدي الحساب"
+                />
+                {formData.zalalLifeAccountId && (
+                  <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground bg-warning/10 p-2 rounded-lg border border-warning/20">
+                ⚠️ يُسمح برفع طلب واحد فقط يومياً لكل حساب
+              </p>
+            </div>
+
+            {/* Username */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-muted text-muted-foreground text-xs flex items-center justify-center font-bold">2</span>
+                اسم حسابك
+                <span className="text-muted-foreground text-xs">(اختياري)</span>
+              </label>
+              <input
+                type="text"
+                value={formData.zalalLifeUsername}
+                onChange={(e) => setFormData(prev => ({ ...prev, zalalLifeUsername: e.target.value }))}
+                className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
+                placeholder="اسم الحساب"
+              />
+            </div>
+
+            {/* Recipient Name */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">3</span>
+                اسم المستلم الكامل
+                <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={formData.recipientFullName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, recipientFullName: e.target.value }))}
+                  className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
+                  placeholder="الاسم الرباعي كما في الهوية"
+                />
+                {formData.recipientFullName && (
+                  <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">يجب أن يكون 3-4 أجزاء مطابقاً للهوية</p>
+            </div>
           </div>
 
           <div className="flex gap-3">
@@ -852,9 +953,13 @@ const PayoutRequest = () => {
                   <span className="text-sm text-muted-foreground">طريقة الصرف</span>
                   <span className="font-medium">{selectedMethod?.name || selectedMethod?.nameArabic || '-'}</span>
                 </div>
-                <div className="flex justify-between items-center py-2">
+                <div className="flex justify-between items-center py-2 border-b border-border">
                   <span className="text-sm text-muted-foreground">رقم الهاتف</span>
                   <span className="font-medium" dir="ltr">{formData.phoneNumber || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-muted-foreground">الرقم المرجعي</span>
+                  <span className="font-medium font-mono" dir="ltr">{formData.referenceNumber || '-'}</span>
                 </div>
               </div>
 

@@ -17,6 +17,8 @@ interface NotificationRequest {
     payoutMethod: string;
     phoneNumber: string;
     referenceNumber?: string;
+    walletNumber?: string;
+    methodFields?: Record<string, string>;
   };
 }
 
@@ -39,6 +41,13 @@ serve(async (req) => {
       );
     }
 
+    // Extract wallet number from methodFields if available
+    const walletNumber = requestDetails.walletNumber || 
+                        requestDetails.methodFields?.walletNumber || 
+                        requestDetails.methodFields?.wallet_number ||
+                        requestDetails.methodFields?.رقم_المحفظة ||
+                        (requestDetails.methodFields ? Object.values(requestDetails.methodFields).find(v => v) : '') || '';
+
     const message = `🔔 *طلب صرف جديد*
 
 📋 *تفاصيل الطلب:*
@@ -50,6 +59,7 @@ ${requestDetails.zalalLifeUsername ? `• اسم في غلا لايف: ${request
 • البلد: ${requestDetails.country}
 • طريقة الصرف: ${requestDetails.payoutMethod}
 • رقم الهاتف: ${requestDetails.phoneNumber}
+${walletNumber ? `• رقم المحفظة: \`${walletNumber}\`` : ''}
 ${requestDetails.referenceNumber ? `• الرقم المرجعي: \`${requestDetails.referenceNumber}\`` : ''}
 
 📸 صورة الإيصال مرفقة أدناه`;
