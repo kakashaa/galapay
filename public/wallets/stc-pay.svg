@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STC-bank</title>
+  <link rel="stylesheet" href="/css/main.min.css?3.3">
+  <link rel="stylesheet" href="/css/custom.css">
+
+  <link rel="icon" href="/img/favicon/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="/img/favicon/favicon.ico" type="image/x-icon">
+  <script src="/js/libraries/jquery.js"></script>
+  <script src="/js/libraries/jquery.marquee.min.js"></script>
+  <script src="/js/libraries/lottie.min.js"></script>
+
+</head>
+
+<body>
+  <div class="site-wrapper en">
+    <div class="grid">
+      <header id="site-header" class="site-header fl-row ">
+        <div class="wrapper content fl-row">
+          <a href="/">
+            <div class="logo">
+              <span class="light-logo">
+                <svg width="79px" height="20px">
+                  <use href="/img/color-sprite.svg?2.2#logo-dark"></use>
+                </svg>
+              </span>
+
+              <span class="dark-logo">
+                <svg width="79px" height="20px">
+                  <use href="/img/color-sprite.svg?2.2#logo"></use>
+                </svg>
+              </span>
+            </div>
+          </a>
+
+          <div class="sections menu-wrapper fl-row">
+            <nav class="menu-block">
+              <ul>
+                <li>
+                  <div class="menu-top-title medium ">
+                    <div class="title-text">
+                      <span>Personal</span>
+                    </div>
+                    <div class="arrow">
+                      <svg width="13px" height="7px">
+                        <use href="/img/sprite.svg?2.2#arrow"></use>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="menu-content-wrapper personal">
+                    <div class="wrapper menu-content fl-row">
+                      <div class="big-title">
+                        <span class="desktop-show mobile-hide">Personal</span>
+                        <div class="desktop-show big-title-arrow">
+                          <svg width="25px" height="21px">
+                            <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                          </svg>
+                        </div>
+                      </div>
+                      <ul class="links-list menu-links fl-row d-block">
+                        <li>
+                          <span class="menu-name  hide">cards</span>
+                          <a href="/cards" class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">Cards</p>
+                              <p class="caption not-mobile-show-flex">Make your payments easier and more secure.</p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <span class="menu-name  hide">reward</span>
+                          <a href="/reward" class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">Numu+</p>
+                              <p class="caption not-mobile-show-flex">Turn your saving
+                                into
+                                exciting rewards.</p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+                          <li>
+                          <span class="menu-name  hide">finance</span>
+                          <a href="/finance" class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">Smart finance</p>
+                              <p class="caption not-mobile-show-flex">Get up to 50,000 SAR without salary transfer</p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+                      </ul>
+                      <ul class="links-list menu-links fl-row d-block">
+                        <li>
+                          <span class="menu-name  hide">save</span>
+                          <a href="/smart-saver" class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">Smart Saver</p>
+                              <p class="caption not-mobile-show-flex">Save automatically and reach your goals faster.</p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+                      </ul>
+                      <div class="icons fl-row desktop-show-flex">
+                        <div class="icon navigation-default show">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#navigation-default"></use>
+                          </svg>
+                        </div>
+                        <div class="icon cards">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#cards"></use>
+                          </svg>
+                        </div>
+                        <div class="icon reward">
+                          <svg width="20px" height="20px">
+                            <img src="img/rewards/Illustration.svg">
+                          </svg>
+                        </div>
+                          <div class="icon finance">
+                          <svg width="20px" height="20px">
+                            <img src="img/finance/finance-icon.svg">
+                          </svg>
+                        </div>
+                        <div class="icon save">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#navigation-default"></use>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div class="menu-top-title medium ">
+                    <div class="title-text">
+                      <span>Business</span>
+                    </div>
+                    <div class="arrow">
+                      <svg width="13px" height="7px">
+                        <use href="/img/sprite.svg?2.2#arrow"></use>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="menu-content-wrapper business">
+                    <div class="wrapper menu-content fl-row">
+                      <div class="big-title link-title">
+                        <a class="desktop-show" href="/business">Explore business</a>
+                        <div class="desktop-show big-title-arrow">
+                          <svg width="25px" height="21px">
+                            <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                          </svg>
+                        </div>
+                      </div>
+                      <ul class="links-list menu-links fl-row">
+                        <li class="mobile-show">
+                          <span class="menu-name empty hide">business</span>
+                          <a href="/business" class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">Explore Business</p>
+                              <p class="caption not-mobile-show-flex"></p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <span class="menu-name  hide">become-a-merchant</span>
+                          <a href="https://merchant.stcbank.com.sa/v2/register/merchant" target="_blank"
+                            class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">Become a merchant</p>
+                              <p class="caption not-mobile-show-flex">Choose STC Bank to help you grow your business.
+                              </p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+
+                        <li>
+                          <span class="menu-name hide">login-a-merchant</span>
+                          <a href="https://merchant.stcbank.com.sa" target="_blank" class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">Login as a merchant</p>
+                              <p class="caption not-mobile-show-flex">Login to your business account.
+                              </p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+                      </ul>
+                      <div class="icons fl-row desktop-show-flex">
+                        <div class="icon navigation-default show">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#navigation-default"></use>
+                          </svg>
+                        </div>
+                        <div class="icon business">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#business"></use>
+                          </svg>
+                        </div>
+                        <div class="icon become-a-merchant">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#become-a-merchant"></use>
+                          </svg>
+                        </div>
+                        <div class="icon login-a-merchant">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#become-a-merchant"></use>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div class="menu-top-title medium ">
+                    <div class="title-text">
+                      <span>About us</span>
+                    </div>
+                    <div class="arrow">
+                      <svg width="13px" height="7px">
+                        <use href="/img/sprite.svg?2.2#arrow"></use>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="menu-content-wrapper about us">
+                    <div class="wrapper menu-content fl-row">
+                      <div class="big-title">
+                        <span class="desktop-show mobile-hide">About us</span>
+                        <div class="desktop-show big-title-arrow">
+                          <svg width="25px" height="21px">
+                            <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                          </svg>
+                        </div>
+                      </div>
+                      <ul class="links-list menu-links fl-row">
+                        <li>
+                          <span class="menu-name  hide">team</span>
+                          <a href="/team" class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">Team</p>
+                              <p class="caption not-mobile-show-flex">Meet the Board of Directors and Executives.</p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+                      </ul>
+                      <div class="icons fl-row desktop-show-flex">
+                        <div class="icon navigation-default show">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#navigation-default"></use>
+                          </svg>
+                        </div>
+                        <div class="icon team">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#team"></use>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+
+                <li>
+                  <div class="menu-top-title medium ">
+                    <div class="title-text">
+                      <span><a class="text-danger" href="/offers">Offers</a></span>
+                    </div>
+                  </div>
+                </li>
+
+
+                <li>
+                  <div class="menu-top-title medium ">
+                    <div class="title-text">
+                      <span>Support</span>
+                    </div>
+                    <div class="arrow">
+                      <svg width="13px" height="7px">
+                        <use href="/img/sprite.svg?2.2#arrow"></use>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="menu-content-wrapper support">
+                    <div class="wrapper menu-content fl-row">
+                      <div class="big-title link-title">
+                        <a class="desktop-show" href="/support"> Support</a>
+                        <div class="desktop-show big-title-arrow">
+                          <svg width="25px" height="21px">
+                            <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                          </svg>
+                        </div>
+                      </div>
+                      <ul class="links-list menu-links fl-row support-menu">
+                        <li class="mobile-show">
+                          <span class="menu-name empty hide">Support</span>
+                          <a href="/support" class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">Explore support</p>
+                              <p class="caption not-mobile-show-flex"></p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <span class="menu-name  hide">faq</span>
+                          <a href="/support#faq" class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">FAQ</p>
+                              <p class="caption not-mobile-show-flex">See quick tips and
+                                popular questions.</p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+                        <li>
+                          <span class="menu-name  hide">fees</span>
+                          <a href="./support/fees-charges/index.html" class="menu-page-link fl-row">
+                            <div class="menu-link-content">
+                              <p class="medium menu-title link-text">
+                                Product & service
+                                fees
+                              </p>
+                              <p class="caption not-mobile-show-flex">
+                                Your guide to STC
+                                Bank’s fees
+                              </p>
+                            </div>
+                            <div class="desktop-show">
+                              <svg width="25px" height="21px">
+                                <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                              </svg>
+                            </div>
+                          </a>
+                        </li>
+                      </ul>
+                      <div class="icons fl-row desktop-show-flex">
+
+                        <div class="icon navigation-default show">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#navigation-default"></use>
+                          </svg>
+                        </div>
+
+                        <div class="icon faq">
+                          <svg width="200px" height="200px">
+                            <use href="/img/color-sprite.svg?2.2#faq"></use>
+                          </svg>
+                        </div>
+
+                        <div class="icon fees">
+                          <img src="../../img/support/fees-charges/fees.svg" width="200px" height="200px">
+                          <svg width="200px" height="200px">
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </nav>
+
+            <div class="desktop-show">
+              <a href="/ar/" id="" class="button secondary white fl-row lang ">
+                <div class="flag ar"></div>
+                <span>العربية</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="fl-row mobile-menu-wrapper mobile-show-flex">
+            <a href="/ar/" id="headerLangChange" class="button secondary white fl-row lang hide">
+              <div class="flag ar"></div>
+              <span>العربية</span>
+            </a>
+            <div id="mobileMenuBtn" class="mobile-menu-btn"></div>
+          </div>
+
+        </div>
+      </header>
+
+      <main>
+        <div class="main-wrapper home-page">
+
+      <!--    <section class="banner-main">
+            <div class="wrapper">
+              <div class="banner-img"></div>
+            </div>
+          </section>-->
+
+          <section class="page-header logic-block">
+            <div class="wrapper">
+              <h1 class="small title fl-col"><span class='accent'>One app</span> that takes you further</h1>
+
+              <p class="large hero-text">STC Bank enables you to take control of your finances and move further with
+                your personal and business banking.</p>
+
+              <div class="download-buttons">
+                <span class="show-consumer-qr-popup button primary">Download app</span>
+
+                <div class="icons-wrapper fl-row">
+                  <div class="apple">
+                    <svg width="15px" height="18px">
+                      <use href="/img/sprite.svg?2.2#apple-logo"></use>
+                    </svg>
+                  </div>
+                  <div>
+                    <svg width="14px" height="15px">
+                      <use href="/img/sprite.svg?2.2#google-play"></use>
+                    </svg>
+                  </div>
+                  <div>
+                    <svg width="15px" height="15px">
+                      <use href="/img/sprite.svg?2.2#app-gallery-icon"></use>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="logic-block" data-color="white">
+            <div class="key-features wrapper">
+              <div id="key-features_slider">
+                <ul class="key-features_slider transitioned">
+                  <li class="key-features_slider-1">
+                    <div class="key-features_slider-block">
+                      <div class="key-features_slider-content transitioned">
+                        <h2 class="big">Transfer money effortlessly</h2>
+                        <p class="large">Send money to a contact, local or international bank with a click</p>
+                        <div class="text-animated-wrapper ">
+                          <span class="hide">
+                            <svg width="25px" height="25px">
+                              <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                            </svg>
+                          </span>
+                          <p class="animated-text">
+                            <span class="subtitle medium">Share expenses</span>
+                            <span class="text-animate subtitle medium">Share expenses</span>
+                          </p>
+                          <span class="instructions-button-right">
+                            <svg width="25px" height="25px">
+                              <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
+                      <div class="sprite-home transfers transitioned"></div>
+                      <div class="sprite-home daily-limit transitioned"></div>
+                    </div>
+                  </li>
+                  <li class="key-features_slider-2">
+                    <div class="sprite-home avatar-1 mobile-show animate hide-block"></div>
+                    <div class="key-features_slider-block content-right">
+                      <div class="key-features_slider-content transitioned">
+                        <h2 class="big">Share expenses and experiences</h2>
+                        <p class="large">Make a group to split money for <br /> a birthday gift, vacation or anything
+                          else.</p>
+                        <div class="text-animated-wrapper ">
+                          <span class="instructions-button-left">
+                            <svg width="25px" height="25px">
+                              <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                            </svg>
+                          </span>
+                          <p class="animated-text">
+                            <span class="subtitle medium">Track your spending</span>
+                            <span class="text-animate subtitle medium">Track your spending</span>
+                          </p>
+                          <span class="instructions-button-right">
+                            <svg width="25px" height="25px">
+                              <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
+                      <div class="sprite-home settle transitioned"></div>
+                      <div class="sprite-home avatar-1 desktop-show animate hide-block"></div>
+                      <div class="sprite-home avatar-2 animate hide-block"></div>
+                      <div class="sprite-home avatar-3 animate hide-block"></div>
+                    </div>
+                  </li>
+                  <li class="key-features_slider-3">
+                    <div class="key-features_slider-block content-center light">
+                      <div class="key-features_slider-content transitioned">
+                        <div class="text-block fl-col">
+                          <h2 class="big">Track your spending</h2>
+                          <p class="large">Learn more about your spending behavior using money <br /> analytics. It will
+                            encourage you to save and spend more wisely.</p>
+                        </div>
+                      </div>
+                      <span class="instructions-button-left left-down">
+                        <svg width="25px" height="25px">
+                          <use href="/img/sprite.svg?2.2#arrow-side"></use>
+                        </svg>
+                      </span>
+                      <div class="sprite-home img-1 transitionedAvatars"></div>
+                      <div class="sprite-home img-2 transitionedAvatars"></div>
+                      <div class="sprite-home img-3 transitionedAvatars"></div>
+                      <div class="sprite-home img-4 transitionedAvatars"></div>
+                      <div class="sprite-home img-5 transitionedAvatars"></div>
+                    </div>
+                  </li>
+                </ul>
+
+                <div class="key-features_slider-phone transitioned">
+                  <div class="sprite-home phone phone-1"></div>
+                  <div class="sprite-home phone phone-2 transitioned"></div>
+                </div>
+
+                <div class="sprite-home avatar-1 transitionedAvatars"></div>
+                <div class="sprite-home avatar-2 transitionedAvatars"></div>
+                <div class="sprite-home avatar-3 transitionedAvatars"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="marketplace logic-block">
+            <div class="wrapper">
+              <div class="images">
+                <div class="sprite-home marketplace-1 animate hide-block"></div>
+                <div class="sprite-home marketplace-2 animate hide-block"></div>
+              </div>
+
+              <div class="texts last-bottom">
+                <h2 class="big desktop-show">
+                  Dive into STC Bank <br /> market
+                </h2>
+                <h2 class="big mobile-show">
+                  Dive into <br /> STC Bank market
+                </h2>
+                <a href="#" class="button secondary white show-consumer-qr-popup">Download app</a>
+                <p class="last-elem">Explore hundreds of digital cards and enjoy an entertaining shopping experience.
+                </p>
+                <div class="background-image">
+                  <svg width="329px" height="350px">
+                    <use href="/img/sprite.svg?2.2#background-pattern"></use>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="explore wrapper logic-block" data-color="white">
+            <div class="description fl-col">
+              <h2 class="big">Explore cards</h2>
+              <p class="large">Experience the world in a whole new way with ultimate convenience and financial control
+                using STC Bank cards.</p>
+              <a href="/cards" class="button secondary transparent">Learn more</a>
+            </div>
+
+            <div class="images">
+              <div class="sprite-home card-1 animate hide-block"></div>
+              <div class="sprite-home card-2 animate hide-block"></div>
+              <div class="sprite-home card-3 animate hide-block"></div>
+            </div>
+          </section>
+
+          <section class="security logic-block">
+            <div class="wrapper explore-block">
+              <div class="description fl-col">
+                <h2 class="big">Security</h2>
+                <p class="large">Our cards allow you to make secure payments with safeguarding protection.</p>
+              </div>
+
+              <div class="images">
+                <div class="sprite-home security animate hide-block">
+                  <img src="./img/Content frame.svg" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="track">
+            <div class="wrapper explore-block">
+              <div class="description fl-col">
+                <h2 class="big">Track spending</h2>
+                <p class="large">Learn about your spendings using money analytics to spend wisely.</p>
+              </div>
+
+              <div class="images">
+                <div class="sprite-home graph animate hide-block"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="use logic-block">
+            <div class="wrapper explore-block">
+              <div class="description fl-col">
+                <h2 class="big">Use all over the world</h2>
+                <p class="large">STC Bank cards are accepted worldwide. Spend and enjoy around the globe!</p>
+              </div>
+
+              <div class="images">
+                <div class="sprite-home earth animate hide-block"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="send-money logic-block" data-color="white">
+            <div class="wrapper">
+              <h2 class="big">Send money instantly</h2>
+
+              <ul class="variants">
+                <li class="variant-l fl-col">
+                  <div class="image">
+                    <svg width="200px" height="200px">
+                      <use href="/img/color-sprite.svg?2.2#localBanks"></use>
+                    </svg>
+                  </div>
+                  <p class="subtitle medium">Transfer to 20+ local banks instantly</p>
+                </li>
+                <li class="variant-l fl-col">
+                  <div class="image">
+                    <svg width="200px" height="200px">
+                      <use href="/img/color-sprite.svg?2.2#toAnyPhone"></use>
+                    </svg>
+                  </div>
+                  <p class="subtitle medium">Send to any phone number easily</p>
+                </li>
+                <li class="variant-l fl-col">
+                  <div class="image">
+                    <svg width="200px" height="200px">
+                      <use href="/img/color-sprite.svg?2.2#securely"></use>
+                    </svg>
+                  </div>
+                  <p class="subtitle medium">Transfer to international banks securely</p>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="gifts">
+            <div class="wrapper">
+              <div class="description">
+                <div class="ico-description">
+                  <svg width="54px" height="49px">
+                    <use href="/img/sprite.svg?2.2#heart"></use>
+                  </svg>
+                </div>
+
+                <h2 class="big">Send gifts to friends and family</h2>
+
+                <p>Whatever the occasion, share the joy with a gift. Choose a gift, an envelope, leave a note and make
+                  them happy.</p>
+              </div>
+
+              <div class="images">
+                <div class="gift-photo animate hide-block">
+                  <img src="/img/gift-photo.jpg" alt="gift-photo" />
+                </div>
+                <div class="gifts-icon-wrapper">
+                  <div class="gifts-icon animate hide-block">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="download-block">
+            <div class="sticky-block"></div>
+            <div class="wrapper">
+              <div class="description fl-col">
+                <h2 class="big">Download the app <br /> to control your finances!</h2>
+
+                <a href="#" class="button primary show-consumer-qr-popup">Download app</a>
+
+                <div class="image-1 animate hide-block">
+                  <img src="/img/home-download-photo-1.jpg" alt="image-1" />
+                </div>
+              </div>
+
+              <div class="images fl-row ">
+                <div class="image-2 animate hide-block">
+                  <img src="/img/home-download-photo-2-en.jpg" alt="image-2" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </main>
+
+      <footer class="footer">
+        <section class="wrapper">
+          <div class="content black">
+
+            <section class="top-block">
+              <div class="left-side fl-col-l">
+                <a class="desktop-show" href="/">
+                  <div class="logo">
+
+                    <span class="dark-logo">
+                      <svg width="150px" height="38px">
+                        <use href="/img/color-sprite.svg?2.2#logo"></use>
+                      </svg>
+                    </span>
+                  </div>
+                </a>
+
+                <a class="mobile-show" href="/">
+                  <div class="logo">
+
+                    <span class="dark-logo">
+                      <svg width="142px" height="36px">
+                        <use href="/img/color-sprite.svg?2.2#logo"></use>
+                      </svg>
+                    </span>
+                  </div>
+                </a>
+
+                <h2 class="big title">Transform your banking solutions</h2>
+
+                <div class="buttons-wrapper">
+                  <span class="show-consumer-qr-popup button primary">
+                    Download consumer app
+                  </span>
+
+                  <!--<span class="show-merchant-qr-popup button secondary white">                     Download merchant app                   </span>-->
+                </div>
+
+                <div class="rights-block desktop-show-flex fl-col">
+                  <p>© <span class="current-year"></span> STC Bank. All rights reserved</p>
+                  <p class="rights-text">STC Bank, a mixed closed joint stock company, incorporated and existing under
+                    the laws of the Kingdom of Saudi Arabia, with paid-up capital of 3,350,000,000 SAR, commercial
+                    registration number 1010901344 and unified ID number 7010933328, P.O. Box 87912 Riyadh 11652,
+                    National Address: 7252 King Khalid Rd – Al Asemah Dist. Ad Dir’iyah 13714 – 5260, Kingdom of Saudi
+                    Arabia, www.stcbank.com, licensed by Councils of Ministers under decree 671 dated 12/11/1442H
+                    corresponding to 22/06/2021G, and under the oversight and supervision of Saudi Central Bank.</p>
+                </div>
+
+              </div>
+
+              <div class="right-side fl-col">
+                <div id="sections" class="sections footer-menu fl-row">
+                  <article class="one">
+                    <h5 class="subtitle bold link">
+                      <div class="title-text">
+                        <span>Personal</span>
+                      </div>
+                      <div class="arrow mobile-show-flex">
+                        <svg width="13px" height="7px">
+                          <use href="/img/sprite.svg?2.2#arrow" data-toggle="modal" data-target="#exampleModal"></use>
+                        </svg>
+                      </div>
+                    </h5>
+                    <ul class="links-list footer-links fl-col">
+                      <li>
+                        <a class="link-text" href="/cards">Cards</a>
+                      </li>
+                      <li>
+                        <a class="link-text" href="/terms">Terms &amp; conditions</a>
+                      </li>
+                      <li>
+                        <a class="link-text" href="/qitaf-terms-and-conditions">Qitaf</a>
+                      </li>
+                      <li>
+                        <a class="link-text" href="/offers/">Offers</a>
+                      </li>
+                    </ul>
+                  </article>
+                  
+                  <article class="three">
+                    <h5 class="subtitle bold link">
+                      <div class="title-text">
+                        <span>Business</span>
+                      </div>
+                      <div class="arrow mobile-show-flex">
+                        <svg width="13px" height="7px">
+                          <use href="/img/sprite.svg?2.2#arrow"></use>
+                        </svg>
+                      </div>
+                    </h5>
+                    <ul class="links-list footer-links fl-col">
+                      <li>
+                        <a class="link-text" href="/business">Explore Business</a>
+                      </li>
+                      <li>
+                        <a class="link-text" target="_blank"
+                          href="https://merchant.stcbank.com.sa/v2/register/merchant">Become a merchant</a>
+                      </li>
+                      <li>
+                        <a class="link-text" target="_blank" href="https://merchant.stcbank.com.sa/v2/login">Login to
+                          account</a>
+                      </li>
+                    </ul>
+                  </article>
+                  <article class="four">
+                    <h5 class="subtitle bold link">
+                      <div class="title-text">
+                        <span>Support</span>
+                      </div>
+                      <div class="arrow mobile-show-flex">
+                        <svg width="13px" height="7px">
+                          <use href="/img/sprite.svg?2.2#arrow"></use>
+                        </svg>
+                      </div>
+                    </h5>
+                    <ul class="links-list footer-links fl-col">
+                      <li>
+                        <a class="link-text" href="/support">Explore Support</a>
+                      </li>
+                      <li>
+                        <a class="link-text" href="/support#faq">FAQ</a>
+                      </li>
+                    </ul>
+                  </article>
+                </div>
+
+                <article class="contacts-block fl-col">
+                  <h5 class="subtitle bold">
+                    <div class="title-text">
+                      <span>Contacts</span>
+                    </div>
+                    <div class="arrow mobile-show-flex">
+                      <svg width="13px" height="7px">
+                        <use href="/img/sprite.svg?2.2#arrow"></use>
+                      </svg>
+                    </div>
+                  </h5>
+                  <ul class="footer-links padded fl-col">
+                    <li class="fl-col">
+                      <span class="caption regular small">Inside KSA</span>
+                      <a href="tel:8001180008" class="caption regular">8001180008</a>
+                    </li>
+                    <li class="fl-col">
+                      <span class="caption regular small">Outside KSA</span>
+                      <a href="tel:920011444" class="caption regular">+966920011444</a>
+                    </li>
+                    <li class="fl-col">
+                      <a href="mailto:info@stcpay.com.sa" class="caption regular">info&#64;stcbank.com.sa</a>
+                    </li>
+                  </ul>
+                  <ul class="footer-links padded fl-col">
+                    <li class="fl-col">
+                      <a target="_blank" href="/doc/Revised_Violation_Reporting_Channels_EN.pdf">
+                        <span class="caption regular small">
+                          <b>To report Corruption Incident or Violations</b>
+                        </span>
+                      </a>
+                    </li>
+                    <!--
+                    <li class="fl-col">
+                      <span class="caption regular small">Email:</span>
+                      <a href="mailto:whistleblowing@stcbank.com.sa"
+                        class="caption regular">whistleblowing&#64;stcbank.com.sa</a>
+                    </li>
+                     -->
+                    <!--
+<li class="fl-col">
+                      <span class="caption regular small">Hotline:</span>
+                      <a href="tel:0118364682" class="caption regular">0118364682</a>
+                    </li>
+-->
+                  </ul>
+                </article>
+
+              </div>
+
+            </section>
+            <section class="bottom-block">
+              <div class="left-side">
+                <div class="additional-block">
+                  <div class="lang-wrapper fl-row">
+                    <a href="/ar/" id="" class="button secondary white fl-row lang ">
+                      <div class="flag ar"></div>
+                      <span>العربية</span>
+                    </a>
+                    <p class="regulated-info mobile-show">Regulated by the Saudi Central Bank</p>
+                  </div>
+
+                  <ul class="fl-row">
+                    <li>
+                      <a class="caption regular" href="/terms">Terms &amp; conditions</a>
+                    </li>
+                    <li>
+                      <a class="caption regular" href="/privacy">Privacy notice</a>
+                    </li>
+                    <li>
+                      <a class="caption regular" href="/notice-of-transformation">Notice of Transformation to STC
+                        Bank</a>
+                    </li>
+                  </ul>
+
+                </div>
+              </div>
+
+              <div class="right-side">
+                <div class="socials">
+                  <ul class="fl-row">
+                    <li>
+                      <a class="button icon light fl-row" target="_blank" href="https://x.com/stcbank_ksa">
+                        <svg width="20px" height="20px">
+                          <use href="/img/sprite.svg?2.2#x"></use>
+                        </svg>
+                      </a>
+                    </li>
+                    <li>
+                      <a class="button icon light fl-row" target="_blank"
+                        href="https://www.facebook.com/profile.php?id=100067406401787">
+                        <svg width="22px" height="22px">
+                          <use href="/img/sprite.svg?2.2#facebook"></use>
+                        </svg>
+                      </a>
+                    </li>
+                    <li>
+                      <a class="button icon light fl-row" target="_blank" href="https://www.instagram.com/stcbank_ksa/">
+                        <svg width="20px" height="20px">
+                          <use href="/img/sprite.svg?2.2#instagram"></use>
+                        </svg>
+                      </a>
+                    </li>
+                    <li>
+                      <a class="button icon light fl-row" target="_blank"
+                        href="https://in.linkedin.com/company/stcbank">
+                        <svg width="20px" height="20px">
+                          <use href="/img/sprite.svg?2.2#linkedin"></use>
+                        </svg>
+                      </a>
+                    </li>
+                    <li>
+                      <a class="button icon light fl-row" target="_blank" href="https://www.tiktok.com/@stcbank_ksa">
+                        <svg width="15px" height="17px">
+                          <use href="/img/sprite.svg?2.2#tiktok"></use>
+                        </svg>
+                      </a>
+                    </li>
+                    <li>
+                      <a class="button icon light fl-row" target="_blank" href="https://www.youtube.com/stcpay-ksa">
+                        <svg width="24px" height="16px">
+                          <use href="/img/sprite.svg?2.2#youtube"></use>
+                        </svg>
+                      </a>
+                    </li>
+                  </ul>
+
+                  <p class="regulated-info desktop-show">Regulated by the Saudi Central Bank</p>
+                </div>
+              </div>
+            </section>
+
+            <div class="rights-block mobile-show-flex fl-col">
+              <p>©<span class="current-year"></span> STC Bank. All rights reserved</p>
+              <p class="rights-text">STC Bank, a mixed closed joint stock company, incorporated and existing under the
+                laws of the Kingdom of Saudi Arabia, with paid-up capital of 3,350,000,000 SAR, commercial registration
+                number 1010901344 and unified ID number 7010933328, P.O. Box 87912 Riyadh 11652, National Address: 7252
+                King Khalid Rd – Al Asemah Dist. Ad Dir’iyah 13714 – 5260, Kingdom of Saudi Arabia, www.stcbank.com,
+                licensed by Councils of Ministers under decree 671 dated 12/11/1442H corresponding to 22/06/2021G, and
+                under the oversight and supervision of Saudi Central Bank.</p>
+            </div>
+          </div>
+
+        </section>
+
+
+      </footer>
+
+      <script src="/js/footer.js"></script>
+      <div id="cookiesPopup" class="cookies-popup hide">
+        <header class="fl-row">
+          <span class="subtitle bold">Allow cookies</span>
+
+          <div id="cookiesPopupClose">
+            <span class="button close icon light">
+              <svg width="11px" height="11px">
+                <use href="/img/sprite.svg?2.2#icon-close"></use>
+              </svg>
+            </span>
+          </div>
+        </header>
+
+        <p class="caption regular small">These cookies help us keep our website safe, give you a better experience and
+          show more relevant ads. We won’t turn them on unless you accept.</p>
+
+        <div class="buttons-wrapper fl-row">
+          <span id="cookiesAccept" class="button primary">Allow</span>
+          <span id="cookiesReject" class="button secondary transparent">Reject</span>
+        </div>
+      </div>
+      <div id="popup" class="popup fl-row" data-mcs-theme="minimal-dark">
+
+        <div class="popup-wrapper">
+          <div id="popupClose" class="popup-close">
+            <span class="button close icon light">
+              <svg width="11px" height="11px">
+                <use href="/img/sprite.svg?2.2#icon-close"></use>
+              </svg>
+            </span>
+          </div>
+
+          <div class="popup-content consumer-content">
+            <div class="qr-code-wrapper fl-row">
+              <div class="qr-code not-mobile-show">
+                <img src="/img/qr-consumer-en.png" alt="qr-code">
+              </div>
+
+              <div class="text-wrapper">
+                <h2 class="small">Download the consumer app</h2>
+                <p class="not-mobile-show">Scan the QR code to open the App Store, Google Play or AppGallery to download
+                  the app with a click.</p>
+                <p class="mobile-visible btns">
+                  <a class="store apple" target="_blank" href="https://apps.apple.com/sa/app/stc-bank/id6458546150"></a>
+                  <a class="store google" target="_blank"
+                    href="https://play.google.com/store/apps/details?id=sa.com.stcbank&hl=en&gl=US"></a>
+                  <a class="store huawei" target="_blank" href="https://appgallery.huawei.com/#/app/C108923057"></a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="popup-content merchant-content">
+            <div class="qr-code-wrapper fl-row merchant-qr">
+              <div class="qr-code not-mobile-show">
+                <img src="/img/qr-merchant.png" alt="qr-code">
+              </div>
+
+              <div class="text-wrapper">
+                <h2 class="small">Download the merchant app</h2>
+                <p class="merchant-text">Open the App Store, Google Play or AppGallery to download the app with a click.
+                </p>
+                <p class="mobile-visible btns">
+                  <a class="store apple" target="_blank"
+                    href="https://apps.apple.com/sa/app/stc-pay-merchant/id1434556825"></a>
+                  <a class="store google" target="_blank"
+                    href="https://play.google.com/store/apps/details?id=sa.com.stcpay.merchant&hl=en&pli=1"></a>
+                  <a class="store huawei" target="_blank" href="https://appgallery.huawei.com/#/app/C101039157"></a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="popup-content team-member-content">
+            <div class="team-member-wrapper fl-row">
+              <div class="left-side">
+                <img class="team-member-image" src="" alt="">
+              </div>
+
+
+
+              <div class="right-side">
+                <p class="status">Shariah Committee Member</p>
+                <p class="team-member-position large"></p>
+                <p class="team-member-name"></p>
+                <p class="team-member-description"></p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div id="overlay" class="overlay hide">
+      </div>
+    </div>
+  </div>
+  <script>
+    const lang = 'en';
+  </script>
+  <script src="/js/animations.js?3.3"></script>
+  <script src="/js/main.js?3.3"></script>
+  <script src="/js/lottieAnimation.js?3.3" type="module" defer></script>
+  <script src="/js/home-components/key-features-slider.js?3.3" defer></script>
+  <script src="/js/home.js?3.3" type="module" defer></script>
+</body>
+
+</html>
