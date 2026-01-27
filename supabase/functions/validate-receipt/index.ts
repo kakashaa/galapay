@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -175,6 +176,7 @@ serve(async (req) => {
 5. ما هو الرقم المرجعي (Reference Number / الرقم المرجعي) في الإيصال؟
 
 المبلغ المتوقع من المستخدم: $${expectedAmount || 'غير محدد'}
+الرقم المرجعي الذي أدخله المستخدم: ${expectedReferenceNumber || 'غير محدد'}
 
 يجب أن ترد بـ JSON فقط بهذا الشكل (بدون أي نص آخر):
 {
@@ -184,7 +186,7 @@ serve(async (req) => {
     "amount": الرقم المستخرج من الإيصال,
     "userId": "معرف المستخدم المستخرج",
     "userName": "اسم المستخدم المستخرج",
-    "referenceNumber": "الرقم المرجعي المستخرج"
+    "referenceNumber": "الرقم المرجعي المستخرج من الإيصال"
   }
 }
 
@@ -194,14 +196,15 @@ serve(async (req) => {
 - إذا كان المبلغ لا يطابق المبلغ المتوقع (مع تساهل ±1): ارفض
 - إذا لم تكن الصورة إيصال تحويل واضح: ارفض
 - إذا لم يظهر رقم مرجعي في الإيصال: ارفض
-- إذا كان كل شيء صحيح (معرف 10000 + اسم غلا + مبلغ صحيح + رقم مرجعي موجود): اقبل بـ "pass"`
+- مهم جداً: قارن الرقم المرجعي الذي أدخله المستخدم مع الرقم الظاهر في الإيصال - إذا لم يتطابقا: ارفض وقل "الرقم المرجعي المُدخل لا يتطابق مع الرقم في الإيصال"
+- إذا كان كل شيء صحيح (معرف 10000 + اسم غلا + مبلغ صحيح + رقم مرجعي متطابق): اقبل بـ "pass"`
               },
               {
                 role: 'user',
                 content: [
                   {
                     type: 'text',
-                    text: `تحقق من هذا الإيصال. المبلغ المتوقع: $${expectedAmount || 'غير محدد'}. استخرج الرقم المرجعي من الإيصال.`
+                    text: `تحقق من هذا الإيصال. المبلغ المتوقع: $${expectedAmount || 'غير محدد'}. الرقم المرجعي المُدخل: ${expectedReferenceNumber || 'غير محدد'}. تأكد أن الرقم المرجعي المُدخل يتطابق مع الرقم الظاهر في الإيصال.`
                   },
                   {
                     type: 'image_url',
@@ -280,6 +283,33 @@ serve(async (req) => {
       }
     } catch (parseError) {
       console.error('Error parsing AI response:', parseError);
+    }
+
+    // Check for duplicate reference number in database
+    if (validationResult.status === 'pass' && expectedReferenceNumber) {
+      const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        
+        const { data: existingRequest, error: dbError } = await supabase
+          .from('payout_requests')
+          .select('id, tracking_code')
+          .eq('reference_number', expectedReferenceNumber)
+          .maybeSingle();
+        
+        if (dbError) {
+          console.error('Database error checking duplicate:', dbError);
+        } else if (existingRequest) {
+          console.log('Duplicate reference number found:', expectedReferenceNumber);
+          validationResult = {
+            status: 'fail',
+            notes: `الرقم المرجعي "${expectedReferenceNumber}" مستخدم مسبقاً في طلب آخر. لا يمكن استخدام نفس الرقم مرتين.`,
+            extractedData: validationResult.extractedData
+          };
+        }
+      }
     }
 
     // Send Telegram notification for valid receipts
