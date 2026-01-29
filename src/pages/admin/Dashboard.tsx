@@ -8,16 +8,18 @@ import {
   Download,
   Filter,
   Trash2,
-  User,
   Power,
   PowerOff,
   BarChart3,
   Settings,
-  ListChecks,
   Home,
   TrendingUp,
   Users,
-  ChevronLeft,
+  Wallet,
+  CheckCircle,
+  XCircle,
+  ArrowUpRight,
+  Menu,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -381,54 +383,62 @@ const AdminDashboard = () => {
     }
   };
 
-  const getProcessedByName = (processedBy: string | null) => {
-    if (!processedBy) return '-';
-    return adminProfiles.get(processedBy) || 'مدير';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid': return 'text-primary';
+      case 'rejected': return 'text-destructive';
+      case 'review': return 'text-warning';
+      default: return 'text-muted-foreground';
+    }
   };
 
-  // Mobile Request Card Component
+  const getStatusBg = (status: string) => {
+    switch (status) {
+      case 'paid': return 'bg-primary/10 border-primary/30';
+      case 'rejected': return 'bg-destructive/10 border-destructive/30';
+      case 'review': return 'bg-warning/10 border-warning/30';
+      default: return 'bg-muted border-border';
+    }
+  };
+
+  // Compact Request Card - Crypto Style
   const RequestCard = ({ request, showClaimButton = false }: { request: PayoutRequest; showClaimButton?: boolean }) => (
-    <div className="glass-card-hover p-4 space-y-3">
+    <div className={`dark-card p-4 space-y-3 ${showClaimButton ? 'border-primary/30' : ''}`}>
+      {/* Header Row */}
       <div className="flex items-center justify-between">
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-          request.status === 'paid' ? 'bg-success/20 text-success' :
-          request.status === 'rejected' ? 'bg-destructive/20 text-destructive' :
-          request.status === 'review' ? 'bg-primary/20 text-primary' : 'bg-warning/20 text-warning'
-        }`}>
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${
+            request.status === 'paid' ? 'bg-primary' :
+            request.status === 'rejected' ? 'bg-destructive' :
+            request.status === 'review' ? 'bg-warning' : 'bg-muted-foreground'
+          }`} />
+          <span className="text-sm font-medium">{request.recipient_full_name}</span>
+        </div>
+        <span className={`text-xs px-2 py-1 rounded-lg border ${getStatusBg(request.status)} ${getStatusColor(request.status)}`}>
           {statusLabels[request.status]}
         </span>
-        <span className="text-xs text-muted-foreground" dir="ltr">
-          {new Date(request.created_at).toLocaleDateString('ar-EG')}
-        </span>
       </div>
-      
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">المستلم</span>
-          <span className="font-medium">{request.recipient_full_name}</span>
+
+      {/* Amount - Large Display */}
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground mb-1">{request.country} · {request.payout_method}</p>
+          <p className="text-2xl font-bold text-primary">${request.amount.toLocaleString()}</p>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">المبلغ</span>
-          <span className="font-bold text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            {request.amount} {request.currency}
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">البلد</span>
-          <span>{request.country}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-sm">كود التتبع</span>
-          <span className="font-mono text-xs" dir="ltr">{request.tracking_code}</span>
+        <div className="text-left">
+          <p className="text-[10px] text-muted-foreground" dir="ltr">{request.tracking_code}</p>
+          <p className="text-xs text-muted-foreground">{new Date(request.created_at).toLocaleDateString('ar-EG')}</p>
         </div>
       </div>
 
-      <div className="flex gap-2 pt-2">
+      {/* Actions */}
+      <div className="flex gap-2 pt-1">
         {showClaimButton ? (
           <button
             onClick={() => handleClaimRequest(request.id)}
-            className="flex-1 py-2.5 bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-medium rounded-xl hover:opacity-90 transition-opacity"
+            className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
           >
+            <ArrowUpRight className="w-4 h-4" />
             استلام الطلب
           </button>
         ) : (
@@ -437,7 +447,7 @@ const AdminDashboard = () => {
             className="flex-1 py-2.5 bg-secondary text-secondary-foreground text-sm font-medium rounded-xl hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
           >
             <Eye className="w-4 h-4" />
-            عرض التفاصيل
+            التفاصيل
           </button>
         )}
         {isSuperAdmin && !showClaimButton && (
@@ -445,98 +455,79 @@ const AdminDashboard = () => {
             onClick={() => handleDeleteRequest(request.id)}
             className="p-2.5 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition-colors"
           >
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className="w-4 h-4" />
           </button>
         )}
       </div>
     </div>
   );
 
-  // Stats Card Component
-  const StatCard = ({ icon: Icon, label, value, subValue, gradient = false }: { 
-    icon: React.ElementType; 
-    label: string; 
-    value: string | number; 
-    subValue?: string;
-    gradient?: boolean;
-  }) => (
-    <div className="glass-card p-4 space-y-2">
-      <div className="flex items-center gap-3">
-        <div className={`p-2 rounded-xl ${gradient ? 'bg-gradient-to-br from-primary/20 to-accent/20' : 'bg-muted'}`}>
-          <Icon className={`w-5 h-5 ${gradient ? 'text-primary' : 'text-muted-foreground'}`} />
-        </div>
-        <span className="text-sm text-muted-foreground">{label}</span>
-      </div>
-      <div className="pr-11">
-        <p className={`text-2xl font-bold ${gradient ? 'bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent' : ''}`}>
-          {value}
-        </p>
-        {subValue && <p className="text-xs text-muted-foreground">{subValue}</p>}
-      </div>
-    </div>
-  );
-
-  // Render Home Tab
+  // Home Tab - Dashboard Overview
   const renderHomeTab = () => (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="glass-card p-5 space-y-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold">مرحباً، {currentUserName || 'مدير'}</h2>
-            <p className="text-sm text-muted-foreground">
-              {isSuperAdmin ? 'المسؤول الأعلى' : 'مدير'}
-            </p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="p-3 bg-muted rounded-xl hover:bg-muted/70 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+    <div className="space-y-4">
+      {/* Welcome Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold">{currentUserName || 'مدير'}</h2>
+          <p className="text-sm text-muted-foreground">
+            {isSuperAdmin ? 'مسؤول النظام' : 'مدير'}
+          </p>
         </div>
+        <button
+          onClick={handleLogout}
+          className="p-3 bg-secondary rounded-xl hover:bg-secondary/80 transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
       </div>
 
-      {/* Quick Stats */}
+      {/* Stats Cards - Grid */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard 
-          icon={Clock} 
-          label="طلبات جديدة" 
-          value={pendingRequests.length}
-          gradient
-        />
-        <StatCard 
-          icon={ListChecks} 
-          label="طلباتي" 
-          value={myRequests.length}
-        />
-        <StatCard 
-          icon={TrendingUp} 
-          label="تم قبولها" 
-          value={myStats.paidRequests}
-          subValue={`${myStats.totalPaidAmount.toLocaleString()} $`}
-        />
-        <StatCard 
-          icon={BarChart3} 
-          label="مرفوضة" 
-          value={myStats.rejectedRequests}
-        />
+        <div className="dark-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-4 h-4 text-warning" />
+            <span className="text-xs text-muted-foreground">طلبات جديدة</span>
+          </div>
+          <p className="text-2xl font-bold">{pendingRequests.length}</p>
+        </div>
+        <div className="dark-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Wallet className="w-4 h-4 text-primary" />
+            <span className="text-xs text-muted-foreground">طلباتي</span>
+          </div>
+          <p className="text-2xl font-bold">{myRequests.length}</p>
+        </div>
+        <div className="dark-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="w-4 h-4 text-primary" />
+            <span className="text-xs text-muted-foreground">تم قبولها</span>
+          </div>
+          <p className="text-2xl font-bold text-primary">{myStats.paidRequests}</p>
+          <p className="text-xs text-muted-foreground mt-1">${myStats.totalPaidAmount.toLocaleString()}</p>
+        </div>
+        <div className="dark-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <XCircle className="w-4 h-4 text-destructive" />
+            <span className="text-xs text-muted-foreground">مرفوضة</span>
+          </div>
+          <p className="text-2xl font-bold">{myStats.rejectedRequests}</p>
+        </div>
       </div>
 
       {/* Payout Toggle for Super Admin */}
       {isSuperAdmin && (
-        <div className="glass-card p-4">
+        <div className="dark-card p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {payoutEnabled ? (
-                <Power className="w-5 h-5 text-success" />
+                <Power className="w-5 h-5 text-primary" />
               ) : (
                 <PowerOff className="w-5 h-5 text-destructive" />
               )}
               <div>
-                <p className="font-medium">حالة رفع الراتب</p>
+                <p className="font-medium text-sm">رفع الراتب</p>
                 <p className="text-xs text-muted-foreground">
-                  {payoutEnabled ? 'مفعّل - يمكن للمستخدمين رفع الطلبات' : 'معطّل - لا يمكن رفع طلبات جديدة'}
+                  {payoutEnabled ? 'مفعّل' : 'معطّل'}
                 </p>
               </div>
             </div>
@@ -549,95 +540,100 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Recent New Requests */}
+      {/* Recent Requests */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold">طلبات جديدة</h3>
-          <button 
-            onClick={() => setActiveTab('pending')}
-            className="text-sm text-primary flex items-center gap-1"
-          >
-            عرض الكل
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+          <h3 className="font-semibold">طلبات جديدة</h3>
+          {pendingRequests.length > 0 && (
+            <button 
+              onClick={() => setActiveTab('pending')}
+              className="text-xs text-primary"
+            >
+              عرض الكل ({pendingRequests.length})
+            </button>
+          )}
         </div>
         {pendingRequests.slice(0, 3).map(request => (
           <RequestCard key={request.id} request={request} showClaimButton />
         ))}
         {pendingRequests.length === 0 && (
-          <div className="glass-card p-8 text-center text-muted-foreground">
-            لا توجد طلبات جديدة
+          <div className="dark-card p-8 text-center text-muted-foreground">
+            <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p>لا توجد طلبات جديدة</p>
           </div>
         )}
       </div>
     </div>
   );
 
-  // Render Pending Requests Tab
+  // Pending Requests Tab
   const renderPendingTab = () => (
     <div className="space-y-4">
-      <div className="glass-card p-4">
-        <h2 className="font-bold text-lg mb-1">طلبات جديدة</h2>
-        <p className="text-sm text-muted-foreground">
-          اضغط "استلام" لحجز الطلب لك
-        </p>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">طلبات جديدة</h2>
+        <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-lg">
+          {pendingRequests.length}
+        </span>
       </div>
       {pendingRequests.map(request => (
         <RequestCard key={request.id} request={request} showClaimButton />
       ))}
       {pendingRequests.length === 0 && (
-        <div className="glass-card p-8 text-center text-muted-foreground">
-          لا توجد طلبات جديدة
+        <div className="dark-card p-12 text-center text-muted-foreground">
+          <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p>لا توجد طلبات جديدة</p>
         </div>
       )}
     </div>
   );
 
-  // Render My Requests Tab
+  // My Requests Tab
   const renderMyRequestsTab = () => (
     <div className="space-y-4">
+      <h2 className="text-xl font-bold">طلباتي</h2>
       <AdminStats stats={myStats} adminName="إحصائياتي" />
-      <h3 className="font-bold text-lg">طلباتي</h3>
       {myRequests.map(request => (
         <RequestCard key={request.id} request={request} />
       ))}
       {myRequests.length === 0 && (
-        <div className="glass-card p-8 text-center text-muted-foreground">
-          لم تستلم أي طلبات بعد
+        <div className="dark-card p-12 text-center text-muted-foreground">
+          <Wallet className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p>لم تستلم أي طلبات بعد</p>
         </div>
       )}
     </div>
   );
 
-  // Render Analytics Tab (Super Admin)
+  // Analytics Tab (Super Admin)
   const renderAnalyticsTab = () => (
     <div className="space-y-4">
+      <h2 className="text-xl font-bold">التحليلات</h2>
       <SuperAdminStats />
       
       {/* Filters */}
-      <div className="glass-card p-4 space-y-4">
+      <div className="dark-card p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <Filter className="w-5 h-5 text-muted-foreground" />
-          <span className="font-medium">تصفية النتائج</span>
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium">تصفية</span>
         </div>
         
         <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             value={filters.search}
             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
             placeholder="بحث..."
-            className="w-full input-field pr-10"
+            className="w-full input-field pr-10 py-3 text-sm"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <Select
             value={filters.status}
             onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
           >
-            <SelectTrigger className="bg-background">
+            <SelectTrigger className="bg-background text-sm">
               <SelectValue placeholder="الحالة" />
             </SelectTrigger>
             <SelectContent>
@@ -653,7 +649,7 @@ const AdminDashboard = () => {
             value={filters.country}
             onValueChange={(value) => setFilters(prev => ({ ...prev, country: value }))}
           >
-            <SelectTrigger className="bg-background">
+            <SelectTrigger className="bg-background text-sm">
               <SelectValue placeholder="البلد" />
             </SelectTrigger>
             <SelectContent>
@@ -669,7 +665,7 @@ const AdminDashboard = () => {
           value={filters.adminFilter}
           onValueChange={(value) => setFilters(prev => ({ ...prev, adminFilter: value }))}
         >
-          <SelectTrigger className="bg-background">
+          <SelectTrigger className="bg-background text-sm">
             <SelectValue placeholder="المدير" />
           </SelectTrigger>
           <SelectContent>
@@ -682,26 +678,27 @@ const AdminDashboard = () => {
 
         <button
           onClick={handleExportExcel}
-          className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-xl font-medium"
+          className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-medium text-sm"
         >
-          <Download className="w-5 h-5" />
+          <Download className="w-4 h-4" />
           تحميل Excel
         </button>
       </div>
 
-      {/* Requests List */}
-      <div className="text-sm text-muted-foreground text-center">
-        عرض {allRequests.length} طلب
-      </div>
+      {/* Results */}
+      <p className="text-xs text-muted-foreground text-center">
+        {allRequests.length} طلب
+      </p>
       {allRequests.map(request => (
         <RequestCard key={request.id} request={request} />
       ))}
     </div>
   );
 
-  // Render Settings Tab (Super Admin)
+  // Settings Tab (Super Admin)
   const renderSettingsTab = () => (
     <div className="space-y-4">
+      <h2 className="text-xl font-bold">إدارة المديرين</h2>
       <AdminManagement onUpdate={fetchData} />
     </div>
   );
@@ -710,9 +707,9 @@ const AdminDashboard = () => {
   const navItems = [
     { id: 'home', icon: Home, label: 'الرئيسية' },
     { id: 'pending', icon: Clock, label: 'جديدة', badge: pendingRequests.length },
-    { id: 'my-requests', icon: ListChecks, label: 'طلباتي' },
+    { id: 'my-requests', icon: Wallet, label: 'طلباتي' },
     ...(isSuperAdmin ? [
-      { id: 'analytics', icon: TrendingUp, label: 'التحليلات' },
+      { id: 'analytics', icon: BarChart3, label: 'التحليلات' },
       { id: 'settings', icon: Users, label: 'المديرين' },
     ] : []),
   ];
@@ -720,25 +717,24 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-20 px-4 py-3">
-        <div className="glass-card px-4 py-3">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              لوحة التحكم
-            </h1>
-            <div className="flex items-center gap-2">
-              {isSuperAdmin && (
-                <span className="px-2 py-1 bg-gradient-to-r from-primary/20 to-accent/20 text-primary rounded-full text-xs font-medium">
-                  مسؤول
-                </span>
-              )}
+      <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Wallet className="w-4 h-4 text-primary" />
             </div>
+            <h1 className="text-lg font-bold">غلا لايف</h1>
           </div>
+          {isSuperAdmin && (
+            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-lg">
+              مسؤول
+            </span>
+          )}
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="px-4 py-2">
+      <main className="px-4 py-4">
         {activeTab === 'home' && renderHomeTab()}
         {activeTab === 'pending' && renderPendingTab()}
         {activeTab === 'my-requests' && renderMyRequestsTab()}
@@ -747,29 +743,27 @@ const AdminDashboard = () => {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 px-4 pb-4">
-        <div className="glass-card py-2 px-2">
-          <div className="flex items-center justify-around">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`relative flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
-                  activeTab === item.id 
-                    ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary' 
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{item.label}</span>
-                {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t border-border px-2 py-2 safe-area-pb">
+        <div className="flex items-center justify-around">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all ${
+                activeTab === item.id 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{item.label}</span>
+              {item.badge && item.badge > 0 && activeTab !== item.id && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {item.badge > 9 ? '9+' : item.badge}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </nav>
 
