@@ -402,65 +402,74 @@ const AdminDashboard = () => {
   };
 
   // Compact Request Card - Crypto Style
-  const RequestCard = ({ request, showClaimButton = false }: { request: PayoutRequest; showClaimButton?: boolean }) => (
-    <div className={`dark-card p-4 space-y-3 ${showClaimButton ? 'border-primary/30' : ''}`}>
-      {/* Header Row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${
-            request.status === 'paid' ? 'bg-primary' :
-            request.status === 'rejected' ? 'bg-destructive' :
-            request.status === 'review' ? 'bg-warning' : 'bg-muted-foreground'
-          }`} />
-          <span className="text-sm font-medium">{request.recipient_full_name}</span>
+  const RequestCard = ({ request, showClaimButton = false }: { request: PayoutRequest; showClaimButton?: boolean }) => {
+    const isClaimedByMe = request.claimed_by === currentUserId;
+    const isPendingOrReview = request.status === 'pending' || request.status === 'review';
+    
+    return (
+      <div className={`dark-card p-4 space-y-3 ${showClaimButton ? 'border-primary/30' : isClaimedByMe && isPendingOrReview ? 'border-warning/30' : ''}`}>
+        {/* Header Row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${
+              request.status === 'paid' ? 'bg-primary' :
+              request.status === 'rejected' ? 'bg-destructive' :
+              request.status === 'review' ? 'bg-warning' : 'bg-muted-foreground'
+            }`} />
+            <span className="text-sm font-medium">{request.recipient_full_name}</span>
+          </div>
+          <span className={`text-xs px-2 py-1 rounded-lg border ${getStatusBg(request.status)} ${getStatusColor(request.status)}`}>
+            {isClaimedByMe && isPendingOrReview ? 'مستلم - ' : ''}{statusLabels[request.status]}
+          </span>
         </div>
-        <span className={`text-xs px-2 py-1 rounded-lg border ${getStatusBg(request.status)} ${getStatusColor(request.status)}`}>
-          {statusLabels[request.status]}
-        </span>
-      </div>
 
-      {/* Amount - Large Display */}
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground mb-1">{request.country} · {request.payout_method}</p>
-          <p className="text-2xl font-bold text-primary">${request.amount.toLocaleString()}</p>
+        {/* Amount - Large Display */}
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">{request.country} · {request.payout_method}</p>
+            <p className="text-2xl font-bold text-primary">${request.amount.toLocaleString()}</p>
+          </div>
+          <div className="text-left">
+            <p className="text-[10px] text-muted-foreground" dir="ltr">{request.tracking_code}</p>
+            <p className="text-xs text-muted-foreground">{new Date(request.created_at).toLocaleDateString('ar-EG')}</p>
+          </div>
         </div>
-        <div className="text-left">
-          <p className="text-[10px] text-muted-foreground" dir="ltr">{request.tracking_code}</p>
-          <p className="text-xs text-muted-foreground">{new Date(request.created_at).toLocaleDateString('ar-EG')}</p>
-        </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex gap-2 pt-1">
-        {showClaimButton ? (
-          <button
-            onClick={() => handleClaimRequest(request.id)}
-            className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
-          >
-            <ArrowUpRight className="w-4 h-4" />
-            استلام الطلب
-          </button>
-        ) : (
-          <button
-            onClick={() => setSelectedRequest(request.id)}
-            className="flex-1 py-2.5 bg-secondary text-secondary-foreground text-sm font-medium rounded-xl hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
-          >
-            <Eye className="w-4 h-4" />
-            التفاصيل
-          </button>
-        )}
-        {isSuperAdmin && !showClaimButton && (
-          <button
-            onClick={() => handleDeleteRequest(request.id)}
-            className="p-2.5 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
+        {/* Actions */}
+        <div className="flex gap-2 pt-1">
+          {showClaimButton ? (
+            <button
+              onClick={() => handleClaimRequest(request.id)}
+              className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+            >
+              <ArrowUpRight className="w-4 h-4" />
+              استلام الطلب
+            </button>
+          ) : (
+            <button
+              onClick={() => setSelectedRequest(request.id)}
+              className={`flex-1 py-2.5 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2 ${
+                isClaimedByMe && isPendingOrReview 
+                  ? 'bg-warning text-warning-foreground hover:bg-warning/90' 
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+              }`}
+            >
+              <Eye className="w-4 h-4" />
+              {isClaimedByMe && isPendingOrReview ? 'معالجة الطلب' : 'التفاصيل'}
+            </button>
+          )}
+          {isSuperAdmin && !showClaimButton && (
+            <button
+              onClick={() => handleDeleteRequest(request.id)}
+              className="p-2.5 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Home Tab - Dashboard Overview
   const renderHomeTab = () => (
@@ -588,21 +597,50 @@ const AdminDashboard = () => {
   );
 
   // My Requests Tab
-  const renderMyRequestsTab = () => (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold">طلباتي</h2>
-      <AdminStats stats={myStats} adminName="إحصائياتي" />
-      {myRequests.map(request => (
-        <RequestCard key={request.id} request={request} />
-      ))}
-      {myRequests.length === 0 && (
-        <div className="dark-card p-12 text-center text-muted-foreground">
-          <Wallet className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>لم تستلم أي طلبات بعد</p>
-        </div>
-      )}
-    </div>
-  );
+  const renderMyRequestsTab = () => {
+    const inProgressRequests = myRequests.filter(r => r.status === 'pending' || r.status === 'review');
+    const completedRequests = myRequests.filter(r => r.status === 'paid' || r.status === 'rejected');
+    
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold">طلباتي</h2>
+        <AdminStats stats={myStats} adminName="إحصائياتي" />
+        
+        {/* In Progress Section */}
+        {inProgressRequests.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-warning flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              قيد المعالجة ({inProgressRequests.length})
+            </h3>
+            {inProgressRequests.map(request => (
+              <RequestCard key={request.id} request={request} />
+            ))}
+          </div>
+        )}
+        
+        {/* Completed Section */}
+        {completedRequests.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-primary flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              تمت المعالجة ({completedRequests.length})
+            </h3>
+            {completedRequests.map(request => (
+              <RequestCard key={request.id} request={request} />
+            ))}
+          </div>
+        )}
+        
+        {myRequests.length === 0 && (
+          <div className="dark-card p-12 text-center text-muted-foreground">
+            <Wallet className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>لم تستلم أي طلبات بعد</p>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Analytics Tab (Super Admin)
   const renderAnalyticsTab = () => (
