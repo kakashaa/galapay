@@ -78,8 +78,8 @@ ${requestDetails.referenceNumber ? `• الرقم المرجعي: \`${requestDe
     const textResult = await textResponse.json();
     console.log('Telegram text response:', textResult);
 
-    // Send the image
-    const photoResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+    // Try to send the image - first attempt with URL
+    let photoResult = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -87,15 +87,38 @@ ${requestDetails.referenceNumber ? `• الرقم المرجعي: \`${requestDe
         photo: imageUrl,
         caption: `إيصال: ${requestDetails.recipientName} - $${requestDetails.amount}`,
       }),
-    });
+    }).then(res => res.json());
 
-    const photoResult = await photoResponse.json();
     console.log('Telegram photo response:', photoResult);
 
-    if (textResult.ok && photoResult.ok) {
-      console.log('Telegram notification sent successfully');
+    // If URL method fails, try downloading and uploading the image
+    if (!photoResult.ok && imageUrl) {
+      try {
+        console.log('URL method failed, trying to fetch and upload image...');
+        const imageResponse = await fetch(imageUrl);
+        if (imageResponse.ok) {
+          const imageBlob = await imageResponse.blob();
+          const formData = new FormData();
+          formData.append('chat_id', TELEGRAM_CHAT_ID);
+          formData.append('photo', imageBlob, 'receipt.jpg');
+          formData.append('caption', `إيصال: ${requestDetails.recipientName} - $${requestDetails.amount}`);
+          
+          const uploadResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+            method: 'POST',
+            body: formData,
+          });
+          photoResult = await uploadResponse.json();
+          console.log('Telegram photo upload response:', photoResult);
+        }
+      } catch (uploadError) {
+        console.error('Failed to upload image directly:', uploadError);
+      }
+    }
+
+    if (textResult.ok) {
+      console.log('Telegram notification sent successfully (text sent, photo may have issues)');
       return new Response(
-        JSON.stringify({ success: true }),
+        JSON.stringify({ success: true, photoSent: photoResult.ok }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
