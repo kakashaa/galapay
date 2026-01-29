@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
 import { useSavedRequests } from '@/hooks/use-saved-requests';
 import { FlyingMoney } from '@/components/FlyingMoney';
 import { PayoutDisabledDialog } from '@/components/PayoutDisabledDialog';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
-
+import { VideoStoryCircle } from '@/components/VideoStoryCircle';
 const Index = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -38,6 +38,11 @@ const Index = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
       {/* Flying Money Background */}
       <FlyingMoney />
+
+      {/* Video Story Circle - Tutorial */}
+      <div className="mb-6 z-10">
+        <VideoStoryCircle />
+      </div>
 
       {/* Promo Banner */}
       <div className="promo-banner w-full max-w-sm mb-8 z-10">
