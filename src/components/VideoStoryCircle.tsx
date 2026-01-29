@@ -89,7 +89,7 @@ export const VideoStoryCircle = () => {
 
       {/* Full Screen Video Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-md w-full h-[85vh] max-h-[700px] p-0 bg-black border-0 rounded-2xl overflow-hidden">
+        <DialogContent className="max-w-[95vw] sm:max-w-md w-full h-[90vh] max-h-[800px] p-0 bg-black border-0 rounded-2xl overflow-hidden flex flex-col">
           <div className="relative w-full h-full flex flex-col">
             {/* Close Button */}
             <button
@@ -107,21 +107,21 @@ export const VideoStoryCircle = () => {
               {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
             </button>
 
-            {/* Video Player */}
-            <div className="flex-1 flex items-center justify-center bg-black">
+            {/* Video Player - Full Container */}
+            <div className="flex-1 flex items-center justify-center bg-black min-h-0">
               <video
                 src={video.video_url}
                 autoPlay
                 loop
                 muted={isMuted}
                 playsInline
+                controls
                 className="w-full h-full object-contain"
-                controls={false}
               />
             </div>
 
             {/* Bottom Info */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 pt-16">
+            <div className="bg-gradient-to-t from-black/90 to-transparent p-4 pt-8">
               <h3 className="text-white text-lg font-bold mb-1">{video.title}</h3>
               {video.description && (
                 <p className="text-white/80 text-sm">{video.description}</p>
