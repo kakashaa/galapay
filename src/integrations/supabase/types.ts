@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -119,6 +143,8 @@ export type Database = {
           ai_notes: string | null
           ai_receipt_status: string | null
           amount: number
+          claimed_at: string | null
+          claimed_by: string | null
           country: string
           country_dial_code: string
           created_at: string
@@ -145,6 +171,8 @@ export type Database = {
           ai_notes?: string | null
           ai_receipt_status?: string | null
           amount: number
+          claimed_at?: string | null
+          claimed_by?: string | null
           country: string
           country_dial_code: string
           created_at?: string
@@ -171,6 +199,8 @@ export type Database = {
           ai_notes?: string | null
           ai_receipt_status?: string | null
           amount?: number
+          claimed_at?: string | null
+          claimed_by?: string | null
           country?: string
           country_dial_code?: string
           created_at?: string
