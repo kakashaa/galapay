@@ -27,6 +27,7 @@ import RequestDetailsModal from '@/components/admin/RequestDetailsModal';
 import AdminStats from '@/components/admin/AdminStats';
 import SuperAdminStats from '@/components/admin/SuperAdminStats';
 import AdminManagement from '@/components/admin/AdminManagement';
+import AnalyticsCharts from '@/components/admin/AnalyticsCharts';
 import { exportToExcel } from '@/lib/excel-export';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import {
@@ -644,8 +645,19 @@ const AdminDashboard = () => {
 
   // Analytics Tab (Super Admin)
   const renderAnalyticsTab = () => (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-in">
       <h2 className="text-xl font-bold">التحليلات</h2>
+      
+      {/* Charts Section */}
+      <AnalyticsCharts stats={{
+        totalRequests: allRequests.length,
+        paidRequests: allRequests.filter(r => r.status === 'paid').length,
+        rejectedRequests: allRequests.filter(r => r.status === 'rejected').length,
+        pendingRequests: allRequests.filter(r => r.status === 'pending' || r.status === 'review').length,
+        totalPaidAmount: allRequests.filter(r => r.status === 'paid').reduce((sum, r) => sum + Number(r.amount), 0),
+        totalPendingAmount: allRequests.filter(r => r.status === 'pending' || r.status === 'review').reduce((sum, r) => sum + Number(r.amount), 0),
+      }} />
+      
       <SuperAdminStats />
       
       {/* Filters */}
@@ -771,32 +783,34 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content with Tab Transitions */}
       <main className="px-4 py-4">
-        {activeTab === 'home' && renderHomeTab()}
-        {activeTab === 'pending' && renderPendingTab()}
-        {activeTab === 'my-requests' && renderMyRequestsTab()}
-        {activeTab === 'analytics' && isSuperAdmin && renderAnalyticsTab()}
-        {activeTab === 'settings' && isSuperAdmin && renderSettingsTab()}
+        <div key={activeTab} className="animate-fade-in">
+          {activeTab === 'home' && renderHomeTab()}
+          {activeTab === 'pending' && renderPendingTab()}
+          {activeTab === 'my-requests' && renderMyRequestsTab()}
+          {activeTab === 'analytics' && isSuperAdmin && renderAnalyticsTab()}
+          {activeTab === 'settings' && isSuperAdmin && renderSettingsTab()}
+        </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t border-border px-2 py-2 safe-area-pb">
+      {/* Bottom Navigation with Enhanced Transitions */}
+      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-xl border-t border-border px-2 py-2 safe-area-pb">
         <div className="flex items-center justify-around">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all ${
+              className={`relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ease-out transform ${
                 activeTab === item.id 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground scale-105 shadow-lg shadow-primary/30' 
+                  : 'text-muted-foreground hover:text-foreground hover:scale-105'
               }`}
             >
-              <item.icon className="w-5 h-5" />
+              <item.icon className={`w-5 h-5 transition-transform duration-300 ${activeTab === item.id ? 'scale-110' : ''}`} />
               <span className="text-[10px] font-medium">{item.label}</span>
               {item.badge && item.badge > 0 && activeTab !== item.id && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
                   {item.badge > 9 ? '9+' : item.badge}
                 </span>
               )}
