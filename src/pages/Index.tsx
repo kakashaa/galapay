@@ -85,63 +85,71 @@ const Index = () => {
       {/* Bottom Sheet - Only shows when payout is enabled */}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         
-        <SheetContent side="bottom" className="bottom-sheet h-auto max-h-[80vh] overflow-y-auto p-0">
+        <SheetContent side="bottom" className="bottom-sheet h-auto max-h-[85vh] overflow-y-auto p-0">
           {/* Handle */}
           <div className="flex justify-center pt-3 pb-2">
             <div className="w-10 h-1 rounded-full bg-muted" />
           </div>
           
-          <div className="p-5 space-y-5">
-            {/* Title */}
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-foreground mb-1">
-                تعليمات مهمة
+          <div className="p-5 space-y-6">
+            {/* Simple Question */}
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold text-foreground">
+                ماذا تريد أن تفعل؟
               </h2>
-              <p className="text-muted-foreground text-sm">
-                اقرأ التعليمات بعناية قبل المتابعة
-              </p>
             </div>
 
-            {/* Instructions */}
-            <div className="space-y-3">
-              <div className="glass-card p-3 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
-                <p className="text-foreground text-sm">
-                  اقرأ التعليمات قبل رفع الطلب. نحن غير مسؤولين عن أي خطأ.
-                </p>
-              </div>
-
-              <div className="glass-card p-3 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                <p className="text-foreground text-sm">
-                  بعد إرسال الطلب سيظهر كود تتبع. <span className="font-bold text-destructive">احتفظ به ولا تشاركه.</span>
-                </p>
-              </div>
-
-              <div className="glass-card p-3 flex gap-3">
-                <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <p className="text-foreground text-sm">
-                  لا تعبّئ البيانات إلا بعد تحويل المبلغ إلى وكالة <span className="font-bold text-primary">10000</span> وتصوير الإيصال.
-                </p>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3 pt-1">
+            {/* Two Main Options - Large Cards */}
+            <div className="space-y-4">
+              {/* Option 1: New Request */}
               <button
                 onClick={handleProceed}
-                className="mobile-btn-primary text-sm py-3"
+                className="w-full p-5 rounded-2xl bg-primary text-primary-foreground flex items-center gap-4 transition-all active:scale-[0.98] shadow-lg"
               >
-                لقد حولت إلى ID=10000 ولدي إيصال
+                <div className="w-14 h-14 rounded-xl bg-primary-foreground/20 flex items-center justify-center shrink-0">
+                  <Wallet className="w-7 h-7" />
+                </div>
+                <div className="text-right flex-1">
+                  <p className="text-lg font-bold mb-1">رفع طلب صرف جديد</p>
+                  <p className="text-sm opacity-80">حولت المبلغ ولدي إيصال التحويل</p>
+                </div>
               </button>
-              
+
+              {/* Option 2: Track Existing */}
               <button
                 onClick={handleTrack}
-                className="mobile-btn-outline text-sm py-3"
+                className="w-full p-5 rounded-2xl bg-muted border-2 border-border flex items-center gap-4 transition-all active:scale-[0.98] hover:border-primary/50"
               >
-                <Search className="w-4 h-4 inline-block ml-2" />
-                بحث عن حوالتي بالكود
+                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Search className="w-7 h-7 text-primary" />
+                </div>
+                <div className="text-right flex-1">
+                  <p className="text-lg font-bold text-foreground mb-1">تتبع طلب سابق</p>
+                  <p className="text-sm text-muted-foreground">لدي كود تتبع وأريد معرفة حالة طلبي</p>
+                </div>
               </button>
+            </div>
+
+            {/* Important Note - Simplified */}
+            <div className="bg-warning/10 border border-warning/30 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-foreground font-medium text-sm">
+                    قبل رفع طلب جديد تأكد من:
+                  </p>
+                  <ul className="text-muted-foreground text-sm space-y-1">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span>تحويل المبلغ لوكالة <strong className="text-primary">10000</strong></span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span>تصوير إيصال التحويل</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </SheetContent>
