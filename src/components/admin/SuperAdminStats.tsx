@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Loader2, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import AdminStats from './AdminStats';
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface AdminStatsData {
   userId: string;
@@ -42,7 +44,7 @@ const SuperAdminStats = () => {
     totalPendingAmount: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [expandedAdmins, setExpandedAdmins] = useState<Set<string>>(new Set());
+  const [selectedAdmin, setSelectedAdmin] = useState<string>('all');
 
   useEffect(() => {
     fetchAllStats();
@@ -117,16 +119,24 @@ const SuperAdminStats = () => {
     }
   };
 
-  const toggleAdmin = (userId: string) => {
-    setExpandedAdmins(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(userId)) {
-        newSet.delete(userId);
-      } else {
-        newSet.add(userId);
-      }
-      return newSet;
-    });
+  // Get the stats to display based on selected admin
+  const getDisplayStats = (): TotalStats => {
+    if (selectedAdmin === 'all') {
+      return totalStats;
+    }
+    const adminData = adminStats.find(a => a.userId === selectedAdmin);
+    if (adminData) {
+      return adminData.stats;
+    }
+    return totalStats;
+  };
+
+  const getDisplayTitle = (): string => {
+    if (selectedAdmin === 'all') {
+      return 'الإحصائيات الإجمالية';
+    }
+    const adminData = adminStats.find(a => a.userId === selectedAdmin);
+    return adminData ? `إحصائيات ${adminData.displayName}` : 'الإحصائيات';
   };
 
   if (loading) {
@@ -139,60 +149,84 @@ const SuperAdminStats = () => {
 
   return (
     <div className="space-y-6">
-      {/* Total Stats */}
-      <div className="glass-card p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Users className="w-5 h-5 text-primary" />
-          <h3 className="font-bold text-lg text-foreground">الإحصائيات الإجمالية</h3>
+      {/* Admin Selector */}
+      <div className="glass-card p-4">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
+            <h3 className="font-bold text-lg text-foreground">{getDisplayTitle()}</h3>
+          </div>
+          
+          <Select value={selectedAdmin} onValueChange={setSelectedAdmin}>
+            <SelectTrigger className="w-[200px] bg-background">
+              <SelectValue placeholder="اختر المدير" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">الجميع</SelectItem>
+              {adminStats.map((admin) => (
+                <SelectItem key={admin.userId} value={admin.userId}>
+                  {admin.displayName} ({admin.stats.totalRequests} طلب)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <AdminStats stats={totalStats} showTitle={false} />
       </div>
 
-      {/* Per-Admin Stats */}
-      <div className="space-y-4">
-        <h3 className="font-bold text-lg text-foreground">إحصائيات كل مدير</h3>
-        
-        {adminStats.map((admin) => (
-          <Collapsible
-            key={admin.userId}
-            open={expandedAdmins.has(admin.userId)}
-            onOpenChange={() => toggleAdmin(admin.userId)}
-          >
-            <div className="glass-card overflow-hidden">
-              <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-3">
+      {/* Stats Display */}
+      <AdminStats stats={getDisplayStats()} showTitle={false} />
+
+      {/* Admin Summary (only when showing all) */}
+      {selectedAdmin === 'all' && adminStats.length > 0 && (
+        <div className="glass-card p-4">
+          <h4 className="font-bold mb-4 text-foreground">ملخص المديرين</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {adminStats.map((admin) => (
+              <div
+                key={admin.userId}
+                className="p-4 bg-muted/50 rounded-xl cursor-pointer hover:bg-muted/70 transition-colors"
+                onClick={() => setSelectedAdmin(admin.userId)}
+              >
+                <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="font-bold text-primary">
                       {admin.displayName.charAt(0)}
                     </span>
                   </div>
-                  <div className="text-right">
+                  <div>
                     <p className="font-medium text-foreground">{admin.displayName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {admin.stats.totalRequests} طلب • ${admin.stats.totalPaidAmount.toLocaleString()} تم صرفه
+                    <p className="text-xs text-muted-foreground">
+                      {admin.role === 'super_admin' ? 'مسؤول أعلى' : admin.role === 'admin' ? 'مدير' : 'موظف'}
                     </p>
                   </div>
                 </div>
-                {expandedAdmins.has(admin.userId) ? (
-                  <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                )}
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent>
-                <div className="p-4 pt-0 border-t border-border">
-                  <AdminStats stats={admin.stats} showTitle={false} />
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">الطلبات:</span>
+                    <span className="font-medium mr-1">{admin.stats.totalRequests}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">مقبول:</span>
+                    <span className="font-medium mr-1 text-success">{admin.stats.paidRequests}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">مرفوض:</span>
+                    <span className="font-medium mr-1 text-destructive">{admin.stats.rejectedRequests}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">المبلغ:</span>
+                    <span className="font-medium mr-1">${admin.stats.totalPaidAmount.toLocaleString()}</span>
+                  </div>
                 </div>
-              </CollapsibleContent>
-            </div>
-          </Collapsible>
-        ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-        {adminStats.length === 0 && (
-          <p className="text-center text-muted-foreground py-4">لا توجد إحصائيات بعد</p>
-        )}
-      </div>
+      {adminStats.length === 0 && (
+        <p className="text-center text-muted-foreground py-4">لا توجد إحصائيات بعد</p>
+      )}
     </div>
   );
 };
