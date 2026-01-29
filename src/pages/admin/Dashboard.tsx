@@ -20,6 +20,7 @@ import {
   XCircle,
   ArrowUpRight,
   Menu,
+  Video,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -28,6 +29,7 @@ import AdminStats from '@/components/admin/AdminStats';
 import SuperAdminStats from '@/components/admin/SuperAdminStats';
 import AdminManagement from '@/components/admin/AdminManagement';
 import AnalyticsCharts from '@/components/admin/AnalyticsCharts';
+import VideoManagement from '@/components/admin/VideoManagement';
 import { exportToExcel } from '@/lib/excel-export';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import {
@@ -753,6 +755,14 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // Videos Tab (Super Admin)
+  const renderVideosTab = () => (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold">إدارة الفيديوهات</h2>
+      <VideoManagement onUpdate={fetchData} />
+    </div>
+  );
+
   // Navigation Items
   const navItems = [
     { id: 'home', icon: Home, label: 'الرئيسية' },
@@ -760,6 +770,7 @@ const AdminDashboard = () => {
     { id: 'my-requests', icon: Wallet, label: 'طلباتي' },
     ...(isSuperAdmin ? [
       { id: 'analytics', icon: BarChart3, label: 'التحليلات' },
+      { id: 'videos', icon: Video, label: 'الفيديو' },
       { id: 'settings', icon: Users, label: 'المديرين' },
     ] : []),
   ];
@@ -790,6 +801,7 @@ const AdminDashboard = () => {
           {activeTab === 'pending' && renderPendingTab()}
           {activeTab === 'my-requests' && renderMyRequestsTab()}
           {activeTab === 'analytics' && isSuperAdmin && renderAnalyticsTab()}
+          {activeTab === 'videos' && isSuperAdmin && renderVideosTab()}
           {activeTab === 'settings' && isSuperAdmin && renderSettingsTab()}
         </div>
       </main>
