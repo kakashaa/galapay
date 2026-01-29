@@ -51,6 +51,8 @@ const PayoutRequest = () => {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [dailyLimitError, setDailyLimitError] = useState<string | null>(null);
+  const [hasPreviousPaidRequest, setHasPreviousPaidRequest] = useState(false);
+  const [checkingPreviousPayouts, setCheckingPreviousPayouts] = useState(false);
 
   const [formData, setFormData] = useState({
     zalalLifeAccountId: '',
@@ -181,6 +183,37 @@ const PayoutRequest = () => {
     return !data; // Return true if no request found today
   };
 
+  // Check if user already has a paid (successful) payout - block repeat payouts
+  const checkPreviousPaidPayouts = async (accountId: string): Promise<{ hasPaid: boolean; message: string }> => {
+    setCheckingPreviousPayouts(true);
+    
+    const { data, error } = await supabase
+      .from('payout_requests')
+      .select('id, created_at')
+      .eq('zalal_life_account_id', accountId.trim())
+      .eq('status', 'paid')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    setCheckingPreviousPayouts(false);
+    
+    if (error) {
+      console.error('Error checking previous payouts:', error);
+      return { hasPaid: false, message: '' };
+    }
+    
+    if (data) {
+      setHasPreviousPaidRequest(true);
+      return { 
+        hasPaid: true, 
+        message: 'لقد تم تحويل طلب سابق لك بنجاح. لا يمكنك رفع طلب جديد حتى الشهر القادم.'
+      };
+    }
+    
+    return { hasPaid: false, message: '' };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -226,6 +259,17 @@ const PayoutRequest = () => {
       toast({
         title: 'خطأ',
         description: referenceError,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check if user already has a successful paid payout
+    const previousPayoutCheck = await checkPreviousPaidPayouts(formData.zalalLifeAccountId);
+    if (previousPayoutCheck.hasPaid) {
+      toast({
+        title: '❌ تم الوصول للحد الأقصى',
+        description: previousPayoutCheck.message,
         variant: 'destructive',
       });
       return;
