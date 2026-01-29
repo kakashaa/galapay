@@ -14,6 +14,10 @@ import {
   BarChart3,
   Settings,
   ListChecks,
+  Home,
+  TrendingUp,
+  Users,
+  ChevronLeft,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -31,7 +35,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PayoutRequest {
   id: string;
@@ -90,7 +93,7 @@ const AdminDashboard = () => {
   const [currentUserName, setCurrentUserName] = useState<string>('');
   const [adminProfiles, setAdminProfiles] = useState<Map<string, string>>(new Map());
   const [countries, setCountries] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('home');
   const [filters, setFilters] = useState({
     status: 'all',
     country: 'all',
@@ -138,7 +141,6 @@ const AdminDashboard = () => {
 
     setUserRole(roleData.role as 'admin' | 'staff' | 'super_admin');
 
-    // Get current user's display name
     const { data: profileData } = await supabase
       .from('admin_profiles')
       .select('display_name')
@@ -173,7 +175,6 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch pending requests (not claimed by anyone)
       const { data: pending } = await supabase
         .from('payout_requests')
         .select('*')
@@ -183,7 +184,6 @@ const AdminDashboard = () => {
 
       setPendingRequests((pending as PayoutRequest[]) || []);
 
-      // Fetch my requests (processed or claimed by me)
       const { data: mine } = await supabase
         .from('payout_requests')
         .select('*')
@@ -192,7 +192,6 @@ const AdminDashboard = () => {
 
       setMyRequests((mine as PayoutRequest[]) || []);
 
-      // Calculate my stats
       if (mine) {
         const myProcessed = mine.filter(r => r.processed_by === currentUserId);
         setMyStats({
@@ -209,7 +208,6 @@ const AdminDashboard = () => {
         });
       }
 
-      // Super admin: fetch all requests with filters
       if (isSuperAdmin) {
         let query = supabase
           .from('payout_requests')
@@ -254,7 +252,7 @@ const AdminDashboard = () => {
           claimed_at: new Date().toISOString(),
         })
         .eq('id', requestId)
-        .is('claimed_by', null); // Only claim if not already claimed
+        .is('claimed_by', null);
 
       if (error) throw error;
 
@@ -388,293 +386,392 @@ const AdminDashboard = () => {
     return adminProfiles.get(processedBy) || 'مدير';
   };
 
-  const renderRequestsTable = (requests: PayoutRequest[], showClaimButton = false, showAdminColumn = true) => (
-    <div className="glass-card overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-muted/50 border-b border-border">
-            <tr>
-              <th className="text-right p-4 font-medium text-foreground">كود التتبع</th>
-              <th className="text-right p-4 font-medium text-foreground">المستلم</th>
-              <th className="text-right p-4 font-medium text-foreground">المبلغ</th>
-              <th className="text-right p-4 font-medium text-foreground">البلد</th>
-              <th className="text-right p-4 font-medium text-foreground">الحالة</th>
-              {showAdminColumn && (
-                <th className="text-right p-4 font-medium text-foreground">تمت المعالجة بواسطة</th>
-              )}
-              <th className="text-right p-4 font-medium text-foreground">التاريخ</th>
-              <th className="text-right p-4 font-medium text-foreground">إجراء</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {requests.map((request) => (
-              <tr key={request.id} className="hover:bg-muted/30 transition-colors">
-                <td className="p-4 font-mono text-sm" dir="ltr">{request.tracking_code}</td>
-                <td className="p-4">{request.recipient_full_name}</td>
-                <td className="p-4 font-medium">{request.amount} {request.currency}</td>
-                <td className="p-4">{request.country}</td>
-                <td className="p-4">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                    request.status === 'paid' ? 'status-paid' :
-                    request.status === 'rejected' ? 'status-rejected' :
-                    request.status === 'review' ? 'status-review' : 'status-pending'
-                  }`}>
-                    {statusLabels[request.status]}
-                  </span>
-                  {request.ai_receipt_status === 'fail' && (
-                    <span className="mr-2 text-xs text-destructive">⚠️ AI</span>
-                  )}
-                </td>
-                {showAdminColumn && (
-                  <td className="p-4">
-                    {request.processed_by ? (
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{getProcessedByName(request.processed_by)}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">-</span>
-                    )}
-                  </td>
-                )}
-                <td className="p-4 text-muted-foreground text-sm" dir="ltr">
-                  {new Date(request.created_at).toLocaleDateString('ar-EG')}
-                </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-2">
-                    {showClaimButton ? (
-                      <button
-                        onClick={() => handleClaimRequest(request.id)}
-                        className="px-3 py-1.5 bg-primary text-primary-foreground text-sm rounded-lg hover:bg-primary/90 transition-colors"
-                      >
-                        استلام
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setSelectedRequest(request.id)}
-                        className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                        title="عرض التفاصيل"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
-                    )}
-                    {isSuperAdmin && (
-                      <button
-                        onClick={() => handleDeleteRequest(request.id)}
-                        className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                        title="حذف الطلب"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+  // Mobile Request Card Component
+  const RequestCard = ({ request, showClaimButton = false }: { request: PayoutRequest; showClaimButton?: boolean }) => (
+    <div className="glass-card-hover p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+          request.status === 'paid' ? 'bg-success/20 text-success' :
+          request.status === 'rejected' ? 'bg-destructive/20 text-destructive' :
+          request.status === 'review' ? 'bg-primary/20 text-primary' : 'bg-warning/20 text-warning'
+        }`}>
+          {statusLabels[request.status]}
+        </span>
+        <span className="text-xs text-muted-foreground" dir="ltr">
+          {new Date(request.created_at).toLocaleDateString('ar-EG')}
+        </span>
+      </div>
+      
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground text-sm">المستلم</span>
+          <span className="font-medium">{request.recipient_full_name}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground text-sm">المبلغ</span>
+          <span className="font-bold text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            {request.amount} {request.currency}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground text-sm">البلد</span>
+          <span>{request.country}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground text-sm">كود التتبع</span>
+          <span className="font-mono text-xs" dir="ltr">{request.tracking_code}</span>
+        </div>
+      </div>
 
-            {requests.length === 0 && !loading && (
-              <tr>
-                <td colSpan={showAdminColumn ? 8 : 7} className="p-8 text-center text-muted-foreground">
-                  لا توجد طلبات
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="flex gap-2 pt-2">
+        {showClaimButton ? (
+          <button
+            onClick={() => handleClaimRequest(request.id)}
+            className="flex-1 py-2.5 bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-medium rounded-xl hover:opacity-90 transition-opacity"
+          >
+            استلام الطلب
+          </button>
+        ) : (
+          <button
+            onClick={() => setSelectedRequest(request.id)}
+            className="flex-1 py-2.5 bg-secondary text-secondary-foreground text-sm font-medium rounded-xl hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            عرض التفاصيل
+          </button>
+        )}
+        {isSuperAdmin && !showClaimButton && (
+          <button
+            onClick={() => handleDeleteRequest(request.id)}
+            className="p-2.5 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition-colors"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        )}
       </div>
     </div>
   );
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 bg-primary text-primary-foreground p-4 z-20">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold">لوحة التحكم</h1>
-            {currentUserName && (
-              <span className="px-2 py-1 bg-primary-foreground/20 rounded-full text-xs">
-                {currentUserName}
-              </span>
-            )}
-            {isSuperAdmin && (
-              <span className="px-2 py-1 bg-yellow-500/20 text-yellow-200 rounded-full text-xs">
-                مسؤول أعلى
-              </span>
-            )}
+  // Stats Card Component
+  const StatCard = ({ icon: Icon, label, value, subValue, gradient = false }: { 
+    icon: React.ElementType; 
+    label: string; 
+    value: string | number; 
+    subValue?: string;
+    gradient?: boolean;
+  }) => (
+    <div className="glass-card p-4 space-y-2">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-xl ${gradient ? 'bg-gradient-to-br from-primary/20 to-accent/20' : 'bg-muted'}`}>
+          <Icon className={`w-5 h-5 ${gradient ? 'text-primary' : 'text-muted-foreground'}`} />
+        </div>
+        <span className="text-sm text-muted-foreground">{label}</span>
+      </div>
+      <div className="pr-11">
+        <p className={`text-2xl font-bold ${gradient ? 'bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent' : ''}`}>
+          {value}
+        </p>
+        {subValue && <p className="text-xs text-muted-foreground">{subValue}</p>}
+      </div>
+    </div>
+  );
+
+  // Render Home Tab
+  const renderHomeTab = () => (
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <div className="glass-card p-5 space-y-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold">مرحباً، {currentUserName || 'مدير'}</h2>
+            <p className="text-sm text-muted-foreground">
+              {isSuperAdmin ? 'المسؤول الأعلى' : 'مدير'}
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            {/* Payout Toggle - Super Admin Only */}
-            {isSuperAdmin && (
-              <div className="flex items-center gap-3 px-4 py-2 bg-primary-foreground/10 rounded-lg">
-                <span className="text-sm">رفع الراتب</span>
-                <Switch
-                  checked={payoutEnabled}
-                  onCheckedChange={handleTogglePayoutStatus}
-                  disabled={updatingPayoutStatus}
-                />
-                {payoutEnabled ? (
-                  <Power className="w-4 h-4 text-success" />
-                ) : (
-                  <PowerOff className="w-4 h-4 text-destructive" />
-                )}
+          <button
+            onClick={handleLogout}
+            className="p-3 bg-muted rounded-xl hover:bg-muted/70 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard 
+          icon={Clock} 
+          label="طلبات جديدة" 
+          value={pendingRequests.length}
+          gradient
+        />
+        <StatCard 
+          icon={ListChecks} 
+          label="طلباتي" 
+          value={myRequests.length}
+        />
+        <StatCard 
+          icon={TrendingUp} 
+          label="تم قبولها" 
+          value={myStats.paidRequests}
+          subValue={`${myStats.totalPaidAmount.toLocaleString()} $`}
+        />
+        <StatCard 
+          icon={BarChart3} 
+          label="مرفوضة" 
+          value={myStats.rejectedRequests}
+        />
+      </div>
+
+      {/* Payout Toggle for Super Admin */}
+      {isSuperAdmin && (
+        <div className="glass-card p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {payoutEnabled ? (
+                <Power className="w-5 h-5 text-success" />
+              ) : (
+                <PowerOff className="w-5 h-5 text-destructive" />
+              )}
+              <div>
+                <p className="font-medium">حالة رفع الراتب</p>
+                <p className="text-xs text-muted-foreground">
+                  {payoutEnabled ? 'مفعّل - يمكن للمستخدمين رفع الطلبات' : 'معطّل - لا يمكن رفع طلبات جديدة'}
+                </p>
               </div>
-            )}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-foreground/10 rounded-lg hover:bg-primary-foreground/20 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>خروج</span>
-            </button>
+            </div>
+            <Switch
+              checked={payoutEnabled}
+              onCheckedChange={handleTogglePayoutStatus}
+              disabled={updatingPayoutStatus}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Recent New Requests */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold">طلبات جديدة</h3>
+          <button 
+            onClick={() => setActiveTab('pending')}
+            className="text-sm text-primary flex items-center gap-1"
+          >
+            عرض الكل
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        </div>
+        {pendingRequests.slice(0, 3).map(request => (
+          <RequestCard key={request.id} request={request} showClaimButton />
+        ))}
+        {pendingRequests.length === 0 && (
+          <div className="glass-card p-8 text-center text-muted-foreground">
+            لا توجد طلبات جديدة
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Render Pending Requests Tab
+  const renderPendingTab = () => (
+    <div className="space-y-4">
+      <div className="glass-card p-4">
+        <h2 className="font-bold text-lg mb-1">طلبات جديدة</h2>
+        <p className="text-sm text-muted-foreground">
+          اضغط "استلام" لحجز الطلب لك
+        </p>
+      </div>
+      {pendingRequests.map(request => (
+        <RequestCard key={request.id} request={request} showClaimButton />
+      ))}
+      {pendingRequests.length === 0 && (
+        <div className="glass-card p-8 text-center text-muted-foreground">
+          لا توجد طلبات جديدة
+        </div>
+      )}
+    </div>
+  );
+
+  // Render My Requests Tab
+  const renderMyRequestsTab = () => (
+    <div className="space-y-4">
+      <AdminStats stats={myStats} adminName="إحصائياتي" />
+      <h3 className="font-bold text-lg">طلباتي</h3>
+      {myRequests.map(request => (
+        <RequestCard key={request.id} request={request} />
+      ))}
+      {myRequests.length === 0 && (
+        <div className="glass-card p-8 text-center text-muted-foreground">
+          لم تستلم أي طلبات بعد
+        </div>
+      )}
+    </div>
+  );
+
+  // Render Analytics Tab (Super Admin)
+  const renderAnalyticsTab = () => (
+    <div className="space-y-4">
+      <SuperAdminStats />
+      
+      {/* Filters */}
+      <div className="glass-card p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Filter className="w-5 h-5 text-muted-foreground" />
+          <span className="font-medium">تصفية النتائج</span>
+        </div>
+        
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <input
+            type="text"
+            value={filters.search}
+            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+            placeholder="بحث..."
+            className="w-full input-field pr-10"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Select
+            value={filters.status}
+            onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="الحالة" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الحالات</SelectItem>
+              <SelectItem value="pending">قيد الانتظار</SelectItem>
+              <SelectItem value="review">قيد المراجعة</SelectItem>
+              <SelectItem value="paid">تم التحويل</SelectItem>
+              <SelectItem value="rejected">مرفوض</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.country}
+            onValueChange={(value) => setFilters(prev => ({ ...prev, country: value }))}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="البلد" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل البلدان</SelectItem>
+              {countries.map(country => (
+                <SelectItem key={country} value={country}>{country}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Select
+          value={filters.adminFilter}
+          onValueChange={(value) => setFilters(prev => ({ ...prev, adminFilter: value }))}
+        >
+          <SelectTrigger className="bg-background">
+            <SelectValue placeholder="المدير" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">كل المديرين</SelectItem>
+            {Array.from(adminProfiles.entries()).map(([id, name]) => (
+              <SelectItem key={id} value={id}>{name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <button
+          onClick={handleExportExcel}
+          className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-xl font-medium"
+        >
+          <Download className="w-5 h-5" />
+          تحميل Excel
+        </button>
+      </div>
+
+      {/* Requests List */}
+      <div className="text-sm text-muted-foreground text-center">
+        عرض {allRequests.length} طلب
+      </div>
+      {allRequests.map(request => (
+        <RequestCard key={request.id} request={request} />
+      ))}
+    </div>
+  );
+
+  // Render Settings Tab (Super Admin)
+  const renderSettingsTab = () => (
+    <div className="space-y-4">
+      <AdminManagement onUpdate={fetchData} />
+    </div>
+  );
+
+  // Navigation Items
+  const navItems = [
+    { id: 'home', icon: Home, label: 'الرئيسية' },
+    { id: 'pending', icon: Clock, label: 'جديدة', badge: pendingRequests.length },
+    { id: 'my-requests', icon: ListChecks, label: 'طلباتي' },
+    ...(isSuperAdmin ? [
+      { id: 'analytics', icon: TrendingUp, label: 'التحليلات' },
+      { id: 'settings', icon: Users, label: 'المديرين' },
+    ] : []),
+  ];
+
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-20 px-4 py-3">
+        <div className="glass-card px-4 py-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              لوحة التحكم
+            </h1>
+            <div className="flex items-center gap-2">
+              {isSuperAdmin && (
+                <span className="px-2 py-1 bg-gradient-to-r from-primary/20 to-accent/20 text-primary rounded-full text-xs font-medium">
+                  مسؤول
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="p-4 max-w-7xl mx-auto">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6">
-            <TabsTrigger value="pending" className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              <span>طلبات جديدة ({pendingRequests.length})</span>
-            </TabsTrigger>
-            <TabsTrigger value="my-requests" className="flex items-center gap-2">
-              <ListChecks className="w-4 h-4" />
-              <span>طلباتي ({myRequests.length})</span>
-            </TabsTrigger>
-            {isSuperAdmin && (
-              <>
-                <TabsTrigger value="all-requests" className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  <span>كل الطلبات</span>
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  <span>الإعدادات</span>
-                </TabsTrigger>
-              </>
-            )}
-          </TabsList>
-
-          {/* Pending Requests Tab */}
-          <TabsContent value="pending" className="space-y-6">
-            <div className="glass-card p-4">
-              <h2 className="font-bold text-lg mb-2">الطلبات الجديدة</h2>
-              <p className="text-sm text-muted-foreground">
-                هذه الطلبات متاحة لجميع المديرين. اضغط "استلام" لحجز الطلب لك.
-              </p>
-            </div>
-            {renderRequestsTable(pendingRequests, true, false)}
-          </TabsContent>
-
-          {/* My Requests Tab */}
-          <TabsContent value="my-requests" className="space-y-6">
-            {/* My Stats */}
-            <AdminStats stats={myStats} adminName="إحصائياتي" />
-            
-            <h3 className="font-bold text-lg">طلباتي</h3>
-            {renderRequestsTable(myRequests, false, false)}
-          </TabsContent>
-
-          {/* All Requests Tab (Super Admin Only) */}
-          {isSuperAdmin && (
-            <TabsContent value="all-requests" className="space-y-6">
-              {/* Super Admin Stats */}
-              <SuperAdminStats />
-
-              {/* Filters */}
-              <div className="glass-card p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Filter className="w-5 h-5 text-muted-foreground" />
-                  <span className="font-medium text-foreground">تصفية النتائج</span>
-                </div>
-                
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex-1 min-w-[200px]">
-                    <div className="relative">
-                      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input
-                        type="text"
-                        value={filters.search}
-                        onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                        placeholder="بحث بكود التتبع أو رقم الحساب أو الرقم المرجعي"
-                        className="input-field pr-10"
-                      />
-                    </div>
-                  </div>
-
-                  <Select
-                    value={filters.status}
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
-                  >
-                    <SelectTrigger className="w-auto min-w-[150px] bg-background">
-                      <SelectValue placeholder="كل الحالات" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">كل الحالات</SelectItem>
-                      <SelectItem value="pending">قيد الانتظار</SelectItem>
-                      <SelectItem value="review">قيد المراجعة</SelectItem>
-                      <SelectItem value="paid">تم التحويل</SelectItem>
-                      <SelectItem value="rejected">مرفوض</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={filters.country}
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, country: value }))}
-                  >
-                    <SelectTrigger className="w-auto min-w-[150px] bg-background">
-                      <SelectValue placeholder="كل البلدان" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">كل البلدان</SelectItem>
-                      {countries.map(country => (
-                        <SelectItem key={country} value={country}>{country}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={filters.adminFilter}
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, adminFilter: value }))}
-                  >
-                    <SelectTrigger className="w-auto min-w-[150px] bg-background">
-                      <SelectValue placeholder="كل المديرين" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">كل المديرين</SelectItem>
-                      {Array.from(adminProfiles.entries()).map(([id, name]) => (
-                        <SelectItem key={id} value={id}>{name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <button
-                    onClick={handleExportExcel}
-                    className="flex items-center gap-2 px-4 py-2 bg-success text-success-foreground rounded-lg hover:bg-success/90 transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>تحميل Excel</span>
-                  </button>
-                </div>
-              </div>
-
-              {renderRequestsTable(allRequests, false, true)}
-              
-              <div className="text-center text-muted-foreground text-sm">
-                عرض {allRequests.length} طلب
-              </div>
-            </TabsContent>
-          )}
-
-          {/* Settings Tab (Super Admin Only) */}
-          {isSuperAdmin && (
-            <TabsContent value="settings" className="space-y-6">
-              <AdminManagement onUpdate={fetchData} />
-            </TabsContent>
-          )}
-        </Tabs>
+      {/* Main Content */}
+      <main className="px-4 py-2">
+        {activeTab === 'home' && renderHomeTab()}
+        {activeTab === 'pending' && renderPendingTab()}
+        {activeTab === 'my-requests' && renderMyRequestsTab()}
+        {activeTab === 'analytics' && isSuperAdmin && renderAnalyticsTab()}
+        {activeTab === 'settings' && isSuperAdmin && renderSettingsTab()}
       </main>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-30 px-4 pb-4">
+        <div className="glass-card py-2 px-2">
+          <div className="flex items-center justify-around">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`relative flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
+                  activeTab === item.id 
+                    ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="text-[10px] font-medium">{item.label}</span>
+                {item.badge && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-primary to-accent text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
 
       {/* Request Details Modal */}
       {selectedRequest && (
