@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, AlertTriangle, CheckSquare, Square, Image } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { FadeIn, AnimatedCard } from '@/components/AnimatedCard';
+import StarField from '@/components/StarField';
 
 const Confirm = () => {
   const navigate = useNavigate();
@@ -15,7 +16,8 @@ const Confirm = () => {
   };
 
   return (
-    <div className="min-h-screen premium-bg flex flex-col p-6">
+    <div className="min-h-screen premium-bg flex flex-col p-6 relative overflow-hidden">
+      <StarField starCount={30} />
       {/* Header */}
       <motion.button
         onClick={() => navigate('/')}
