@@ -21,11 +21,12 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl } = await req.json();
+    const body = await req.json();
+    const { imageUrl, imageBase64: providedBase64 } = body;
     
-    if (!imageUrl) {
+    if (!imageUrl && !providedBase64) {
       return new Response(
-        JSON.stringify({ success: false, notes: 'لم يتم توفير رابط الصورة' }),
+        JSON.stringify({ success: false, notes: 'لم يتم توفير صورة الإيصال' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -40,34 +41,47 @@ serve(async (req) => {
       );
     }
 
-    // Fetch the image and convert to base64
+    // Use provided base64 or fetch from URL
     let imageBase64: string;
-    try {
-      console.log('Fetching image from:', imageUrl);
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) {
-        console.error('Failed to fetch image:', imageResponse.status);
+    
+    if (providedBase64) {
+      // Use the provided base64 directly
+      imageBase64 = providedBase64;
+      console.log('Using provided base64 image');
+    } else if (imageUrl) {
+      // Fetch the image and convert to base64
+      try {
+        console.log('Fetching image from:', imageUrl);
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          console.error('Failed to fetch image:', imageResponse.status);
+          return new Response(
+            JSON.stringify({ success: false, notes: 'فشل في تحميل صورة الإيصال' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const uint8Array = new Uint8Array(imageBuffer);
+        
+        let binary = '';
+        for (let i = 0; i < uint8Array.length; i++) {
+          binary += String.fromCharCode(uint8Array[i]);
+        }
+        imageBase64 = btoa(binary);
+        
+        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+        imageBase64 = `data:${contentType};base64,${imageBase64}`;
+        console.log('Image converted to base64 successfully');
+      } catch (fetchError) {
+        console.error('Error fetching image:', fetchError);
         return new Response(
-          JSON.stringify({ success: false, notes: 'فشل في تحميل صورة الإيصال' }),
+          JSON.stringify({ success: false, notes: 'خطأ في معالجة صورة الإيصال' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const uint8Array = new Uint8Array(imageBuffer);
-      
-      let binary = '';
-      for (let i = 0; i < uint8Array.length; i++) {
-        binary += String.fromCharCode(uint8Array[i]);
-      }
-      imageBase64 = btoa(binary);
-      
-      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-      imageBase64 = `data:${contentType};base64,${imageBase64}`;
-      console.log('Image converted to base64 successfully');
-    } catch (fetchError) {
-      console.error('Error fetching image:', fetchError);
+    } else {
       return new Response(
-        JSON.stringify({ success: false, notes: 'خطأ في معالجة صورة الإيصال' }),
+        JSON.stringify({ success: false, notes: 'لم يتم توفير صورة صالحة' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
