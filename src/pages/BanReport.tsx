@@ -238,21 +238,17 @@ export default function BanReportPage() {
     setSelectedReport(null);
 
     try {
-      const now = new Date().toISOString();
-      
       const { data, error } = await supabase
         .from('ban_reports')
         .select('*')
         .eq('reported_user_id', searchQuery.trim())
-        .eq('is_verified', true)
-        .or(`expires_at.is.null,expires_at.gt.${now}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       setSearchResults((data || []) as unknown as BanReport[]);
       if (!data?.length) {
-        toast.info("لا توجد بلاغات مؤكدة نشطة على هذا الآيدي");
+        toast.info("لا توجد بلاغات على هذا الآيدي");
       }
     } catch (error) {
       console.error('Error:', error);
@@ -912,10 +908,10 @@ export default function BanReportPage() {
                       key={report.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-card border rounded-xl p-4 space-y-2"
+                      className="bg-card border rounded-xl p-4 space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="bg-destructive/20 text-destructive px-3 py-1 rounded-full text-sm font-bold">
                             {getBanTypeLabel(report.ban_type)}
                           </span>
@@ -925,6 +921,13 @@ export default function BanReportPage() {
                               : 'bg-purple-500/20 text-purple-500'
                           }`}>
                             {report.expires_at ? '⏰ مؤقت' : '🔒 دائم'}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            report.is_verified
+                              ? 'bg-success/20 text-success'
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {report.is_verified ? '✓ مؤكد' : '⏳ قيد المراجعة'}
                           </span>
                         </div>
                         <span className="text-xs text-muted-foreground">
@@ -942,8 +945,35 @@ export default function BanReportPage() {
                       )}
                       
                       {report.description && (
-                        <p className="text-sm text-muted-foreground">{report.description}</p>
+                        <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                          📝 {report.description}
+                        </p>
                       )}
+
+                      {/* Evidence Thumbnail Preview */}
+                      <div 
+                        className="relative rounded-lg overflow-hidden border border-border cursor-pointer group"
+                        onClick={() => setSelectedReport(report)}
+                      >
+                        {report.evidence_type === 'video' ? (
+                          <div className="relative bg-muted/50 p-6 flex flex-col items-center justify-center gap-2">
+                            <Video className="w-10 h-10 text-destructive" />
+                            <span className="text-sm text-muted-foreground">🎬 فيديو - اضغط للمشاهدة</span>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <img
+                              src={report.evidence_url}
+                              alt="دليل البلاغ"
+                              className="w-full h-40 object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Eye className="w-8 h-8 text-white" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       <Button
                         variant="outline"
                         size="sm"
@@ -951,7 +981,7 @@ export default function BanReportPage() {
                         onClick={() => setSelectedReport(report)}
                       >
                         <Eye className="w-4 h-4 ml-2" />
-                        عرض الإثبات
+                        عرض الإثبات بالكامل
                       </Button>
                     </motion.div>
                   ))}
@@ -964,63 +994,127 @@ export default function BanReportPage() {
         {/* Evidence Modal */}
         {selectedReport && (
           <div 
-            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
             onClick={() => setSelectedReport(null)}
           >
+            {/* Close button X */}
+            <button
+              onClick={() => setSelectedReport(null)}
+              className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors z-10"
+            >
+              <span className="text-white text-2xl font-light">×</span>
+            </button>
+
             <div 
-              className="max-w-2xl w-full bg-card rounded-xl p-4 max-h-[90vh] overflow-auto"
+              className="max-w-3xl w-full bg-card rounded-2xl overflow-hidden max-h-[90vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="font-bold mb-4 text-center">إثبات البلاغ</h3>
-              <div className="rounded-lg overflow-hidden border border-border bg-muted/30">
-                {isResolvingEvidence ? (
-                  <div className="p-10 flex items-center justify-center text-muted-foreground gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    جاري تحميل الدليل...
+              {/* Header */}
+              <div className="p-4 border-b border-border flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
+                    <ShieldBan className="w-5 h-5 text-destructive" />
                   </div>
-                ) : !resolvedEvidenceUrl ? (
-                  <div className="p-10 text-center text-muted-foreground">
-                    لا يوجد دليل لهذا البلاغ.
+                  <div>
+                    <h3 className="font-bold">إثبات البند</h3>
+                    <p className="text-xs text-muted-foreground">
+                      الآيدي: {selectedReport.reported_user_id}
+                    </p>
                   </div>
-                ) : selectedReport.evidence_type === 'video' ? (
-                  <video
-                    key={resolvedEvidenceUrl}
-                    src={resolvedEvidenceUrl}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    className="w-full max-h-[70vh] object-contain"
-                    onError={() => {
-                      setEvidenceLoadError("تعذر تحميل الفيديو داخل التطبيق.");
-                    }}
-                  />
-                ) : (
-                  <img
-                    key={resolvedEvidenceUrl}
-                    src={resolvedEvidenceUrl}
-                    alt="دليل البلاغ"
-                    className="w-full max-h-[70vh] object-contain"
-                    loading="eager"
-                    onError={() => {
-                      setEvidenceLoadError("تعذر تحميل الصورة داخل التطبيق.");
-                    }}
-                  />
-                )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="bg-destructive/20 text-destructive px-3 py-1 rounded-full text-sm font-bold">
+                    {getBanTypeLabel(selectedReport.ban_type)}
+                  </span>
+                </div>
               </div>
 
-              {evidenceLoadError && (
-                <div className="mt-3 text-sm text-muted-foreground bg-muted/40 border border-border rounded-lg p-3">
-                  {evidenceLoadError}
+              {/* Evidence Content */}
+              <div className="flex-1 overflow-auto p-4">
+                <div className="rounded-lg overflow-hidden border border-border bg-black">
+                  {isResolvingEvidence ? (
+                    <div className="p-10 flex items-center justify-center text-muted-foreground gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      جاري تحميل الدليل...
+                    </div>
+                  ) : !resolvedEvidenceUrl ? (
+                    <div className="p-10 text-center text-muted-foreground">
+                      لا يوجد دليل لهذا البلاغ.
+                    </div>
+                  ) : selectedReport.evidence_type === 'video' ? (
+                    <video
+                      key={resolvedEvidenceUrl}
+                      src={resolvedEvidenceUrl}
+                      controls
+                      autoPlay
+                      playsInline
+                      preload="auto"
+                      className="w-full max-h-[60vh] object-contain"
+                      onError={() => {
+                        setEvidenceLoadError("تعذر تحميل الفيديو داخل التطبيق.");
+                      }}
+                    />
+                  ) : (
+                    <img
+                      key={resolvedEvidenceUrl}
+                      src={resolvedEvidenceUrl}
+                      alt="دليل البلاغ"
+                      className="w-full max-h-[60vh] object-contain"
+                      loading="eager"
+                      onError={() => {
+                        setEvidenceLoadError("تعذر تحميل الصورة داخل التطبيق.");
+                      }}
+                    />
+                  )}
                 </div>
-              )}
-              
-              <Button
-                variant="outline"
-                className="w-full mt-4"
-                onClick={() => setSelectedReport(null)}
-              >
-                إغلاق
-              </Button>
+
+                {evidenceLoadError && (
+                  <div className="mt-3 text-sm text-muted-foreground bg-muted/40 border border-border rounded-lg p-3">
+                    {evidenceLoadError}
+                  </div>
+                )}
+
+                {/* Ban Details */}
+                <div className="mt-4 space-y-2 bg-muted/30 rounded-lg p-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">نوع البند:</span>
+                    <span className="font-bold text-destructive">{getBanTypeLabel(selectedReport.ban_type)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">مدة البند:</span>
+                    <span className="font-bold">{selectedReport.expires_at ? 'مؤقت' : 'دائم 🔒'}</span>
+                  </div>
+                  {selectedReport.expires_at && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">ينتهي في:</span>
+                      <span className="font-bold text-warning">
+                        {new Date(selectedReport.expires_at).toLocaleString('ar-SA')}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">تاريخ البلاغ:</span>
+                    <span>{new Date(selectedReport.created_at).toLocaleString('ar-SA')}</span>
+                  </div>
+                  {selectedReport.description && (
+                    <div className="pt-2 border-t border-border">
+                      <span className="text-muted-foreground text-sm">السبب:</span>
+                      <p className="mt-1 text-sm">{selectedReport.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setSelectedReport(null)}
+                >
+                  إغلاق
+                </Button>
+              </div>
             </div>
           </div>
         )}
