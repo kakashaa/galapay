@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.telegram-ban-bot]
 verify_jwt = false
+
+[functions.bulk-resend-notifications]
+verify_jwt = false
