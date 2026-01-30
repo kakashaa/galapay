@@ -52,7 +52,7 @@ interface PayoutRequest {
   country: string;
   payout_method: string;
   phone_number: string;
-  status: 'pending' | 'review' | 'paid' | 'rejected';
+  status: 'pending' | 'review' | 'paid' | 'rejected' | 'reserved';
   created_at: string;
   ai_receipt_status: string | null;
   reference_number: string | null;
@@ -60,6 +60,7 @@ interface PayoutRequest {
   processed_at: string | null;
   claimed_by: string | null;
   claimed_at: string | null;
+  reservation_reason: string | null;
 }
 
 interface MyStats {
@@ -76,6 +77,7 @@ const statusLabels = {
   review: 'قيد المراجعة',
   paid: 'تم التحويل',
   rejected: 'مرفوض',
+  reserved: 'محجوز',
 };
 
 const AdminDashboard = () => {
@@ -397,6 +399,7 @@ const AdminDashboard = () => {
       case 'paid': return 'text-primary';
       case 'rejected': return 'text-destructive';
       case 'review': return 'text-warning';
+      case 'reserved': return 'text-orange-500';
       default: return 'text-muted-foreground';
     }
   };
@@ -406,6 +409,7 @@ const AdminDashboard = () => {
       case 'paid': return 'bg-primary/10 border-primary/30';
       case 'rejected': return 'bg-destructive/10 border-destructive/30';
       case 'review': return 'bg-warning/10 border-warning/30';
+      case 'reserved': return 'bg-orange-500/10 border-orange-500/30';
       default: return 'bg-muted border-border';
     }
   };
@@ -420,7 +424,8 @@ const AdminDashboard = () => {
             <div className={`w-2 h-2 rounded-full ${
               request.status === 'paid' ? 'bg-primary' :
               request.status === 'rejected' ? 'bg-destructive' :
-              request.status === 'review' ? 'bg-warning' : 'bg-muted-foreground'
+              request.status === 'review' ? 'bg-warning' :
+              request.status === 'reserved' ? 'bg-orange-500' : 'bg-muted-foreground'
             }`} />
             <span className="text-sm font-medium">{request.recipient_full_name}</span>
           </div>
@@ -804,7 +809,7 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Navigation Items - 'my-requests' only for super_admin since only they can process requests
+  // Navigation Items - ordered as: Home, New, My Requests, Scan, Analytics, Video, Admins
   const navItems = [
     { id: 'home', icon: Home, label: 'الرئيسية' },
     { id: 'pending', icon: Clock, label: 'جديدة', badge: pendingRequests.length },

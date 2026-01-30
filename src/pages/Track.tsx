@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 // Combined status type for both monthly and instant payouts
-type PayoutStatus = 'pending' | 'review' | 'paid' | 'rejected' | 'processing' | 'completed';
+type PayoutStatus = 'pending' | 'review' | 'paid' | 'rejected' | 'processing' | 'completed' | 'reserved';
 
 interface PayoutRequest {
   id: string;
@@ -16,6 +16,7 @@ interface PayoutRequest {
   amount: number;
   currency: string;
   rejection_reason: string | null;
+  reservation_reason: string | null;
   admin_final_receipt_image_url: string | null;
   created_at: string;
   isInstant?: boolean;
@@ -46,6 +47,12 @@ const monthlyStatusConfig = {
     icon: XCircle,
     className: 'status-rejected',
     description: 'للأسف تم رفض طلبك',
+  },
+  reserved: {
+    label: 'محجوز',
+    icon: Clock,
+    className: 'bg-orange-500/10 text-orange-500',
+    description: 'تم حجز راتبك مؤقتاً',
   },
 };
 
@@ -111,7 +118,7 @@ const Track = () => {
       // First try to find in monthly payout_requests
       const { data: monthlyData, error: monthlyError } = await supabase
         .from('payout_requests')
-        .select('id, tracking_code, status, country, payout_method, amount, currency, rejection_reason, admin_final_receipt_image_url, created_at')
+        .select('id, tracking_code, status, country, payout_method, amount, currency, rejection_reason, reservation_reason, admin_final_receipt_image_url, created_at')
         .eq('tracking_code', code)
         .maybeSingle();
 
@@ -142,6 +149,7 @@ const Track = () => {
           amount: instantData.host_payout_amount,
           currency: instantData.host_currency,
           rejection_reason: instantData.rejection_reason,
+          reservation_reason: null, // Instant payouts don't have reservation
           admin_final_receipt_image_url: instantData.admin_final_receipt_url,
           created_at: instantData.created_at,
           isInstant: true,
@@ -173,7 +181,7 @@ const Track = () => {
       return instantStatusConfig[status] || instantStatusConfig.pending;
     } else {
       // Monthly statuses
-      const status = request.status as 'pending' | 'review' | 'paid' | 'rejected';
+      const status = request.status as 'pending' | 'review' | 'paid' | 'rejected' | 'reserved';
       return monthlyStatusConfig[status] || monthlyStatusConfig.pending;
     }
   };
@@ -258,11 +266,13 @@ const Track = () => {
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
                   (request.status === 'paid' || request.status === 'completed') ? 'bg-success/10' :
                   request.status === 'rejected' ? 'bg-destructive/10' :
+                  request.status === 'reserved' ? 'bg-orange-500/10' :
                   (request.status === 'review' || request.status === 'processing') ? 'bg-primary/10' : 'bg-warning/10'
                 }`}>
                   <StatusIcon className={`w-7 h-7 ${
                     (request.status === 'paid' || request.status === 'completed') ? 'text-success' :
                     request.status === 'rejected' ? 'text-destructive' :
+                    request.status === 'reserved' ? 'text-orange-500' :
                     (request.status === 'review' || request.status === 'processing') ? 'text-primary' : 'text-warning'
                   }`} />
                 </div>
@@ -281,6 +291,15 @@ const Track = () => {
                 <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 mt-4">
                   <p className="text-destructive text-sm">
                     <strong>سبب الرفض:</strong> {request.rejection_reason}
+                  </p>
+                </div>
+              )}
+
+              {/* Reservation Reason */}
+              {request.status === 'reserved' && request.reservation_reason && (
+                <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 mt-4">
+                  <p className="text-orange-500 text-sm">
+                    <strong>الراتب محجوز بسبب:</strong> {request.reservation_reason}
                   </p>
                 </div>
               )}

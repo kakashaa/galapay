@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, Loader2, CheckCircle2, XCircle, Eye, Edit3 } from 'lucide-react';
+import { X, Upload, Loader2, CheckCircle2, XCircle, Eye, Edit3, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -27,10 +27,11 @@ interface PayoutRequest {
   user_receipt_image_url: string;
   ai_receipt_status: string | null;
   ai_notes: string | null;
-  status: 'pending' | 'review' | 'paid' | 'rejected';
+  status: 'pending' | 'review' | 'paid' | 'rejected' | 'reserved';
   admin_notes: string | null;
   admin_final_receipt_image_url: string | null;
   rejection_reason: string | null;
+  reservation_reason: string | null;
   reference_number: string | null;
   created_at: string;
   claimed_by: string | null;
@@ -51,6 +52,7 @@ const RequestDetailsModal = ({
   const [updating, setUpdating] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [reservationReason, setReservationReason] = useState('');
   const [finalReceipt, setFinalReceipt] = useState<File | null>(null);
   const [finalReceiptPreview, setFinalReceiptPreview] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -95,7 +97,7 @@ const RequestDetailsModal = ({
     }
   };
 
-  const updateStatus = async (newStatus: 'pending' | 'review' | 'paid' | 'rejected') => {
+  const updateStatus = async (newStatus: 'pending' | 'review' | 'paid' | 'rejected' | 'reserved') => {
     // Validation for paid status - require receipt
     if (newStatus === 'paid' && !finalReceipt && !request?.admin_final_receipt_image_url) {
       toast({
@@ -111,6 +113,16 @@ const RequestDetailsModal = ({
       toast({
         title: 'خطأ',
         description: 'يجب إدخال سبب الرفض',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validation for reserved status - require reason
+    if (newStatus === 'reserved' && !reservationReason.trim()) {
+      toast({
+        title: 'خطأ',
+        description: 'يجب إدخال سبب الحجز',
         variant: 'destructive',
       });
       return;
@@ -158,15 +170,22 @@ const RequestDetailsModal = ({
       if (newStatus === 'paid') {
         updateData.admin_final_receipt_image_url = finalReceiptUrl;
         updateData.rejection_reason = null; // Clear any previous rejection reason
+        updateData.reservation_reason = null; // Clear any previous reservation reason
       } else if (newStatus === 'rejected') {
         updateData.rejection_reason = rejectionReason;
         updateData.admin_final_receipt_image_url = null; // Clear receipt for rejected
+        updateData.reservation_reason = null; // Clear any previous reservation reason
+      } else if (newStatus === 'reserved') {
+        updateData.reservation_reason = reservationReason;
+        updateData.rejection_reason = null; // Clear any previous rejection reason
       } else if (newStatus === 'review') {
-        // For review status, keep existing values but clear rejection reason
+        // For review status, keep existing values but clear rejection/reservation reasons
         updateData.rejection_reason = null;
+        updateData.reservation_reason = null;
       } else if (newStatus === 'pending') {
         // For pending (revert), clear processed info
         updateData.rejection_reason = null;
+        updateData.reservation_reason = null;
       }
 
       // Update request - only super_admin can update (enforced by RLS)
@@ -187,6 +206,7 @@ const RequestDetailsModal = ({
         review: 'بدء مراجعة الطلب',
         paid: 'تأكيد دفع الطلب',
         rejected: `رفض الطلب: ${rejectionReason}`,
+        reserved: `حجز الطلب: ${reservationReason}`,
       };
 
       await supabase.from('audit_log').insert({
@@ -195,7 +215,9 @@ const RequestDetailsModal = ({
         action: actionDescriptions[newStatus] || `Changed status to ${newStatus}`,
         old_status: request?.status,
         new_status: newStatus,
-        notes: newStatus === 'rejected' ? rejectionReason : (adminNotes || null),
+        notes: newStatus === 'rejected' ? rejectionReason : 
+               newStatus === 'reserved' ? reservationReason : 
+               (adminNotes || null),
       });
 
       toast({
@@ -204,7 +226,9 @@ const RequestDetailsModal = ({
           ? 'تم رفض الطلب بنجاح' 
           : newStatus === 'paid' 
             ? 'تم تأكيد الدفع بنجاح'
-            : 'تم تحديث حالة الطلب بنجاح',
+            : newStatus === 'reserved'
+              ? 'تم حجز الطلب بنجاح'
+              : 'تم تحديث حالة الطلب بنجاح',
       });
 
       onUpdate();
@@ -381,11 +405,13 @@ const RequestDetailsModal = ({
             <span className={`px-4 py-2 rounded-full text-sm font-medium ${
               request.status === 'paid' ? 'status-paid' :
               request.status === 'rejected' ? 'status-rejected' :
+              request.status === 'reserved' ? 'bg-orange-500/10 text-orange-500 border border-orange-500/30' :
               request.status === 'review' ? 'status-review' : 'status-pending'
             }`}>
               {request.status === 'pending' ? 'قيد الانتظار' :
                request.status === 'review' ? 'قيد المراجعة' :
-               request.status === 'paid' ? 'تم التحويل' : 'مرفوض'}
+               request.status === 'paid' ? 'تم التحويل' :
+               request.status === 'reserved' ? 'محجوز' : 'مرفوض'}
             </span>
           </div>
 
@@ -486,7 +512,7 @@ const RequestDetailsModal = ({
           )}
 
           {/* Admin Section - Only for Super Admin */}
-          {isSuperAdmin && !isEditing && request.status !== 'paid' && request.status !== 'rejected' && (
+          {isSuperAdmin && !isEditing && request.status !== 'paid' && request.status !== 'rejected' && request.status !== 'reserved' && (
             <>
               <hr className="border-border" />
 
@@ -554,6 +580,20 @@ const RequestDetailsModal = ({
                 />
               </div>
 
+              {/* Reservation Reason */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  سبب الحجز (مطلوب للحجز)
+                </label>
+                <input
+                  type="text"
+                  value={reservationReason}
+                  onChange={(e) => setReservationReason(e.target.value)}
+                  className="input-field"
+                  placeholder="أدخل سبب الحجز..."
+                />
+              </div>
+
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3">
                 {request.status === 'pending' && (
@@ -583,6 +623,15 @@ const RequestDetailsModal = ({
                 >
                   {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
                   رفض
+                </button>
+
+                <button
+                  onClick={() => updateStatus('reserved')}
+                  disabled={updating}
+                  className="flex-1 py-3 px-4 bg-orange-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-orange-600 disabled:opacity-50"
+                >
+                  {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
+                  حجز
                 </button>
               </div>
             </>
@@ -628,6 +677,30 @@ const RequestDetailsModal = ({
                 >
                   {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
                   التراجع عن الرفض
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Reserved Status */}
+          {request.status === 'reserved' && (
+            <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+              <p className="font-medium text-orange-500">
+                🔒 هذا الطلب محجوز
+              </p>
+              {request.reservation_reason && (
+                <p className="text-sm mt-1 text-orange-600">سبب الحجز: {request.reservation_reason}</p>
+              )}
+
+              {/* Super Admin: Revert Reservation */}
+              {isSuperAdmin && (
+                <button
+                  onClick={() => updateStatus('pending')}
+                  disabled={updating}
+                  className="mt-4 w-full py-3 px-4 bg-warning text-warning-foreground rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-warning/90 disabled:opacity-50"
+                >
+                  {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                  إلغاء الحجز
                 </button>
               )}
             </div>

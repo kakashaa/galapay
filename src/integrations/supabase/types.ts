@@ -455,6 +455,7 @@ export type Database = {
           recipient_full_name: string
           reference_number: string | null
           rejection_reason: string | null
+          reservation_reason: string | null
           status: Database["public"]["Enums"]["request_status"]
           tracking_code: string
           updated_at: string
@@ -484,6 +485,7 @@ export type Database = {
           recipient_full_name: string
           reference_number?: string | null
           rejection_reason?: string | null
+          reservation_reason?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           tracking_code: string
           updated_at?: string
@@ -513,6 +515,7 @@ export type Database = {
           recipient_full_name?: string
           reference_number?: string | null
           rejection_reason?: string | null
+          reservation_reason?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           tracking_code?: string
           updated_at?: string
@@ -673,7 +676,7 @@ export type Database = {
         | "processing"
         | "completed"
         | "rejected"
-      request_status: "pending" | "review" | "paid" | "rejected"
+      request_status: "pending" | "review" | "paid" | "rejected" | "reserved"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -809,7 +812,7 @@ export const Constants = {
         "completed",
         "rejected",
       ],
-      request_status: ["pending", "review", "paid", "rejected"],
+      request_status: ["pending", "review", "paid", "rejected", "reserved"],
     },
   },
 } as const

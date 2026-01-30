@@ -71,6 +71,12 @@ const statusConfig = {
     bgClass: 'bg-destructive/10',
     textClass: 'text-destructive',
   },
+  reserved: {
+    label: 'محجوز',
+    icon: Clock,
+    bgClass: 'bg-orange-500/10',
+    textClass: 'text-orange-500',
+  },
 };
 
 const typeConfig = {
