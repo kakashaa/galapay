@@ -19,6 +19,7 @@ import {
   XCircle,
   Video,
   Shield,
+  Heart,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -30,6 +31,7 @@ import AnalyticsCharts from '@/components/admin/AnalyticsCharts';
 import VideoManagement from '@/components/admin/VideoManagement';
 import BlockedAgencyCodesManagement from '@/components/admin/BlockedAgencyCodesManagement';
 import DuplicateDetection from '@/components/admin/DuplicateDetection';
+import SupportersManagement from '@/components/admin/SupportersManagement';
 import { exportToExcel } from '@/lib/excel-export';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import {
@@ -849,6 +851,13 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // Supporters Tab (Super Admin)
+  const renderSupportersTab = () => (
+    <div className="space-y-4">
+      <SupportersManagement />
+    </div>
+  );
+
   // Scan Tab (Super Admin)
   const renderScanTab = () => (
     <div className="space-y-4">
@@ -857,7 +866,7 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Navigation Items - ordered as: Home, New, My Requests, Scan, Analytics, Video, Admins
+  // Navigation Items - ordered as: Home, New, My Requests, Scan, Analytics, Video, Supporters, Admins
   const navItems = [
     { id: 'home', icon: Home, label: 'الرئيسية' },
     { id: 'pending', icon: Clock, label: 'جديدة', badge: pendingRequests.length },
@@ -866,6 +875,7 @@ const AdminDashboard = () => {
       { id: 'scan', icon: Shield, label: 'الفحص' },
       { id: 'analytics', icon: BarChart3, label: 'التحليلات' },
       { id: 'videos', icon: Video, label: 'الفيديو' },
+      { id: 'supporters', icon: Heart, label: 'الداعمين' },
       { id: 'settings', icon: Users, label: 'المديرين' },
     ] : []),
   ];
@@ -923,6 +933,7 @@ const AdminDashboard = () => {
           {activeTab === 'scan' && isSuperAdmin && renderScanTab()}
           {activeTab === 'analytics' && isSuperAdmin && renderAnalyticsTab()}
           {activeTab === 'videos' && isSuperAdmin && renderVideosTab()}
+          {activeTab === 'supporters' && isSuperAdmin && renderSupportersTab()}
           {activeTab === 'settings' && isSuperAdmin && renderSettingsTab()}
         </div>
       </main>

@@ -591,6 +591,42 @@ export type Database = {
         }
         Relationships: []
       }
+      supporters: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          handle: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          thank_you_text: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          handle: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          thank_you_text?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          handle?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          thank_you_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
