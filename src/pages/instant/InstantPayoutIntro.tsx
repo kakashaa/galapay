@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Zap, Users, Wallet, Shield, ChevronLeft, CheckCircle2, Info, AlertCircle } from 'lucide-react';
+import { ArrowRight, Zap, Users, Wallet, Shield, ChevronLeft, CheckCircle2, Info, AlertCircle, DollarSign } from 'lucide-react';
 
 const InstantPayoutIntro = () => {
   const navigate = useNavigate();
@@ -19,8 +19,8 @@ const InstantPayoutIntro = () => {
     },
     {
       icon: Zap,
-      title: 'تحصل على فلوسك فوراً',
-      description: 'بعد تحويلك الكوينزات للداعم، نحوّل لك المبلغ على بنكك!',
+      title: 'حوّل كوينزاتك لوكالتنا',
+      description: 'حوّل الكوينزات لوكالة 10000 ونحن نحولها للداعم + نحوّل لك الفلوس!',
     },
   ];
 
@@ -67,8 +67,28 @@ const InstantPayoutIntro = () => {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 عندك داعم يريد يشتري منك كوينزات؟ 🤔
                 <br /><br />
-                <strong className="text-foreground">نسهّل عليك!</strong> إحنا نوفر للداعم جميع طرق الدفع (أمريكا، السعودية، اليمن)، 
-                الداعم يحوّل الفلوس على حساباتنا، وأنت تحوّل له الكوينزات، وإحنا نحوّل لك المبلغ على بنكك فوراً! 💸
+                <strong className="text-foreground">نسهّل عليك!</strong> إحنا نوفر للداعم جميع طرق الدفع، 
+                الداعم يحوّل الفلوس على حساباتنا، وأنت تحوّل الكوينزات لوكالتنا <strong className="text-primary">(10000)</strong>، 
+                ونحن نحولها للداعم ونحوّل لك المبلغ على بنكك فوراً! 💸
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Why through us? */}
+        <div className="glass-card p-4 border-2 border-success/30 bg-success/5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+              <DollarSign className="w-5 h-5 text-success" />
+            </div>
+            <div>
+              <h3 className="font-bold text-foreground mb-1">ليش تحوّل لنا بدل الداعم؟ 🤑</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                لو حوّلت الكوينزات للداعم مباشرة تحصل على <strong className="text-destructive">7,500</strong> كوينز للدولار فقط!
+                <br />
+                لكن لما تحوّل لوكالتنا <strong className="text-primary">(10000)</strong> تحصل على <strong className="text-success">8,500</strong> كوينز للدولار! 🎉
+                <br /><br />
+                <span className="text-foreground font-medium">يعني ربح إضافي 1,000 كوينز لكل دولار!</span>
               </p>
             </div>
           </div>
@@ -105,9 +125,9 @@ const InstantPayoutIntro = () => {
             <h3 className="font-bold text-destructive">⚠️ تنبيه مهم جداً!</h3>
           </div>
           <p className="text-sm text-foreground font-medium leading-relaxed">
-            لا تحوّل الكوينزات للداعم إلا بعد ما نتأكد إن فلوسه وصلت لحساباتنا!
+            لا تحوّل الكوينزات لوكالتنا إلا بعد ما تتأكد إن الداعم حوّل الفلوس وأرسلك الإيصال!
             <br />
-            <span className="text-muted-foreground">انتظر تأكيدنا أولاً لحماية نفسك من أي احتيال.</span>
+            <span className="text-muted-foreground">تأكد من إيصال الداعم أولاً لحماية نفسك من أي احتيال.</span>
           </p>
         </div>
 
@@ -124,15 +144,15 @@ const InstantPayoutIntro = () => {
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>الداعم يحوّل على الحساب اللي يناسبه</span>
+              <span>الداعم يحوّل ويرسلك إيصال التحويل</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>نتأكد من وصول المبلغ ونبلغك</span>
+              <span>بعد التأكد من الإيصال، حوّل الكوينزات لوكالتنا <strong className="text-primary">(10000)</strong></span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>حوّل الكوينزات للداعم بعد تأكيدنا</span>
+              <span>نحن نحوّل الكوينزات للداعم</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
