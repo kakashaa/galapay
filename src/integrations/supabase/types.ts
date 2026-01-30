@@ -593,6 +593,7 @@ export type Database = {
       }
       supporters: {
         Row: {
+          ai_praise_text: string | null
           avatar_url: string | null
           created_at: string
           handle: string
@@ -604,6 +605,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_praise_text?: string | null
           avatar_url?: string | null
           created_at?: string
           handle: string
@@ -615,6 +617,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_praise_text?: string | null
           avatar_url?: string | null
           created_at?: string
           handle?: string

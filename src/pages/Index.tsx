@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, Settings, Zap, BookOpen, ChevronLeft } from 'lucide-react';
+import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, Settings, Zap, BookOpen, ChevronLeft, Heart, Crown } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
@@ -12,7 +12,7 @@ import { VideoStoryCircle } from '@/components/VideoStoryCircle';
 import InstantPayoutCountdown from '@/components/InstantPayoutCountdown';
 import { ServiceIconsGrid } from '@/components/ServiceIconsGrid';
 import { motion } from 'framer-motion';
-import { FadeIn, AnimatedCard } from '@/components/AnimatedCard';
+import { FadeIn } from '@/components/AnimatedCard';
 import StarField from '@/components/StarField';
 import { useTapFeedback } from '@/hooks/use-haptic-feedback';
 import SupportersSpotlight from '@/components/SupportersSpotlight';
@@ -48,7 +48,7 @@ const Index = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % 4);
+      setCurrentBanner((prev) => (prev + 1) % 6);
     }, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -193,9 +193,9 @@ const Index = () => {
                 قريباً
               </motion.div>
               <div className="flex-1 text-right">
-                <div className="flex items-center gap-2 mb-1">
-                  <Wallet className="w-4 h-4 text-primary" />
+                <div className="flex items-center gap-2 mb-1 justify-end">
                   <span className="text-xs font-bold text-primary glow-text">رواتب مجانية! 🎉</span>
+                  <Wallet className="w-4 h-4 text-primary" />
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   رواتب مجانية لمضيفين متفاعلين في تطبيق غلا لايف
@@ -204,15 +204,73 @@ const Index = () => {
             </div>
           </motion.div>
 
+          {/* Banner 5 - أفضل 10 داعمين */}
+          <motion.div 
+            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 border-pink-500/30 ${
+              currentBanner === 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+            }`}
+          >
+            <div className="flex items-center h-full relative">
+              <motion.div 
+                className="absolute -top-1 left-2 bg-pink-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                أسبوعياً
+              </motion.div>
+              <div className="flex-1 text-right">
+                <div className="flex items-center gap-2 mb-1 justify-end">
+                  <span className="text-xs font-bold text-pink-400">أفضل 10 داعمين ❤️</span>
+                  <Heart className="w-4 h-4 text-pink-400 fill-current" />
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  ادعم الآن وكن من العشرة الأوائل واحصل على صفحة خاصة بك!
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Banner 6 - أفضل 10 مضيفات */}
+          <motion.div 
+            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 border-amber-500/30 ${
+              currentBanner === 5 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+            }`}
+          >
+            <div className="flex items-center h-full relative">
+              <motion.div 
+                className="absolute -top-1 left-2 bg-amber-500 text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                قريباً
+              </motion.div>
+              <div className="flex-1 text-right">
+                <div className="flex items-center gap-2 mb-1 justify-end">
+                  <span className="text-xs font-bold text-amber-400">أفضل 10 مضيفات 👑</span>
+                  <Crown className="w-4 h-4 text-amber-400" />
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  أعلى 10 سكرين راتب! شاركي راتبك وكوني من الأوائل
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Banner Indicators */}
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-            {[0, 1, 2, 3].map((index) => (
+            {[0, 1, 2, 3, 4, 5].map((index) => (
               <button 
                 key={index}
                 onClick={() => setCurrentBanner(index)}
                 className={`w-1.5 h-1.5 rounded-full transition-all ${
                   currentBanner === index 
-                    ? `w-4 shadow-[0_0_10px_hsl(var(--primary))] ${index === 2 ? 'bg-destructive' : index === 1 ? 'bg-warning' : 'bg-primary'}`
+                    ? `w-4 shadow-[0_0_10px_hsl(var(--primary))] ${
+                        index === 2 ? 'bg-destructive' : 
+                        index === 1 ? 'bg-warning' : 
+                        index === 4 ? 'bg-pink-500' : 
+                        index === 5 ? 'bg-amber-500' : 
+                        'bg-primary'
+                      }`
                     : 'bg-muted-foreground/30'
                 }`}
               />
