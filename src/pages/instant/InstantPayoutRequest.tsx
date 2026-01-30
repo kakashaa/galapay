@@ -1,11 +1,21 @@
 import { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Upload, CheckCircle2, User, DollarSign, Phone, MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowRight, Upload, CheckCircle2, User, DollarSign, Phone, MapPin, Loader2, AlertCircle, Lock, CreditCard, Coins } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 const COINS_PER_DOLLAR = 8500;
+
+// Available payment methods for supporter
+const SUPPORTER_PAYMENT_METHODS = [
+  { id: 'bank_transfer', name: 'تحويل بنكي', icon: '🏦' },
+  { id: 'cashapp', name: 'CashApp', icon: '💵' },
+  { id: 'zelle', name: 'Zelle', icon: '💳' },
+  { id: 'paypal', name: 'PayPal', icon: '💰' },
+  { id: 'crypto', name: 'عملات رقمية', icon: '₿' },
+  { id: 'other', name: 'أخرى', icon: '📱' },
+];
 
 const InstantPayoutRequest = () => {
   const navigate = useNavigate();
@@ -20,16 +30,20 @@ const InstantPayoutRequest = () => {
   const [supporterName, setSupporterName] = useState('');
   const [supporterAccountId, setSupporterAccountId] = useState('');
   const [supporterAmountUsd, setSupporterAmountUsd] = useState('');
+  const [supporterPaymentMethod, setSupporterPaymentMethod] = useState('');
   const [supporterReceipt, setSupporterReceipt] = useState<File | null>(null);
   const [supporterReceiptPreview, setSupporterReceiptPreview] = useState<string | null>(null);
   
   // Host info
   const [hostName, setHostName] = useState('');
   const [hostAccountId, setHostAccountId] = useState('');
-  const [hostCoinsAmount, setHostCoinsAmount] = useState('');
+  const [hostUsdAmount, setHostUsdAmount] = useState('');
   const [hostReceipt, setHostReceipt] = useState<File | null>(null);
   const [hostReceiptPreview, setHostReceiptPreview] = useState<string | null>(null);
   const [hostReferenceNumber, setHostReferenceNumber] = useState('');
+  const [isExtractingReference, setIsExtractingReference] = useState(false);
+  const [referenceExtracted, setReferenceExtracted] = useState(false);
+  const [referenceError, setReferenceError] = useState<string | null>(null);
   
   // Payout details
   const [recipientFullName, setRecipientFullName] = useState('');
@@ -57,7 +71,9 @@ const InstantPayoutRequest = () => {
   const selectedCountryData = countries?.find(c => c.country_code === selectedCountry);
   const methods = selectedCountryData?.methods as Array<{ name: string; nameArabic: string; iconUrl?: string; fields?: Array<{ name: string; label: string; type: string; required: boolean }> }> || [];
 
-  const hostPayoutAmount = hostCoinsAmount ? (parseInt(hostCoinsAmount) / COINS_PER_DOLLAR) : 0;
+  // Calculate coins from USD amount
+  const hostCoinsAmount = hostUsdAmount ? Math.round(parseFloat(hostUsdAmount) * COINS_PER_DOLLAR) : 0;
+  const hostPayoutAmount = parseFloat(hostUsdAmount) || 0;
 
   const handleSupporterReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,18 +85,72 @@ const InstantPayoutRequest = () => {
     }
   };
 
-  const handleHostReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHostReceiptChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setHostReceipt(file);
+      setHostReferenceNumber('');
+      setReferenceExtracted(false);
+      setReferenceError(null);
+      
       const reader = new FileReader();
-      reader.onloadend = () => setHostReceiptPreview(reader.result as string);
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        setHostReceiptPreview(base64);
+        
+        // Extract reference number using AI
+        await extractReferenceNumber(base64);
+      };
       reader.readAsDataURL(file);
     }
   };
 
-  const isStep1Valid = supporterName && supporterAccountId && supporterAmountUsd && supporterReceipt;
-  const isStep2Valid = hostName && hostAccountId && hostCoinsAmount && hostReceipt && hostReferenceNumber;
+  const extractReferenceNumber = async (base64Image: string) => {
+    setIsExtractingReference(true);
+    setReferenceError(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-receipt-data', {
+        body: { 
+          imageBase64: base64Image,
+          extractionType: 'reference_only'
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.referenceNumber) {
+        // Check if reference is already used
+        const { data: isUsed, error: checkError } = await supabase
+          .rpc('is_reference_used', { ref_number: data.referenceNumber });
+        
+        if (checkError) throw checkError;
+        
+        if (isUsed) {
+          setReferenceError('⚠️ هذا الرقم المرجعي مستخدم مسبقاً! هذه محاولة احتيال. يرجى استخدام إيصال جديد.');
+          setHostReferenceNumber('');
+          setReferenceExtracted(false);
+        } else {
+          setHostReferenceNumber(data.referenceNumber);
+          setReferenceExtracted(true);
+          toast({
+            title: 'تم استخراج الرقم المرجعي',
+            description: `الرقم المرجعي: ${data.referenceNumber}`,
+          });
+        }
+      } else {
+        setReferenceError('لم يتم العثور على رقم مرجعي في الإيصال. تأكد من وضوح الصورة.');
+      }
+    } catch (error) {
+      console.error('Error extracting reference:', error);
+      setReferenceError('حدث خطأ أثناء قراءة الإيصال. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsExtractingReference(false);
+    }
+  };
+
+  const isStep1Valid = supporterName && supporterAccountId && supporterAmountUsd && supporterPaymentMethod && supporterReceipt;
+  const isStep2Valid = hostName && hostAccountId && hostUsdAmount && hostReceipt && hostReferenceNumber && referenceExtracted && !referenceError;
   const isStep3Valid = recipientFullName && phoneNumber && payoutMethod;
 
   const handleSubmit = async () => {
@@ -89,7 +159,7 @@ const InstantPayoutRequest = () => {
     setIsSubmitting(true);
     
     try {
-      // Check if reference number is already used
+      // Double-check reference number is not used (security)
       const { data: isUsed, error: checkError } = await supabase
         .rpc('is_reference_used', { ref_number: hostReferenceNumber });
       
@@ -142,10 +212,11 @@ const InstantPayoutRequest = () => {
           supporter_name: supporterName,
           supporter_account_id: supporterAccountId,
           supporter_amount_usd: parseFloat(supporterAmountUsd),
+          supporter_payment_method: supporterPaymentMethod,
           supporter_receipt_url: supporterUrlData.publicUrl,
           host_name: hostName,
           host_account_id: hostAccountId,
-          host_coins_amount: parseInt(hostCoinsAmount),
+          host_coins_amount: hostCoinsAmount,
           host_payout_amount: hostPayoutAmount,
           host_receipt_url: hostUrlData.publicUrl,
           host_receipt_reference: hostReferenceNumber,
@@ -248,19 +319,44 @@ const InstantPayoutRequest = () => {
                 <label className="block text-sm font-medium text-foreground mb-2">ايدي الداعم (في غلا لايف)</label>
                 <input
                   type="text"
+                  inputMode="numeric"
                   value={supporterAccountId}
-                  onChange={(e) => setSupporterAccountId(e.target.value)}
+                  onChange={(e) => setSupporterAccountId(e.target.value.replace(/\D/g, ''))}
                   placeholder="مثال: 123456789"
                   className="w-full p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-warning focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">المبلغ بالدولار</label>
+                <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-warning" />
+                  الداعم حوّل عبر
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {SUPPORTER_PAYMENT_METHODS.map((method) => (
+                    <button
+                      key={method.id}
+                      onClick={() => setSupporterPaymentMethod(method.id)}
+                      className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
+                        supporterPaymentMethod === method.id
+                          ? 'border-warning bg-warning/10'
+                          : 'border-border hover:border-warning/50'
+                      }`}
+                    >
+                      <span className="text-xl">{method.icon}</span>
+                      <span className="text-xs font-medium text-foreground">{method.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">المبلغ بالدولار (الذي حوّله الداعم)</label>
                 <div className="relative">
                   <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={supporterAmountUsd}
                     onChange={(e) => setSupporterAmountUsd(e.target.value)}
                     placeholder="0.00"
@@ -334,52 +430,62 @@ const InstantPayoutRequest = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">اسمك (اسم المضيف)</label>
+                <label className="block text-sm font-medium text-foreground mb-2">اسمك في غلا لايف</label>
                 <input
                   type="text"
                   value={hostName}
                   onChange={(e) => setHostName(e.target.value)}
-                  placeholder="أدخل اسمك"
+                  placeholder="أدخل اسمك في غلا لايف"
                   className="w-full p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">ايدي حسابك (في غلا لايف)</label>
+                <label className="block text-sm font-medium text-foreground mb-2">ايدي حسابك في غلا لايف</label>
                 <input
                   type="text"
+                  inputMode="numeric"
                   value={hostAccountId}
-                  onChange={(e) => setHostAccountId(e.target.value)}
+                  onChange={(e) => setHostAccountId(e.target.value.replace(/\D/g, ''))}
                   placeholder="مثال: 987654321"
                   className="w-full p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">عدد الكوينزات المحولة</label>
-                <input
-                  type="number"
-                  value={hostCoinsAmount}
-                  onChange={(e) => setHostCoinsAmount(e.target.value)}
-                  placeholder="مثال: 85000"
-                  className="w-full p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-                {hostCoinsAmount && (
-                  <p className="text-sm text-primary mt-2">
-                    = <span className="font-bold">${hostPayoutAmount.toFixed(2)}</span> (8,500 كوينز = $1)
-                  </p>
+                <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-primary" />
+                  كم دولار حوّلت إلى كوينزات؟
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={hostUsdAmount}
+                    onChange={(e) => setHostUsdAmount(e.target.value)}
+                    placeholder="أدخل المبلغ بالدولار"
+                    className="w-full p-3 pr-10 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+                
+                {/* Coins calculation display */}
+                {hostUsdAmount && parseFloat(hostUsdAmount) > 0 && (
+                  <div className="mt-3 p-3 rounded-xl bg-primary/10 border border-primary/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Coins className="w-4 h-4" />
+                        الكوينزات المحوّلة:
+                      </span>
+                      <span className="font-bold text-primary text-lg">
+                        {hostCoinsAmount.toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      (8,500 كوينز = $1)
+                    </p>
+                  </div>
                 )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">الرقم المرجعي من الإيصال</label>
-                <input
-                  type="text"
-                  value={hostReferenceNumber}
-                  onChange={(e) => setHostReferenceNumber(e.target.value)}
-                  placeholder="الرقم المرجعي من إيصال التحويل"
-                  className="w-full p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
               </div>
 
               <div>
@@ -416,6 +522,47 @@ const InstantPayoutRequest = () => {
                   )}
                 </button>
               </div>
+
+              {/* Reference Number - Read Only, AI Extracted */}
+              {hostReceiptPreview && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-primary" />
+                    الرقم المرجعي (يتم استخراجه تلقائياً)
+                  </label>
+                  
+                  {isExtractingReference ? (
+                    <div className="w-full p-4 rounded-xl border border-border bg-muted/50 flex items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">جاري قراءة الإيصال...</span>
+                    </div>
+                  ) : referenceError ? (
+                    <div className="w-full p-4 rounded-xl border border-destructive bg-destructive/10">
+                      <p className="text-sm text-destructive font-medium">{referenceError}</p>
+                      <button
+                        onClick={() => hostReceiptRef.current?.click()}
+                        className="mt-2 text-sm text-primary underline"
+                      >
+                        رفع إيصال جديد
+                      </button>
+                    </div>
+                  ) : hostReferenceNumber ? (
+                    <div className="w-full p-4 rounded-xl border border-primary bg-primary/10 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
+                        <span className="font-mono font-bold text-foreground">{hostReferenceNumber}</span>
+                      </div>
+                      <Lock className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="w-full p-4 rounded-xl border border-border bg-muted/50">
+                      <p className="text-sm text-muted-foreground text-center">
+                        سيظهر الرقم المرجعي بعد رفع الإيصال
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -453,8 +600,9 @@ const InstantPayoutRequest = () => {
                   </div>
                   <input
                     type="tel"
+                    inputMode="numeric"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
                     placeholder="رقم الهاتف"
                     className="flex-1 p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
@@ -517,12 +665,18 @@ const InstantPayoutRequest = () => {
                   <span className="text-foreground font-medium">{supporterName}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground">طريقة دفع الداعم:</span>
+                  <span className="text-foreground font-medium">
+                    {SUPPORTER_PAYMENT_METHODS.find(m => m.id === supporterPaymentMethod)?.name || '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">مبلغ الداعم:</span>
                   <span className="text-foreground font-medium">${supporterAmountUsd}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">الكوينزات:</span>
-                  <span className="text-foreground font-medium">{parseInt(hostCoinsAmount || '0').toLocaleString()}</span>
+                  <span className="text-muted-foreground">الكوينزات المحوّلة:</span>
+                  <span className="text-foreground font-medium">{hostCoinsAmount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between border-t border-border pt-2">
                   <span className="text-muted-foreground">المبلغ المستحق:</span>
