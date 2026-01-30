@@ -87,15 +87,40 @@ const Index = () => {
         </p>
       </div>
 
-      {/* Halo Button */}
-      <button 
-        onClick={handleMainButtonClick}
-        className="halo-button w-36 h-36 flex flex-col items-center justify-center cursor-pointer z-10"
-        disabled={settingsLoading}
-      >
-        <Wallet className="w-12 h-12 mb-2" />
-        <span className="text-lg font-bold">طلب صرف</span>
-      </button>
+      {/* Two Main Buttons Side by Side */}
+      <div className="flex gap-4 z-10 w-full max-w-sm px-4">
+        {/* Monthly Payout Button */}
+        <button 
+          onClick={handleMainButtonClick}
+          className="flex-1 p-5 rounded-2xl bg-primary text-primary-foreground flex flex-col items-center gap-3 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl"
+          disabled={settingsLoading}
+        >
+          <div className="w-14 h-14 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
+            <Wallet className="w-7 h-7" />
+          </div>
+          <div className="text-center">
+            <p className="text-base font-bold mb-1">سحب شهري</p>
+            <p className="text-xs opacity-80">صرف راتبك</p>
+          </div>
+        </button>
+
+        {/* Instant Payout Button */}
+        <button 
+          onClick={() => navigate('/instant')}
+          className="flex-1 p-5 rounded-2xl bg-warning text-warning-foreground flex flex-col items-center gap-3 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
+        >
+          <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-white/20 rounded-full">
+            <span className="text-[10px] font-bold">جديد ⚡</span>
+          </div>
+          <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
+            <Zap className="w-7 h-7" />
+          </div>
+          <div className="text-center">
+            <p className="text-base font-bold mb-1">سحب فوري</p>
+            <p className="text-xs opacity-90">بيع راتبك</p>
+          </div>
+        </button>
+      </div>
 
       {/* Bottom Sheet - Only shows when payout is enabled */}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -130,27 +155,7 @@ const Index = () => {
                 </div>
               </button>
 
-              {/* Option 2: Instant Payout - NEW */}
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate('/instant');
-                }}
-                className="w-full p-5 rounded-2xl bg-warning text-warning-foreground flex items-center gap-4 transition-all active:scale-[0.98] shadow-lg relative overflow-hidden"
-              >
-                <div className="absolute top-2 left-2 px-2 py-0.5 bg-white/20 rounded-full">
-                  <span className="text-xs font-bold">جديد ⚡</span>
-                </div>
-                <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                  <Zap className="w-7 h-7" />
-                </div>
-                <div className="text-right flex-1">
-                  <p className="text-lg font-bold mb-1">سحب الراتب الفوري</p>
-                  <p className="text-sm opacity-90">بيع راتبك لداعم واستلم فلوسك فوراً!</p>
-                </div>
-              </button>
-
-              {/* Option 3: Track Existing */}
+              {/* Option 2: Track Existing */}
               <button
                 onClick={handleTrack}
                 className="w-full p-5 rounded-2xl bg-muted border-2 border-border flex items-center gap-4 transition-all active:scale-[0.98] hover:border-primary/50"
