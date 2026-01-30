@@ -12,16 +12,14 @@ import {
   PowerOff,
   Loader2,
   BarChart3,
-  Settings,
   Home,
-  TrendingUp,
   Users,
   Wallet,
   CheckCircle,
   XCircle,
   ArrowUpRight,
-  Menu,
   Video,
+  Shield,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -32,6 +30,7 @@ import AdminManagement from '@/components/admin/AdminManagement';
 import AnalyticsCharts from '@/components/admin/AnalyticsCharts';
 import VideoManagement from '@/components/admin/VideoManagement';
 import BlockedAgencyCodesManagement from '@/components/admin/BlockedAgencyCodesManagement';
+import DuplicateDetection from '@/components/admin/DuplicateDetection';
 import { exportToExcel } from '@/lib/excel-export';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import {
@@ -813,12 +812,21 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // Scan Tab (Super Admin)
+  const renderScanTab = () => (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold">فحص الطلبات المشبوهة</h2>
+      <DuplicateDetection onViewRequest={(id) => setSelectedRequest(id)} />
+    </div>
+  );
+
   // Navigation Items
   const navItems = [
     { id: 'home', icon: Home, label: 'الرئيسية' },
     { id: 'pending', icon: Clock, label: 'جديدة', badge: pendingRequests.length },
     { id: 'my-requests', icon: Wallet, label: 'طلباتي' },
     ...(isSuperAdmin ? [
+      { id: 'scan', icon: Shield, label: 'الفحص' },
       { id: 'analytics', icon: BarChart3, label: 'التحليلات' },
       { id: 'videos', icon: Video, label: 'الفيديو' },
       { id: 'settings', icon: Users, label: 'المديرين' },
@@ -850,6 +858,7 @@ const AdminDashboard = () => {
           {activeTab === 'home' && renderHomeTab()}
           {activeTab === 'pending' && renderPendingTab()}
           {activeTab === 'my-requests' && renderMyRequestsTab()}
+          {activeTab === 'scan' && isSuperAdmin && renderScanTab()}
           {activeTab === 'analytics' && isSuperAdmin && renderAnalyticsTab()}
           {activeTab === 'videos' && isSuperAdmin && renderVideosTab()}
           {activeTab === 'settings' && isSuperAdmin && renderSettingsTab()}
