@@ -1,26 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Zap, Users, Wallet, Shield, ChevronLeft, CheckCircle2, Info, AlertCircle, DollarSign } from 'lucide-react';
-
-const INSTANT_INTRO_DISMISSED_KEY = 'instant_intro_dismissed';
 
 const InstantPayoutIntro = () => {
   const navigate = useNavigate();
   const [understood, setUnderstood] = useState(false);
-  const [dontShowAgain, setDontShowAgain] = useState(false);
-
-  // Check if user previously dismissed the intro
-  useEffect(() => {
-    const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
-    if (isDismissed) {
-      navigate('/instant/banks', { replace: true });
-    }
-  }, [navigate]);
 
   const handleContinue = () => {
-    if (dontShowAgain) {
-      localStorage.setItem(INSTANT_INTRO_DISMISSED_KEY, 'true');
-    }
     navigate('/instant/banks');
   };
 
@@ -194,19 +180,6 @@ const InstantPayoutIntro = () => {
             {understood && <CheckCircle2 className="w-4 h-4 text-primary-foreground" />}
           </div>
           <span className="font-medium text-foreground">فهمت كيف تعمل الخدمة</span>
-        </button>
-
-        {/* Don't show again option */}
-        <button
-          onClick={() => setDontShowAgain(!dontShowAgain)}
-          className="w-full p-3 rounded-xl border border-border bg-muted/50 hover:bg-muted transition-all flex items-center gap-3"
-        >
-          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-            dontShowAgain ? 'border-primary bg-primary' : 'border-muted-foreground'
-          }`}>
-            {dontShowAgain && <CheckCircle2 className="w-3 h-3 text-primary-foreground" />}
-          </div>
-          <span className="text-sm text-muted-foreground">عدم إظهار هذه الصفحة مجدداً</span>
         </button>
       </div>
 
