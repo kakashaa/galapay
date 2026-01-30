@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Heart, Loader2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 
 interface Supporter {
   id: string;
@@ -40,7 +40,7 @@ const SupportersSpotlight = () => {
     
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % supporters.length);
-    }, 3000);
+    }, 5000); // Changed to 5 seconds
 
     return () => clearInterval(interval);
   }, [isPaused, supporters.length, timerKey]);
@@ -75,10 +75,8 @@ const SupportersSpotlight = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="w-full max-w-xs">
-        <div className="neon-card p-4 flex items-center justify-center h-[140px]">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        </div>
+      <div className="w-full flex items-center justify-center py-6">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -86,11 +84,8 @@ const SupportersSpotlight = () => {
   // No supporters - show placeholder
   if (supporters.length === 0) {
     return (
-      <div className="w-full max-w-xs">
-        <div className="neon-card p-4 flex flex-col items-center justify-center h-[140px] text-center">
-          <Heart className="w-6 h-6 text-primary/40 mb-2" />
-          <p className="text-xs text-muted-foreground">قريباً سيتم عرض الداعمين هنا</p>
-        </div>
+      <div className="w-full flex flex-col items-center justify-center py-6 text-center">
+        <p className="text-xs text-muted-foreground">قريباً سيتم عرض الداعمين هنا ❤️</p>
       </div>
     );
   }
@@ -101,117 +96,74 @@ const SupportersSpotlight = () => {
 
   return (
     <div 
-      className="w-full max-w-xs relative"
+      className="w-full max-w-sm relative px-8"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setTimeout(() => setIsPaused(false), 2000)}
     >
-      {/* Main Card - fixed height to prevent layout shift */}
-      <div className="neon-card p-4 relative overflow-hidden min-h-[140px]">
-        {/* Heart decoration */}
-        <motion.div 
-          className="absolute top-2 left-2"
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentSupporter.id}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="flex flex-col items-center text-center"
         >
-          <Heart className="w-4 h-4 text-primary fill-primary/30" />
-        </motion.div>
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentSupporter.id}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="flex flex-col items-center text-center"
-          >
-            {/* Avatar */}
-            <div className="relative mb-3">
-              {currentSupporter.avatar_url ? (
-                <img 
-                  src={currentSupporter.avatar_url} 
-                  alt={currentSupporter.name}
-                  className="w-14 h-14 rounded-full object-cover border-2 border-primary/40"
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border-2 border-primary/40 flex items-center justify-center">
-                  <span className="text-primary font-bold text-lg">{getInitials(currentSupporter.name)}</span>
-                </div>
-              )}
-              {/* Online indicator */}
-              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-success border-2 border-card" />
-            </div>
-
-            {/* Name & Username */}
-            <h4 className="text-sm font-bold text-foreground mb-0.5">{currentSupporter.name}</h4>
-            <p className="text-xs text-primary font-medium mb-2">{currentSupporter.handle}</p>
-
-            {/* Thank you message - max 2 lines with ellipsis */}
-            <p className="text-[10px] text-muted-foreground leading-relaxed px-2 line-clamp-2">
-              {currentSupporter.thank_you_text}
-            </p>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Navigation Arrows */}
-        {supporters.length > 1 && (
-          <>
-            <button 
-              onClick={goToPrevious}
-              className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-full bg-muted/50 hover:bg-muted transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-            <button 
-              onClick={goToNext}
-              className="absolute left-1 top-1/2 -translate-y-1/2 p-1 rounded-full bg-muted/50 hover:bg-muted transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Dots Indicator */}
-      {supporters.length > 1 && (
-        <div className="flex justify-center gap-1 mt-2">
-          {supporters.length > 6 ? (
-            // Compact indicator for many items
-            <>
-              {[...Array(3)].map((_, i) => {
-                const dotIndex = currentIndex <= 1 ? i : 
-                                currentIndex >= supporters.length - 2 ? supporters.length - 3 + i : 
-                                currentIndex - 1 + i;
-                return (
-                  <button
-                    key={dotIndex}
-                    onClick={() => setCurrentIndex(dotIndex)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all ${
-                      currentIndex === dotIndex 
-                        ? 'bg-primary w-4 shadow-[0_0_8px_hsl(var(--primary))]' 
-                        : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                    }`}
-                  />
-                );
-              })}
-              <span className="text-[8px] text-muted-foreground mx-1">{currentIndex + 1}/{supporters.length}</span>
-            </>
-          ) : (
-            // Full dots for fewer items
-            supporters.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentIndex(i)}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${
-                  currentIndex === i 
-                    ? 'bg-primary w-4 shadow-[0_0_8px_hsl(var(--primary))]' 
-                    : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                }`}
+          {/* Avatar with glow effect */}
+          <div className="relative mb-3">
+            <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
+            {currentSupporter.avatar_url ? (
+              <img 
+                src={currentSupporter.avatar_url} 
+                alt={currentSupporter.name}
+                className="relative w-20 h-20 rounded-full object-cover border-3 border-primary/60 shadow-lg shadow-primary/20"
               />
-            ))
-          )}
+            ) : (
+              <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-3 border-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+                <span className="text-primary font-bold text-xl">{getInitials(currentSupporter.name)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Name */}
+          <h4 className="text-base font-bold text-foreground mb-0.5">{currentSupporter.name}</h4>
+          
+          {/* ID/Handle */}
+          <p className="text-xs text-primary font-semibold mb-2">{currentSupporter.handle}</p>
+
+          {/* Thank you message */}
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px] line-clamp-2">
+            {currentSupporter.thank_you_text}
+          </p>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Navigation Arrows - outside the content */}
+      {supporters.length > 1 && (
+        <>
+          <button 
+            onClick={goToPrevious}
+            className="absolute right-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-muted/30 hover:bg-muted/50 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
+          <button 
+            onClick={goToNext}
+            className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-muted/30 hover:bg-muted/50 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </>
+      )}
+
+      {/* Counter */}
+      {supporters.length > 1 && (
+        <div className="flex justify-center mt-3">
+          <span className="text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full">
+            {currentIndex + 1} / {supporters.length}
+          </span>
         </div>
       )}
     </div>
