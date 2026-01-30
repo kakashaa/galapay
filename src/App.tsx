@@ -8,10 +8,12 @@ import Confirm from "./pages/Confirm";
 import PayoutRequest from "./pages/PayoutRequest";
 import Success from "./pages/Success";
 import Track from "./pages/Track";
+import BanReport from "./pages/BanReport";
 import AdminLogin from "./pages/admin/Login";
 import AdminPortal from "./pages/admin/AdminPortal";
 import AdminDashboard from "./pages/admin/Dashboard";
 import InstantAdminDashboard from "./pages/admin/InstantDashboard";
+import BanDashboard from "./pages/admin/BanDashboard";
 import InstantPayoutIntro from "./pages/instant/InstantPayoutIntro";
 import InstantPayoutBanks from "./pages/instant/InstantPayoutBanks";
 import InstantPayoutRequest from "./pages/instant/InstantPayoutRequest";
@@ -31,6 +33,7 @@ const App = () => (
           <Route path="/request" element={<PayoutRequest />} />
           <Route path="/success" element={<Success />} />
           <Route path="/track" element={<Track />} />
+          <Route path="/ban-report" element={<BanReport />} />
           <Route path="/instant" element={<InstantPayoutIntro />} />
           <Route path="/instant/banks" element={<InstantPayoutBanks />} />
           <Route path="/instant/request" element={<InstantPayoutRequest />} />
@@ -38,6 +41,7 @@ const App = () => (
           <Route path="/admin" element={<AdminPortal />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/instant" element={<InstantAdminDashboard />} />
+          <Route path="/admin/bans" element={<BanDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

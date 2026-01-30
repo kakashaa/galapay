@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Zap, LogOut, Loader2 } from 'lucide-react';
+import { Wallet, Zap, ShieldBan, LogOut, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const AdminPortal = () => {
@@ -108,7 +108,7 @@ const AdminPortal = () => {
             className="w-full p-6 rounded-2xl bg-warning text-warning-foreground flex items-center gap-4 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
           >
             <div className="absolute top-2 left-2 px-2 py-0.5 bg-white/20 rounded-full">
-              <span className="text-xs font-bold">جديد ⚡</span>
+              <span className="text-xs font-bold">⚡ فوري</span>
             </div>
             <div className="w-16 h-16 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
               <Zap className="w-8 h-8" />
@@ -116,6 +116,23 @@ const AdminPortal = () => {
             <div className="text-right flex-1">
               <p className="text-xl font-bold mb-1">السحب الفوري</p>
               <p className="text-sm opacity-90">إدارة طلبات السحب الفوري</p>
+            </div>
+          </button>
+
+          {/* Ban Reports Dashboard */}
+          <button
+            onClick={() => navigate('/admin/bans')}
+            className="w-full p-6 rounded-2xl bg-destructive text-destructive-foreground flex items-center gap-4 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
+          >
+            <div className="absolute top-2 left-2 px-2 py-0.5 bg-white/20 rounded-full">
+              <span className="text-xs font-bold">🚫 بلاغات</span>
+            </div>
+            <div className="w-16 h-16 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <ShieldBan className="w-8 h-8" />
+            </div>
+            <div className="text-right flex-1">
+              <p className="text-xl font-bold mb-1">إدارة البلاغات</p>
+              <p className="text-sm opacity-90">مراجعة بلاغات التبنيد</p>
             </div>
           </button>
         </div>
