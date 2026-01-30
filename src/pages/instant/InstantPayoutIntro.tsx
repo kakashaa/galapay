@@ -9,18 +9,18 @@ const InstantPayoutIntro = () => {
   const steps = [
     {
       icon: Users,
-      title: 'داعمك يختار طريقة الدفع',
-      description: 'نوفر لداعمك جميع البنوك (أمريكا، السعودية، اليمن) عشان يختار اللي تناسبه',
+      title: 'الداعم يريد يشتري كوينزات',
+      description: 'نوفر له جميع البنوك (أمريكا، السعودية، اليمن) عشان يختار اللي تناسبه',
     },
     {
       icon: Wallet,
       title: 'الداعم يحوّل على حساباتنا',
-      description: 'داعمك يحول المبلغ على أحد حساباتنا البنكية المتاحة',
+      description: 'الداعم يحول المبلغ على أحد حساباتنا البنكية المتاحة',
     },
     {
       icon: Zap,
-      title: 'نحوّل لك على بنكك',
-      description: 'بعد التأكد من الحوالة، نحوّل لك المبلغ على حسابك البنكي فوراً!',
+      title: 'تحصل على فلوسك فوراً',
+      description: 'بعد تحويلك الكوينزات للداعم، نحوّل لك المبلغ على بنكك!',
     },
   ];
 
@@ -48,10 +48,10 @@ const InstantPayoutIntro = () => {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-foreground mb-2">
-              سهّل على داعمك! 🤝
+              بيع راتبك بسهولة! 💰
             </h2>
             <p className="text-muted-foreground">
-              نوفر لداعمك كل طرق الدفع ونحوّل لك الفلوس مباشرة
+              نساعدك تبيع كوينزاتك لأي داعم ونوفر له كل طرق الدفع
             </p>
           </div>
         </div>
@@ -65,10 +65,10 @@ const InstantPayoutIntro = () => {
             <div>
               <h3 className="font-bold text-foreground mb-1">كيف نساعدك؟</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                داعمك يريد يشحن لك كوينزات لكن ما عنده نفس البنك اللي عندك؟ 🤔
+                عندك داعم يريد يشتري منك كوينزات؟ 🤔
                 <br /><br />
-                <strong className="text-foreground">لا تقلق!</strong> إحنا نوفر لداعمك جميع طرق الدفع (أمريكا، السعودية، اليمن)، 
-                الداعم يحوّل على حساباتنا، وإحنا نحوّل لك المبلغ على بنكك الخاص فوراً! 💰
+                <strong className="text-foreground">نسهّل عليك!</strong> إحنا نوفر للداعم جميع طرق الدفع (أمريكا، السعودية، اليمن)، 
+                الداعم يحوّل الفلوس على حساباتنا، وأنت تحوّل له الكوينزات، وإحنا نحوّل لك المبلغ على بنكك فوراً! 💸
               </p>
             </div>
           </div>
@@ -105,7 +105,7 @@ const InstantPayoutIntro = () => {
             <h3 className="font-bold text-destructive">⚠️ تنبيه مهم جداً!</h3>
           </div>
           <p className="text-sm text-foreground font-medium leading-relaxed">
-            لا تحوّل الكوينزات لداعمك إلا بعد ما نتأكد إن الفلوس وصلت لحساباتنا!
+            لا تحوّل الكوينزات للداعم إلا بعد ما نتأكد إن فلوسه وصلت لحساباتنا!
             <br />
             <span className="text-muted-foreground">انتظر تأكيدنا أولاً لحماية نفسك من أي احتيال.</span>
           </p>
@@ -120,7 +120,7 @@ const InstantPayoutIntro = () => {
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>أرسل لداعمك رابط حساباتنا البنكية</span>
+              <span>أرسل للداعم رابط حساباتنا البنكية</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -132,7 +132,7 @@ const InstantPayoutIntro = () => {
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>حوّل الكوينزات لداعمك بعد تأكيدنا</span>
+              <span>حوّل الكوينزات للداعم بعد تأكيدنا</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
