@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign, Settings, Zap } from 'lucide-react';
+import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign, Settings, Zap, BookOpen } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
 import { useSavedRequests } from '@/hooks/use-saved-requests';
 import { FlyingMoney } from '@/components/FlyingMoney';
@@ -14,6 +15,7 @@ const Index = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [myRequestsOpen, setMyRequestsOpen] = useState(false);
   const [disabledDialogOpen, setDisabledDialogOpen] = useState(false);
+  const [instantInfoOpen, setInstantInfoOpen] = useState(false);
   const { hasSavedRequests } = useSavedRequests();
   const { payoutEnabled, nextPayoutDate, loading: settingsLoading } = usePayoutSettings();
 
@@ -106,7 +108,7 @@ const Index = () => {
 
         {/* Instant Payout Button */}
         <button 
-          onClick={() => navigate('/instant')}
+          onClick={() => setInstantInfoOpen(true)}
           className="flex-1 p-3 rounded-xl bg-warning text-warning-foreground flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
         >
           <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-white/20 rounded-full">
@@ -220,6 +222,33 @@ const Index = () => {
         onOpenChange={setDisabledDialogOpen}
         nextDate={nextPayoutDate}
       />
+
+      {/* Instant Payout Info Dialog */}
+      <Dialog open={instantInfoOpen} onOpenChange={setInstantInfoOpen}>
+        <DialogContent className="max-w-sm mx-auto rounded-2xl p-6" dir="rtl">
+          <DialogTitle className="sr-only">معلومات السحب الفوري</DialogTitle>
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-warning/20 flex items-center justify-center">
+              <BookOpen className="w-8 h-8 text-warning" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-foreground">السحب الفوري ⚡</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                لو سمحت اقرأ الشرح بعناية لفهم كيف يعمل نظام السحب الفوري قبل المتابعة
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setInstantInfoOpen(false);
+                navigate('/instant');
+              }}
+              className="w-full py-3 rounded-xl bg-warning text-warning-foreground font-bold transition-all active:scale-[0.98]"
+            >
+              فهمت، متابعة
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
