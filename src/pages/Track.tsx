@@ -87,13 +87,19 @@ const instantStatusConfig = {
 const Track = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [trackingCode, setTrackingCode] = useState(location.state?.trackingCode || '');
+  
+  // Support both state and URL query parameter
+  const searchParams = new URLSearchParams(location.search);
+  const codeFromQuery = searchParams.get('code');
+  const initialCode = location.state?.trackingCode || codeFromQuery || '';
+  
+  const [trackingCode, setTrackingCode] = useState(initialCode);
   const [loading, setLoading] = useState(false);
   const [request, setRequest] = useState<PayoutRequest | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (location.state?.trackingCode) {
+    if (initialCode) {
       handleSearch();
     }
   }, []);
