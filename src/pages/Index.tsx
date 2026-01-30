@@ -13,11 +13,8 @@ import InstantPayoutCountdown from '@/components/InstantPayoutCountdown';
 
 const INSTANT_INTRO_DISMISSED_KEY = 'instant_intro_dismissed';
 
-// Check if instant payout service is available (after Feb 7, 2026)
-const isInstantServiceAvailable = () => {
-  const targetDate = new Date('2026-02-07T00:00:00');
-  return new Date() >= targetDate;
-};
+// Instant payout service launches in 7 days - set to false to show countdown
+const INSTANT_SERVICE_LAUNCHED = false;
 
 const Index = () => {
   const navigate = useNavigate();
@@ -119,7 +116,7 @@ const Index = () => {
         {/* Instant Payout Button */}
         <button 
           onClick={() => {
-            if (!isInstantServiceAvailable()) {
+            if (!INSTANT_SERVICE_LAUNCHED) {
               navigate('/instant');
             } else {
               const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
@@ -133,12 +130,12 @@ const Index = () => {
           className="flex-1 p-3 rounded-xl bg-warning text-warning-foreground flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
         >
           {/* Countdown badge above icon */}
-          {!isInstantServiceAvailable() && (
+          {!INSTANT_SERVICE_LAUNCHED && (
             <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-10">
               <InstantPayoutCountdown />
             </div>
           )}
-          {isInstantServiceAvailable() && (
+          {INSTANT_SERVICE_LAUNCHED && (
             <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-white/20 rounded-full">
               <span className="text-[8px] font-bold">جديد ⚡</span>
             </div>

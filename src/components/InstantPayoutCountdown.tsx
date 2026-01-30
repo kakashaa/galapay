@@ -8,17 +8,23 @@ interface TimeLeft {
   seconds: number;
 }
 
-// Target date: February 7, 2026 (first week of the new month)
-const TARGET_DATE = new Date('2026-02-07T00:00:00');
+// Target date: 7 days from now
+const getTargetDate = () => {
+  const target = new Date();
+  target.setDate(target.getDate() + 7);
+  target.setHours(0, 0, 0, 0);
+  return target;
+};
 
 const InstantPayoutCountdown = () => {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [isExpired, setIsExpired] = useState(false);
+  const [targetDate] = useState(getTargetDate);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
       const now = new Date();
-      const difference = TARGET_DATE.getTime() - now.getTime();
+      const difference = targetDate.getTime() - now.getTime();
 
       if (difference <= 0) {
         setIsExpired(true);
@@ -37,7 +43,7 @@ const InstantPayoutCountdown = () => {
     const timer = setInterval(calculateTimeLeft, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [targetDate]);
 
   if (isExpired) {
     return null;
