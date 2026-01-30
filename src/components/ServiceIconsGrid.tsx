@@ -45,7 +45,8 @@ const services: ServiceIcon[] = [
     name: 'ايدي مميز',
     icon: <Star className="w-7 h-7 text-white" />,
     gradient: 'from-orange-500 to-orange-600',
-    comingSoon: true,
+    comingSoon: false,
+    path: '/special-id',
   },
   {
     id: 'celebrity-gift',
