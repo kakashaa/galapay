@@ -99,9 +99,6 @@ const Index = () => {
         </p>
       </div>
 
-      {/* Instant Payout Countdown Banner */}
-      {!isInstantServiceAvailable() && <InstantPayoutCountdown />}
-
       {/* Two Main Buttons Side by Side */}
       <div className="flex gap-3 z-10 w-full max-w-sm px-4">
         {/* Monthly Payout Button */}
@@ -123,7 +120,6 @@ const Index = () => {
         <button 
           onClick={() => {
             if (!isInstantServiceAvailable()) {
-              // Service not available yet, just show intro page with info
               navigate('/instant');
             } else {
               const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
@@ -136,15 +132,23 @@ const Index = () => {
           }}
           className="flex-1 p-3 rounded-xl bg-warning text-warning-foreground flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
         >
-          <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-white/20 rounded-full">
-            <span className="text-[8px] font-bold">{isInstantServiceAvailable() ? 'جديد ⚡' : 'قريباً ⏰'}</span>
-          </div>
-          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+          {/* Countdown badge above icon */}
+          {!isInstantServiceAvailable() && (
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-10">
+              <InstantPayoutCountdown />
+            </div>
+          )}
+          {isInstantServiceAvailable() && (
+            <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-white/20 rounded-full">
+              <span className="text-[8px] font-bold">جديد ⚡</span>
+            </div>
+          )}
+          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center mt-3">
             <Zap className="w-4 h-4" />
           </div>
           <div className="text-center">
             <p className="text-xs font-bold">سحب فوري</p>
-            <p className="text-[9px] opacity-90">بيع راتبك</p>
+            <p className="text-[9px] opacity-90">سحب راتبك</p>
           </div>
         </button>
       </div>
