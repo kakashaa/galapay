@@ -157,6 +157,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ban_reports: {
+        Row: {
+          admin_notes: string | null
+          ban_type: Database["public"]["Enums"]["ban_type"]
+          created_at: string
+          description: string | null
+          evidence_type: string
+          evidence_url: string
+          expires_at: string | null
+          id: string
+          is_verified: boolean | null
+          processed_at: string | null
+          processed_by: string | null
+          reported_user_id: string
+          reporter_gala_id: string
+          reward_amount: number | null
+          reward_paid: boolean | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          ban_type: Database["public"]["Enums"]["ban_type"]
+          created_at?: string
+          description?: string | null
+          evidence_type?: string
+          evidence_url: string
+          expires_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          processed_at?: string | null
+          processed_by?: string | null
+          reported_user_id: string
+          reporter_gala_id: string
+          reward_amount?: number | null
+          reward_paid?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          ban_type?: Database["public"]["Enums"]["ban_type"]
+          created_at?: string
+          description?: string | null
+          evidence_type?: string
+          evidence_url?: string
+          expires_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          processed_at?: string | null
+          processed_by?: string | null
+          reported_user_id?: string
+          reporter_gala_id?: string
+          reward_amount?: number | null
+          reward_paid?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       blocked_agency_codes: {
         Row: {
           code: string
@@ -541,6 +601,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "staff" | "user" | "super_admin"
+      ban_type: "promotion" | "insult" | "defamation"
       instant_request_status:
         | "pending"
         | "processing"
@@ -675,6 +736,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff", "user", "super_admin"],
+      ban_type: ["promotion", "insult", "defamation"],
       instant_request_status: [
         "pending",
         "processing",

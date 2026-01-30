@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Headphones, UserX, Crown, Users, Star, Gift, Wallet } from 'lucide-react';
 
 interface ServiceIcon {
@@ -6,6 +7,7 @@ interface ServiceIcon {
   icon: React.ReactNode;
   gradient: string;
   comingSoon: boolean;
+  path?: string;
 }
 
 const services: ServiceIcon[] = [
@@ -21,7 +23,8 @@ const services: ServiceIcon[] = [
     name: 'تبنيد مستخدم',
     icon: <UserX className="w-7 h-7 text-white" />,
     gradient: 'from-red-500 to-red-600',
-    comingSoon: true,
+    comingSoon: false,
+    path: '/ban-report',
   },
   {
     id: 'vip',
@@ -61,6 +64,8 @@ const services: ServiceIcon[] = [
 ];
 
 export const ServiceIconsGrid = () => {
+  const navigate = useNavigate();
+  
   return (
     <div className="w-full max-w-sm px-2">
       <div className="grid grid-cols-4 gap-3">
@@ -69,7 +74,9 @@ export const ServiceIconsGrid = () => {
             key={service.id}
             className="flex flex-col items-center gap-1.5 group"
             onClick={() => {
-              // Coming soon - no action yet
+              if (service.path) {
+                navigate(service.path);
+              }
             }}
           >
             {/* iOS-style icon */}
