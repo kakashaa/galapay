@@ -71,44 +71,42 @@ const Index = () => {
       {/* Flying Money Background */}
       <FlyingMoney />
 
-      {/* Rotating Promo Banners - At Top */}
-      <div className="w-full max-w-sm mb-6 z-10 h-24 relative">
+      {/* Rotating Promo Banners - Compact */}
+      <div className="w-full max-w-sm mb-6 z-10 h-20 relative px-4">
         {/* Banner 1: Main Promo */}
         <div 
-          className={`promo-banner absolute inset-0 transition-all duration-500 ${
+          className={`absolute inset-x-4 inset-y-0 bg-warning/10 border border-warning/30 rounded-xl p-3 transition-all duration-500 ${
             currentBanner === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
           }`}
         >
-          <div className="relative z-10">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Sparkles className="w-5 h-5 text-primary animate-bounce-subtle" />
-              <span className="text-xs font-medium text-primary">خدمة سريعة وموثوقة</span>
-              <Sparkles className="w-5 h-5 text-primary animate-bounce-subtle" />
+          <div className="flex items-center justify-between h-full">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="w-4 h-4 text-warning" />
+                <span className="text-xs font-bold text-warning">خدمة سريعة وموثوقة</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                ارفع راتبك واستلمه فوراً! 💰
+              </p>
             </div>
-            <h2 className="text-lg font-bold text-foreground mb-1">
-              ارفع راتبك واستلمه فوراً! 💰
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              حوّل راتبك الشهري واستلمه بأسرع وقت
-            </p>
           </div>
         </div>
 
         {/* Banner 2: Instant Payout Coming Soon */}
         {!INSTANT_SERVICE_LAUNCHED && (
           <div 
-            className={`absolute inset-0 bg-warning/10 border border-warning/30 rounded-xl p-3 flex items-center transition-all duration-500 ${
+            className={`absolute inset-x-4 inset-y-0 bg-warning/10 border border-warning/30 rounded-xl p-3 transition-all duration-500 ${
               currentBanner === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
             }`}
           >
-            <div className="flex items-center justify-between gap-3 w-full">
+            <div className="flex items-center justify-between gap-3 h-full">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className="w-4 h-4 text-warning" />
                   <span className="text-xs font-bold text-warning">قريباً - السحب الفوري ⚡</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  اسحب راتبك بأي وقت تحتاجه! الخدمة تبدأ أول أسبوع بالشهر الجديد
+                  اسحب راتبك بأي وقت تحتاجه!
                 </p>
               </div>
               <InstantPayoutCountdown />
@@ -118,10 +116,10 @@ const Index = () => {
 
         {/* Banner Indicators */}
         {!INSTANT_SERVICE_LAUNCHED && (
-          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
             <button 
               onClick={() => setCurrentBanner(0)}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${currentBanner === 0 ? 'bg-primary w-4' : 'bg-muted-foreground/30'}`}
+              className={`w-1.5 h-1.5 rounded-full transition-all ${currentBanner === 0 ? 'bg-warning w-4' : 'bg-muted-foreground/30'}`}
             />
             <button 
               onClick={() => setCurrentBanner(1)}
