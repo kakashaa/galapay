@@ -522,6 +522,72 @@ export type Database = {
         }
         Relationships: []
       }
+      special_id_requests: {
+        Row: {
+          admin_notes: string | null
+          ai_notes: string | null
+          ai_verification_status: string | null
+          ai_verified_level: number | null
+          ban_expires_at: string | null
+          created_at: string
+          digit_length: number
+          gala_user_id: string
+          gala_username: string | null
+          id: string
+          pattern_code: string
+          preferred_exact_id: string | null
+          processed_at: string | null
+          processed_by: string | null
+          profile_screenshot_url: string
+          rejection_reason: string | null
+          status: string
+          updated_at: string
+          user_level: number
+        }
+        Insert: {
+          admin_notes?: string | null
+          ai_notes?: string | null
+          ai_verification_status?: string | null
+          ai_verified_level?: number | null
+          ban_expires_at?: string | null
+          created_at?: string
+          digit_length: number
+          gala_user_id: string
+          gala_username?: string | null
+          id?: string
+          pattern_code: string
+          preferred_exact_id?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          profile_screenshot_url: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          user_level: number
+        }
+        Update: {
+          admin_notes?: string | null
+          ai_notes?: string | null
+          ai_verification_status?: string | null
+          ai_verified_level?: number | null
+          ban_expires_at?: string | null
+          created_at?: string
+          digit_length?: number
+          gala_user_id?: string
+          gala_username?: string | null
+          id?: string
+          pattern_code?: string
+          preferred_exact_id?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          profile_screenshot_url?: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          user_level?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

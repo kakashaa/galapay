@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Zap, ShieldBan, LogOut, Loader2 } from 'lucide-react';
+import { Wallet, Zap, ShieldBan, Crown, LogOut, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const AdminPortal = () => {
@@ -133,6 +133,23 @@ const AdminPortal = () => {
             <div className="text-right flex-1">
               <p className="text-xl font-bold mb-1">إدارة البلاغات</p>
               <p className="text-sm opacity-90">مراجعة بلاغات التبنيد</p>
+            </div>
+          </button>
+
+          {/* Special ID Dashboard */}
+          <button
+            onClick={() => navigate('/admin/special-id')}
+            className="w-full p-6 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white flex items-center gap-4 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
+          >
+            <div className="absolute top-2 left-2 px-2 py-0.5 bg-white/20 rounded-full">
+              <span className="text-xs font-bold">👑 مميز</span>
+            </div>
+            <div className="w-16 h-16 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <Crown className="w-8 h-8" />
+            </div>
+            <div className="text-right flex-1">
+              <p className="text-xl font-bold mb-1">الايدي المميز</p>
+              <p className="text-sm opacity-90">إدارة طلبات الايدي المميز</p>
             </div>
           </button>
         </div>
