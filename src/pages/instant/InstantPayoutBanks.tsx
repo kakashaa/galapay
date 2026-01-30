@@ -124,9 +124,9 @@ const InstantPayoutBanks = () => {
   const currentCountry = banksByCountry[selectedCountry as keyof typeof banksByCountry];
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
+    <div className="min-h-screen premium-bg" dir="rtl">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
+      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-xl border-b border-warning/20">
         <div className="flex items-center justify-between p-4">
           <button
             onClick={() => navigate('/instant')}
@@ -134,18 +134,18 @@ const InstantPayoutBanks = () => {
           >
             <ArrowRight className="w-6 h-6 text-foreground" />
           </button>
-          <h1 className="text-lg font-bold text-foreground">حسابات الدفع</h1>
+          <h1 className="text-lg font-bold text-foreground" style={{ textShadow: '0 0 10px hsla(38, 92%, 55%, 0.3)' }}>حسابات الدفع</h1>
           <div className="w-10" />
         </div>
       </div>
 
       <div className="p-5 space-y-6 pb-32">
         {/* Instructions */}
-        <div className="bg-primary/10 border border-primary/30 rounded-xl p-4">
+        <div className="neon-card p-4" style={{ boxShadow: '0 0 15px hsla(142, 76%, 50%, 0.15)' }}>
           <div className="flex items-start gap-3">
             <Globe className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-bold text-foreground mb-1">اختر دولة الداعم</h3>
+              <h3 className="font-bold text-foreground mb-1 glow-text">اختر دولة الداعم</h3>
               <p className="text-sm text-muted-foreground">
                 اختر الدولة التي سيحوّل منها الداعم، ثم شارك معه تفاصيل الحساب المناسب
               </p>
@@ -212,13 +212,13 @@ const InstantPayoutBanks = () => {
       </div>
 
       {/* Fixed Bottom Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-5 bg-background/80 backdrop-blur-lg border-t border-border">
+      <div className="fixed bottom-0 left-0 right-0 p-5 bg-card/80 backdrop-blur-xl border-t border-primary/20">
         <button
           onClick={() => navigate('/instant/request', { state: { selectedCountry } })}
           disabled={!confirmed}
           className={`w-full p-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
             confirmed
-              ? 'bg-primary text-primary-foreground active:scale-[0.98]'
+              ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground btn-glow active:scale-[0.98]'
               : 'bg-muted text-muted-foreground cursor-not-allowed'
           }`}
         >

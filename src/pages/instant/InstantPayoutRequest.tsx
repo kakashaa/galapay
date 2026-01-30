@@ -305,9 +305,9 @@ const InstantPayoutRequest = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
+    <div className="min-h-screen premium-bg" dir="rtl">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
+      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-xl border-b border-warning/20">
         <div className="flex items-center justify-between p-4">
           <button
             onClick={() => navigate('/instant/banks')}
@@ -315,7 +315,7 @@ const InstantPayoutRequest = () => {
           >
             <ArrowRight className="w-6 h-6 text-foreground" />
           </button>
-          <h1 className="text-lg font-bold text-foreground">طلب سحب فوري</h1>
+          <h1 className="text-lg font-bold text-foreground glow-text" style={{ textShadow: '0 0 10px hsla(38, 92%, 55%, 0.3)' }}>طلب سحب فوري</h1>
           <div className="w-10" />
         </div>
         
@@ -326,7 +326,7 @@ const InstantPayoutRequest = () => {
               <div key={step} className="flex-1">
                 <div className={`h-2 rounded-full transition-all ${
                   currentStep >= step ? 'bg-warning' : 'bg-muted'
-                }`} />
+                }`} style={currentStep >= step ? { boxShadow: '0 0 10px hsla(38, 92%, 55%, 0.4)' } : undefined} />
                 <p className={`text-xs mt-1 text-center ${
                   currentStep >= step ? 'text-warning font-medium' : 'text-muted-foreground'
                 }`}>
@@ -341,8 +341,8 @@ const InstantPayoutRequest = () => {
       <div className="p-5 space-y-6 pb-32">
         {/* Step 1: Supporter Info */}
         {currentStep === 1 && (
-          <div className="space-y-4 animate-in fade-in">
-            <div className="bg-warning/10 border border-warning/30 rounded-xl p-4">
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-5">
+            <div className="neon-card p-4 border-warning/30" style={{ boxShadow: '0 0 15px hsla(38, 92%, 55%, 0.15)' }}>
               <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
                 <User className="w-5 h-5 text-warning" />
                 معلومات الداعم
@@ -360,7 +360,7 @@ const InstantPayoutRequest = () => {
                   value={supporterName}
                   onChange={(e) => setSupporterName(e.target.value)}
                   placeholder="أدخل اسم الداعم"
-                  className="w-full p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-warning focus:border-transparent"
+                  className="premium-input"
                 />
               </div>
 
@@ -460,9 +460,9 @@ const InstantPayoutRequest = () => {
 
         {/* Step 2: Host Info */}
         {currentStep === 2 && (
-          <div className="space-y-4 animate-in fade-in">
-            <div className="bg-primary/10 border border-primary/30 rounded-xl p-4">
-              <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-5">
+            <div className="neon-card p-4" style={{ boxShadow: '0 0 15px hsla(142, 76%, 50%, 0.15)' }}>
+              <h3 className="font-bold text-foreground mb-2 flex items-center gap-2 glow-text">
                 <User className="w-5 h-5 text-primary" />
                 معلومات المضيف (أنت)
               </h3>
@@ -624,9 +624,9 @@ const InstantPayoutRequest = () => {
 
         {/* Step 3: Payout Details */}
         {currentStep === 3 && (
-          <div className="space-y-4 animate-in fade-in">
-            <div className="bg-muted border border-border rounded-xl p-4">
-              <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
+          <div className="space-y-4 animate-in fade-in slide-in-from-right-5">
+            <div className="neon-card p-4">
+              <h3 className="font-bold text-foreground mb-2 flex items-center gap-2 glow-text">
                 <MapPin className="w-5 h-5 text-primary" />
                 تفاصيل التحويل
               </h3>

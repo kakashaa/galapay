@@ -29,9 +29,9 @@ const InstantPayoutIntro = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
+    <div className="min-h-screen premium-bg" dir="rtl">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
+      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-xl border-b border-warning/20">
         <div className="flex items-center justify-between p-4">
           <button
             onClick={() => navigate('/')}
@@ -39,19 +39,19 @@ const InstantPayoutIntro = () => {
           >
             <ArrowRight className="w-6 h-6 text-foreground" />
           </button>
-          <h1 className="text-lg font-bold text-foreground">سحب الراتب الفوري</h1>
+          <h1 className="text-lg font-bold text-foreground" style={{ textShadow: '0 0 10px hsla(38, 92%, 55%, 0.3)' }}>سحب الراتب الفوري</h1>
           <div className="w-10" />
         </div>
       </div>
 
       <div className="p-5 space-y-6 pb-32">
         {/* Hero Section */}
-        <div className="text-center space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
-            <Zap className="w-10 h-10 text-primary-foreground" />
+        <div className="text-center space-y-4 animate-in fade-in">
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-warning to-warning/60 flex items-center justify-center" style={{ boxShadow: '0 0 30px hsla(38, 92%, 55%, 0.4)' }}>
+            <Zap className="w-10 h-10 text-warning-foreground" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">
+            <h2 className="text-2xl font-bold text-foreground mb-2" style={{ textShadow: '0 0 15px hsla(38, 92%, 55%, 0.3)' }}>
               بيع راتبك بسهولة! 💰
             </h2>
             <p className="text-muted-foreground">
@@ -61,18 +61,18 @@ const InstantPayoutIntro = () => {
         </div>
 
         {/* What is this? */}
-        <div className="glass-card p-4">
+        <div className="neon-card p-4 animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '0.1s' }}>
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0" style={{ boxShadow: '0 0 15px hsla(142, 76%, 50%, 0.2)' }}>
               <Info className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-bold text-foreground mb-1">كيف نساعدك؟</h3>
+              <h3 className="font-bold text-foreground mb-1 glow-text">كيف نساعدك؟</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 عندك داعم يريد يشتري منك كوينزات؟ 🤔
                 <br /><br />
                 <strong className="text-foreground">نسهّل عليك!</strong> إحنا نوفر للداعم جميع طرق الدفع، 
-                الداعم يحوّل الفلوس على حساباتنا، وأنت تحوّل الكوينزات لوكالتنا <strong className="text-primary">(10000)</strong>، 
+                الداعم يحوّل الفلوس على حساباتنا، وأنت تحوّل الكوينزات لوكالتنا <strong className="text-primary glow-text">(10000)</strong>، 
                 ونحن نحولها للداعم ونحوّل لك المبلغ على بنكك فوراً! 💸
               </p>
             </div>
@@ -80,9 +80,9 @@ const InstantPayoutIntro = () => {
         </div>
 
         {/* Why through us? */}
-        <div className="glass-card p-4 border-2 border-success/30 bg-success/5">
+        <div className="neon-card p-4 border-success/30 animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '0.2s', boxShadow: '0 0 20px hsla(142, 76%, 50%, 0.15)' }}>
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center shrink-0" style={{ boxShadow: '0 0 15px hsla(142, 76%, 50%, 0.3)' }}>
               <DollarSign className="w-5 h-5 text-success" />
             </div>
             <div>
@@ -90,7 +90,7 @@ const InstantPayoutIntro = () => {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 لو حوّلت الكوينزات للداعم مباشرة تحصل على <strong className="text-destructive">7,500</strong> كوينز للدولار فقط!
                 <br />
-                لكن لما تحوّل لوكالتنا <strong className="text-primary">(10000)</strong> تحصل على <strong className="text-success">8,500</strong> كوينز للدولار! 🎉
+                لكن لما تحوّل لوكالتنا <strong className="text-primary glow-text">(10000)</strong> تحصل على <strong className="text-success">8,500</strong> كوينز للدولار! 🎉
                 <br /><br />
                 <span className="text-foreground font-medium">يعني ربح إضافي 1,000 كوينز لكل دولار!</span>
               </p>
@@ -104,12 +104,12 @@ const InstantPayoutIntro = () => {
           
           <div className="space-y-3">
             {steps.map((step, index) => (
-              <div key={index} className="glass-card p-4 flex items-start gap-4">
+              <div key={index} className="neon-card p-4 flex items-start gap-4 animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: `${0.3 + index * 0.1}s` }}>
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center" style={{ boxShadow: '0 0 15px hsla(142, 76%, 50%, 0.2)' }}>
                     <step.icon className="w-6 h-6 text-primary" />
                   </div>
-                  <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center" style={{ boxShadow: '0 0 10px hsla(142, 76%, 50%, 0.4)' }}>
                     {index + 1}
                   </div>
                 </div>
@@ -184,15 +184,16 @@ const InstantPayoutIntro = () => {
       </div>
 
       {/* Fixed Bottom Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-5 bg-background/80 backdrop-blur-lg border-t border-border">
+      <div className="fixed bottom-0 left-0 right-0 p-5 bg-card/80 backdrop-blur-xl border-t border-primary/20">
         <button
           onClick={handleContinue}
           disabled={!understood}
           className={`w-full p-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
             understood
-              ? 'bg-primary text-primary-foreground active:scale-[0.98]'
+              ? 'bg-gradient-to-br from-warning to-warning/80 text-warning-foreground active:scale-[0.98]'
               : 'bg-muted text-muted-foreground cursor-not-allowed'
           }`}
+          style={understood ? { boxShadow: '0 0 25px hsla(38, 92%, 55%, 0.4)' } : undefined}
         >
           <span>عرض حسابات الدفع</span>
           <ChevronLeft className="w-5 h-5" />
