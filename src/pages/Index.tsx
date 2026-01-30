@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import { FadeIn, AnimatedCard } from '@/components/AnimatedCard';
 import StarField from '@/components/StarField';
 import { useTapFeedback } from '@/hooks/use-haptic-feedback';
+import SupportersSpotlight from '@/components/SupportersSpotlight';
 
 // Track bouncing state for main buttons
 const useBounceAnimation = () => {
@@ -164,12 +165,9 @@ const Index = () => {
           )}
         </FadeIn>
 
-        {/* Spotlight Area - Reserved for future element */}
-        <div className="w-full max-w-sm h-[160px] flex items-center justify-center z-10 mb-4">
-          {/* Placeholder - This area is reserved for a future spotlight element */}
-          <div className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/20 flex items-center justify-center">
-            <span className="text-muted-foreground/30 text-xs">مساحة مخصصة</span>
-          </div>
+        {/* Spotlight Area - Supporters Spotlight */}
+        <div className="w-full max-w-sm flex items-center justify-center z-10 mb-4 py-2">
+          <SupportersSpotlight />
         </div>
 
         {/* Tutorial Videos Section - Below Spotlight */}
