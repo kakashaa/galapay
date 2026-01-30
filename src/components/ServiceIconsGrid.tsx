@@ -81,7 +81,7 @@ export const ServiceIconsGrid = () => {
               </div>
               {/* Coming Soon Badge */}
               {service.comingSoon && (
-                <div className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full shadow-sm animate-pulse">
+                <div className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-destructive text-black text-[8px] font-bold rounded-full shadow-sm animate-pulse">
                   قريباً
                 </div>
               )}
