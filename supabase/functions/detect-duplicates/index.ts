@@ -28,6 +28,131 @@ interface DuplicateGroup {
   requests: PayoutRequest[];
 }
 
+const AI_ENDPOINT = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+
+function toBase64DataUrl(uint8Array: Uint8Array, contentType: string) {
+  // Avoid `String.fromCharCode(...bytes)` which can blow the call stack on large images.
+  let binary = '';
+  for (let i = 0; i < uint8Array.length; i++) {
+    binary += String.fromCharCode(uint8Array[i]);
+  }
+  const base64 = btoa(binary);
+  return `data:${contentType};base64,${base64}`;
+}
+
+async function fetchImageAsDataUrl(imageUrl: string) {
+  const imageResponse = await fetch(imageUrl);
+  if (!imageResponse.ok) {
+    throw new Error(`Failed to fetch image (${imageResponse.status})`);
+  }
+
+  const imageBuffer = await imageResponse.arrayBuffer();
+  const uint8Array = new Uint8Array(imageBuffer);
+  const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+
+  // Safety guard: extremely large images make the function slow + memory heavy.
+  // 6MB is a reasonable upper bound for this scan.
+  const MAX_BYTES = 6 * 1024 * 1024;
+  if (uint8Array.byteLength > MAX_BYTES) {
+    throw new Error(`Image too large to analyze (${Math.round(uint8Array.byteLength / 1024 / 1024)}MB)`);
+  }
+
+  return toBase64DataUrl(uint8Array, contentType);
+}
+
+async function analyzeReferenceMismatch(params: {
+  lovableApiKey: string;
+  request: PayoutRequest;
+}): Promise<{ extracted_reference?: string; reference_match?: boolean; extracted_amount?: number; amount_match?: boolean; is_fake?: boolean; notes?: string } | null> {
+  const { lovableApiKey, request } = params;
+
+  const imageDataUrl = await fetchImageAsDataUrl(request.user_receipt_image_url);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 18_000);
+
+  const aiResponse = await fetch(AI_ENDPOINT, {
+    method: 'POST',
+    signal: controller.signal,
+    headers: {
+      Authorization: `Bearer ${lovableApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `استخرج البيانات من صورة الإيصال هذه.
+
+البيانات المدخلة من المستخدم:
+- الرقم المرجعي: ${request.reference_number || 'غير متوفر'}
+- المبلغ: $${request.amount}
+
+استخرج من الصورة وقارن. أرجع JSON فقط بدون أي نص آخر:
+{
+  "extracted_reference": "الرقم المرجعي المستخرج من الصورة",
+  "extracted_amount": المبلغ المستخرج كرقم,
+  "reference_match": true إذا تطابق أو false إذا لم يتطابق,
+  "amount_match": true إذا تطابق أو false إذا لم يتطابق,
+  "is_fake": true إذا الإيصال يبدو مزيف أو معدل,
+  "notes": "أي ملاحظات مهمة"
+}`,
+            },
+            {
+              type: 'image_url',
+              image_url: { url: imageDataUrl },
+            },
+          ],
+        },
+      ],
+      max_tokens: 500,
+    }),
+  }).finally(() => clearTimeout(timeoutId));
+
+  if (!aiResponse.ok) {
+    const errorText = await aiResponse.text();
+    console.error(`AI request failed for ${request.tracking_code}:`, aiResponse.status, errorText);
+    return null;
+  }
+
+  const aiResult = await aiResponse.json();
+  const content = aiResult.choices?.[0]?.message?.content || '';
+
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return null;
+
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    console.error('Error parsing AI response for request:', request.tracking_code, e);
+    return null;
+  }
+}
+
+async function runPool<T, R>(items: T[], concurrency: number, worker: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = [];
+  let i = 0;
+
+  const runners = Array.from({ length: Math.max(1, concurrency) }, async () => {
+    while (i < items.length) {
+      const current = items[i++];
+      try {
+        results.push(await worker(current));
+      } catch (e) {
+        // Keep going even if one task fails
+        console.error('Pool task failed:', e);
+      }
+    }
+  });
+
+  await Promise.all(runners);
+  return results;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -95,114 +220,64 @@ serve(async (req) => {
 
     // 3. Use AI to check each receipt for reference number mismatch
     if (lovableApiKey && requests && requests.length > 0) {
+      const body = (() => {
+        try {
+          return req.method === 'POST' ? undefined : undefined;
+        } catch {
+          return undefined;
+        }
+      })();
+
+      // NOTE: We already fetched requests; read optional scan options from request body if present.
+      let scanLimit = 25;
+      let concurrency = 3;
+      try {
+        const parsedBody = await req.json().catch(() => ({}));
+        if (typeof parsedBody?.scanLimit === 'number') scanLimit = Math.max(1, Math.min(50, parsedBody.scanLimit));
+        if (typeof parsedBody?.concurrency === 'number') concurrency = Math.max(1, Math.min(5, parsedBody.concurrency));
+      } catch {
+        // ignore
+      }
+
       const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'review');
       
       console.log(`Analyzing ${pendingRequests.length} pending requests for reference mismatches...`);
-      
-      // Analyze each request individually for reference mismatch
-      for (const req of pendingRequests.slice(0, 15)) {
-        try {
-          console.log(`Checking request ${req.tracking_code}...`);
-          
-          // Fetch and convert image to base64
-          const imageResponse = await fetch(req.user_receipt_image_url);
-          if (!imageResponse.ok) {
-            console.error(`Failed to fetch image for ${req.tracking_code}`);
-            continue;
-          }
-          
-          const imageBuffer = await imageResponse.arrayBuffer();
-          const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
-          const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
-          const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${lovableApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [
-                {
-                  role: "user",
-                  content: [
-                    {
-                      type: "text",
-                      text: `استخرج البيانات من صورة الإيصال هذه.
-                      
-البيانات المدخلة من المستخدم:
-- الرقم المرجعي: ${req.reference_number || 'غير متوفر'}
-- المبلغ: $${req.amount}
+      const candidates = pendingRequests
+        .filter(r => !!r.user_receipt_image_url)
+        .slice(0, scanLimit);
 
-استخرج من الصورة وقارن. أرجع JSON فقط بدون أي نص آخر:
-{
-  "extracted_reference": "الرقم المرجعي المستخرج من الصورة",
-  "extracted_amount": المبلغ المستخرج كرقم,
-  "reference_match": true إذا تطابق أو false إذا لم يتطابق,
-  "amount_match": true إذا تطابق أو false إذا لم يتطابق,
-  "is_fake": true إذا الإيصال يبدو مزيف أو معدل,
-  "notes": "أي ملاحظات مهمة"
-}`,
-                    },
-                    {
-                      type: "image_url",
-                      image_url: { url: `data:${mimeType};base64,${base64Image}` },
-                    },
-                  ],
-                },
-              ],
-              max_tokens: 500,
-            }),
+      await runPool(candidates, concurrency, async (r) => {
+        console.log(`Checking request ${r.tracking_code}...`);
+        const parsed = await analyzeReferenceMismatch({ lovableApiKey, request: r });
+        if (!parsed) return null;
+
+        if (parsed.reference_match === false && parsed.extracted_reference) {
+          duplicateGroups.push({
+            type: 'reference_mismatch',
+            reason: `🔴 الرقم المرجعي غير متطابق! المدخل: ${r.reference_number || 'فارغ'} - في الصورة: ${parsed.extracted_reference}`,
+            requests: [r],
           });
-
-          if (aiResponse.ok) {
-            const aiResult = await aiResponse.json();
-            const content = aiResult.choices?.[0]?.message?.content || "";
-            console.log(`AI response for ${req.tracking_code}:`, content);
-            
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              try {
-                const parsed = JSON.parse(jsonMatch[0]);
-                
-                // Check for reference number mismatch
-                if (parsed.reference_match === false && parsed.extracted_reference) {
-                  duplicateGroups.push({
-                    type: 'reference_mismatch',
-                    reason: `🔴 الرقم المرجعي غير متطابق! المدخل: ${req.reference_number || 'فارغ'} - في الصورة: ${parsed.extracted_reference}`,
-                    requests: [req],
-                  });
-                }
-                
-                // Check for amount mismatch
-                if (parsed.amount_match === false && parsed.extracted_amount) {
-                  duplicateGroups.push({
-                    type: 'similar_receipt',
-                    reason: `🟠 المبلغ غير متطابق! المدخل: $${req.amount} - في الصورة: $${parsed.extracted_amount}`,
-                    requests: [req],
-                  });
-                }
-                
-                // Check if receipt is suspicious/fake
-                if (parsed.is_fake === true) {
-                  duplicateGroups.push({
-                    type: 'similar_receipt',
-                    reason: `🤖 إيصال مشبوه: ${parsed.notes || 'يبدو مزيف أو معدل'}`,
-                    requests: [req],
-                  });
-                }
-              } catch (parseError) {
-                console.error("Error parsing AI response for request:", req.tracking_code, parseError);
-              }
-            }
-          } else {
-            console.error(`AI request failed for ${req.tracking_code}:`, await aiResponse.text());
-          }
-        } catch (reqError) {
-          console.error("Error analyzing request:", req.tracking_code, reqError);
         }
-      }
+
+        if (parsed.amount_match === false && parsed.extracted_amount) {
+          duplicateGroups.push({
+            type: 'similar_receipt',
+            reason: `🟠 المبلغ غير متطابق! المدخل: $${r.amount} - في الصورة: $${parsed.extracted_amount}`,
+            requests: [r],
+          });
+        }
+
+        if (parsed.is_fake === true) {
+          duplicateGroups.push({
+            type: 'similar_receipt',
+            reason: `🤖 إيصال مشبوه: ${parsed.notes || 'يبدو مزيف أو معدل'}`,
+            requests: [r],
+          });
+        }
+
+        return null;
+      });
     }
 
     // Remove duplicate entries
