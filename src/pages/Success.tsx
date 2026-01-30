@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { useSavedRequests } from '@/hooks/use-saved-requests';
 import { motion } from 'framer-motion';
 import { FadeIn, AnimatedCard } from '@/components/AnimatedCard';
+import StarField from '@/components/StarField';
 
 const Success = () => {
   const location = useLocation();
@@ -124,7 +125,8 @@ const Success = () => {
   };
 
   return (
-    <div className="min-h-screen premium-bg flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen premium-bg flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      <StarField starCount={40} />
       {/* Success Icon */}
       <FadeIn delay={0.1}>
         <motion.div 

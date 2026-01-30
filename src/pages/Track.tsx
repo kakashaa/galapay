@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { FadeIn, AnimatedCard } from '@/components/AnimatedCard';
+import StarField from '@/components/StarField';
 
 type PayoutStatus = 'pending' | 'review' | 'paid' | 'rejected' | 'processing' | 'completed' | 'reserved';
 
@@ -196,7 +197,8 @@ const Track = () => {
   const StatusIcon = currentStatusConfig.icon;
 
   return (
-    <div className="min-h-screen premium-bg pb-8">
+    <div className="min-h-screen premium-bg pb-8 relative overflow-hidden">
+      <StarField starCount={30} />
       {/* Header */}
       <div className="sticky top-0 bg-card/80 backdrop-blur-xl border-b border-primary/20 p-4 z-10">
         <div className="flex items-center gap-3 max-w-md mx-auto">

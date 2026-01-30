@@ -13,6 +13,7 @@ import InstantPayoutCountdown from '@/components/InstantPayoutCountdown';
 import { ServiceIconsGrid } from '@/components/ServiceIconsGrid';
 import { motion } from 'framer-motion';
 import { FadeIn, AnimatedCard } from '@/components/AnimatedCard';
+import StarField from '@/components/StarField';
 
 const INSTANT_INTRO_DISMISSED_KEY = 'instant_intro_dismissed';
 const INSTANT_SERVICE_LAUNCHED = false;
@@ -56,6 +57,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen premium-bg flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      <StarField starCount={35} />
       {/* Admin Icon */}
       <motion.button
         onClick={() => navigate('/admin/login')}
