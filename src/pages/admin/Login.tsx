@@ -83,7 +83,7 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex flex-col items-center justify-center p-6" dir="rtl">
+    <div className="h-screen bg-gradient-to-br from-background via-background to-primary/5 flex flex-col items-center justify-center p-6 overflow-hidden" dir="rtl">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">

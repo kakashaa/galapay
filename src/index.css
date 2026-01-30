@@ -93,6 +93,11 @@
     @apply border-border;
   }
 
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
   html {
     direction: rtl;
     font-family: 'Noto Kufi Arabic', sans-serif;

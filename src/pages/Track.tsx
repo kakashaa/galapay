@@ -182,9 +182,9 @@ const Track = () => {
   const StatusIcon = currentStatusConfig.icon;
 
   return (
-    <div className="min-h-screen bg-background pb-8">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border p-4 z-10">
+      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border p-4 z-10 shrink-0">
         <div className="flex items-center gap-3 max-w-md mx-auto">
           <button
             onClick={() => navigate('/')}
@@ -196,7 +196,7 @@ const Track = () => {
         </div>
       </div>
 
-      <div className="p-4 max-w-md mx-auto">
+      <div className="flex-1 overflow-y-auto p-4">
         {/* Search Box */}
         <div className="glass-card p-4 mb-6">
           <label className="block text-sm font-medium text-foreground mb-2">

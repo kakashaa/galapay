@@ -525,7 +525,7 @@ const PayoutRequest = () => {
   const isStep3Complete = selectedCountry && selectedMethod && formData.phoneNumber;
 
   return (
-    <div className="min-h-screen bg-background pb-8">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Preview Mode Banner */}
       {isPreviewMode && (
         <div className="bg-warning text-warning-foreground py-3 px-4 text-center sticky top-0 z-20">
@@ -582,7 +582,7 @@ const PayoutRequest = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-md mx-auto">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto max-w-md mx-auto pb-8">
         {/* Step 1: Receipt & Reference (MOVED TO FIRST) */}
         <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 1 ? 'block' : 'hidden'}`}>
           <div className="bg-card rounded-2xl p-5 border border-border space-y-5">

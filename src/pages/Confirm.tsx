@@ -13,17 +13,19 @@ const Confirm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col p-6">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
-      <button
-        onClick={() => navigate('/')}
-        className="flex items-center gap-2 text-muted-foreground mb-6"
-      >
-        <ArrowRight className="w-5 h-5" />
-        <span>رجوع</span>
-      </button>
+      <div className="shrink-0 p-6 pb-0">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-muted-foreground mb-4"
+        >
+          <ArrowRight className="w-5 h-5" />
+          <span>رجوع</span>
+        </button>
+      </div>
 
-      <div className="flex-1 flex flex-col max-w-md mx-auto w-full">
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
         {/* Warning Card */}
         <div className="glass-card p-5 mb-5">
           <div className="flex items-center gap-3 mb-4">
