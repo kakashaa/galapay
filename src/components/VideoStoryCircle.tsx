@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Play, X, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 interface VideoTutorial {
   id: string;
   title: string;
@@ -101,7 +101,10 @@ export const VideoStoryCircle = () => {
 
       {/* Full Screen Video Dialog */}
       <Dialog open={isOpen} onOpenChange={closeVideo}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md w-full h-[90vh] max-h-[800px] p-0 bg-black border-0 rounded-2xl overflow-hidden flex flex-col">
+        <DialogContent className="max-w-[95vw] sm:max-w-md w-full h-[90vh] max-h-[800px] p-0 bg-black border-0 rounded-2xl overflow-hidden flex flex-col [&>button]:hidden">
+          <VisuallyHidden>
+            <DialogTitle>{selectedVideo?.title || 'فيديو تعليمي'}</DialogTitle>
+          </VisuallyHidden>
           <div className="relative w-full h-full flex flex-col">
             {/* Close Button */}
             <button

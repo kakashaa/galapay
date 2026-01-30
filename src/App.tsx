@@ -11,6 +11,7 @@ import Track from "./pages/Track";
 import AdminLogin from "./pages/admin/Login";
 import AdminPortal from "./pages/admin/AdminPortal";
 import AdminDashboard from "./pages/admin/Dashboard";
+import InstantAdminDashboard from "./pages/admin/InstantDashboard";
 import InstantPayoutIntro from "./pages/instant/InstantPayoutIntro";
 import InstantPayoutBanks from "./pages/instant/InstantPayoutBanks";
 import NotFound from "./pages/NotFound";
@@ -34,7 +35,7 @@ const App = () => (
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminPortal />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/instant" element={<AdminDashboard />} />
+          <Route path="/admin/instant" element={<InstantAdminDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
