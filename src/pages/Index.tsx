@@ -15,6 +15,18 @@ import { motion } from 'framer-motion';
 import { FadeIn, AnimatedCard } from '@/components/AnimatedCard';
 import StarField from '@/components/StarField';
 
+// Track bouncing state for main buttons
+const useBounceAnimation = () => {
+  const [bouncingId, setBouncingId] = useState<string | null>(null);
+  
+  const triggerBounce = (id: string) => {
+    setBouncingId(id);
+    setTimeout(() => setBouncingId(null), 400);
+  };
+  
+  return { bouncingId, triggerBounce };
+};
+
 const INSTANT_INTRO_DISMISSED_KEY = 'instant_intro_dismissed';
 const INSTANT_SERVICE_LAUNCHED = false;
 
@@ -28,6 +40,7 @@ const Index = () => {
   const { hasSavedRequests } = useSavedRequests();
   const { payoutEnabled, nextPayoutDate, loading: settingsLoading } = usePayoutSettings();
   const [currentBanner, setCurrentBanner] = useState(0);
+  const { bouncingId, triggerBounce } = useBounceAnimation();
 
   useEffect(() => {
     if (INSTANT_SERVICE_LAUNCHED) return;
@@ -38,10 +51,11 @@ const Index = () => {
   }, []);
 
   const handleMainButtonClick = () => {
+    triggerBounce('monthly');
     if (!payoutEnabled) {
       setDisabledDialogOpen(true);
     } else {
-      setIsOpen(true);
+      setTimeout(() => setIsOpen(true), 200);
     }
   };
 
@@ -163,7 +177,7 @@ const Index = () => {
           whileHover={{ scale: 1.03, y: -2 }}
           whileTap={{ scale: 0.97 }}
         >
-          <div className="w-8 h-8 rounded-lg bg-primary-foreground/20 flex items-center justify-center backdrop-blur-sm">
+          <div className={`w-8 h-8 rounded-lg bg-primary-foreground/20 flex items-center justify-center backdrop-blur-sm ${bouncingId === 'monthly' ? 'animate-mac-bounce' : ''}`}>
             <Wallet className="w-4 h-4" />
           </div>
           <div className="text-center">
@@ -175,14 +189,15 @@ const Index = () => {
         {/* Instant Payout Button */}
         <motion.button 
           onClick={() => {
+            triggerBounce('instant');
             if (!INSTANT_SERVICE_LAUNCHED) {
-              navigate('/instant');
+              setTimeout(() => navigate('/instant'), 200);
             } else {
               const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
               if (isDismissed) {
-                navigate('/instant');
+                setTimeout(() => navigate('/instant'), 200);
               } else {
-                setInstantInfoOpen(true);
+                setTimeout(() => setInstantInfoOpen(true), 200);
               }
             }
           }}
@@ -191,7 +206,7 @@ const Index = () => {
           whileHover={{ scale: 1.03, y: -2 }}
           whileTap={{ scale: 0.97 }}
         >
-          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm">
+          <div className={`w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm ${bouncingId === 'instant' ? 'animate-mac-bounce' : ''}`}>
             <Zap className="w-4 h-4" />
           </div>
           <div className="text-center">
