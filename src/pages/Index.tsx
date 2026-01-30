@@ -145,7 +145,7 @@ const Index = () => {
               <span className="text-[7px] text-warning font-bold">تبدأ بعد ⚡</span>
               <InstantPayoutCountdown />
             </div>
-            <div className="absolute -top-3 left-2 bg-destructive text-destructive-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+            <div className="absolute -top-3 left-2 bg-destructive text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
               قريباً
             </div>
           </>
