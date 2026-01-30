@@ -127,20 +127,18 @@ const Index = () => {
               }
             }
           }}
-          className="flex-1 p-3 rounded-xl bg-warning text-warning-foreground flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
+          className="flex-1 p-3 rounded-xl bg-warning text-warning-foreground flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative"
         >
-          {/* Countdown badge above icon */}
+          {/* Countdown badge - shown when service not launched */}
           {!INSTANT_SERVICE_LAUNCHED && (
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-10">
-              <InstantPayoutCountdown />
-            </div>
+            <InstantPayoutCountdown />
           )}
           {INSTANT_SERVICE_LAUNCHED && (
             <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-white/20 rounded-full">
               <span className="text-[8px] font-bold">جديد ⚡</span>
             </div>
           )}
-          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center mt-3">
+          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
             <Zap className="w-4 h-4" />
           </div>
           <div className="text-center">
