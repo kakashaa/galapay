@@ -78,9 +78,9 @@ const TopSpotlightBoxes = () => {
   const currentHost = hosts[hostIndex];
 
   return (
-    <div className="w-full px-2">
+    <div className="w-full px-3">
       {/* Side by Side Boxes with Heart in Center */}
-      <div className="flex items-center gap-0 relative">
+      <div className="flex items-center gap-8 relative">
         
         {/* Pulsing Heart in Center - positioned between boxes */}
         <motion.div
