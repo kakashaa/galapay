@@ -286,6 +286,7 @@ export type Database = {
           supporter_amount_usd: number
           supporter_bank_id: string | null
           supporter_name: string
+          supporter_payment_method: string | null
           supporter_receipt_reference: string | null
           supporter_receipt_url: string
           tracking_code: string
@@ -320,6 +321,7 @@ export type Database = {
           supporter_amount_usd: number
           supporter_bank_id?: string | null
           supporter_name: string
+          supporter_payment_method?: string | null
           supporter_receipt_reference?: string | null
           supporter_receipt_url: string
           tracking_code: string
@@ -354,6 +356,7 @@ export type Database = {
           supporter_amount_usd?: number
           supporter_bank_id?: string | null
           supporter_name?: string
+          supporter_payment_method?: string | null
           supporter_receipt_reference?: string | null
           supporter_receipt_url?: string
           tracking_code?: string
