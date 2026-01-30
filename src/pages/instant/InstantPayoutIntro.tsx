@@ -43,9 +43,9 @@ const InstantPayoutIntro = () => {
   ];
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border shrink-0">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="flex items-center justify-between p-4">
           <button
             onClick={() => navigate('/')}
@@ -58,7 +58,7 @@ const InstantPayoutIntro = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6 pb-32">
+      <div className="p-5 space-y-6 pb-32">
         {/* Hero Section */}
         <div className="text-center space-y-4">
           <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">

@@ -133,7 +133,7 @@ const Success = () => {
   };
 
   return (
-    <div className="h-screen bg-background flex flex-col items-center justify-center p-6 overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
       {/* Success Icon */}
       <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 animate-scale-in ${isInstant ? 'bg-warning/10' : 'bg-success/10'}`}>
         {isInstant ? (

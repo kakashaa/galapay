@@ -818,9 +818,9 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3 shrink-0">
+      <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -837,7 +837,7 @@ const AdminDashboard = () => {
       </header>
 
       {/* Main Content with Tab Transitions */}
-      <main className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+      <main className="px-4 py-4">
         <div key={activeTab} className="animate-fade-in">
           {activeTab === 'home' && renderHomeTab()}
           {activeTab === 'pending' && renderPendingTab()}

@@ -123,9 +123,9 @@ const InstantPayoutBanks = () => {
   const currentCountry = banksByCountry[selectedCountry as keyof typeof banksByCountry];
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border shrink-0">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="flex items-center justify-between p-4">
           <button
             onClick={() => navigate('/instant')}
@@ -138,7 +138,7 @@ const InstantPayoutBanks = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6 pb-32">
+      <div className="p-5 space-y-6 pb-32">
         {/* Instructions */}
         <div className="bg-primary/10 border border-primary/30 rounded-xl p-4">
           <div className="flex items-start gap-3">

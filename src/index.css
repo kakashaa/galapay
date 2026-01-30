@@ -93,25 +93,6 @@
     @apply border-border;
   }
 
-  /*
-    Important: keep the app “phone-like” but never fully block scrolling.
-    We allow the document to scroll as a safety net (mobile Safari/Chrome can
-    sometimes fail to scroll nested overflow containers when viewport changes).
-  */
-  html,
-  body {
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* App root remains fixed-height; pages control their own internal scrolling */
-  #root {
-    height: 100%;
-    overflow: hidden;
-  }
-
   html {
     direction: rtl;
     font-family: 'Noto Kufi Arabic', sans-serif;

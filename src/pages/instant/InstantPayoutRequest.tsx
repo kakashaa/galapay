@@ -9,14 +9,13 @@ const COINS_PER_DOLLAR = 8500;
 
 // Available payment methods for supporter (our actual banks)
 const SUPPORTER_PAYMENT_METHODS = [
-  { id: 'cashapp', name: 'CashApp', iconUrl: '/banks/cashapp-icon.png' },
-  { id: 'zelle', name: 'Zelle', iconUrl: '/banks/zelle-icon.png' },
-  { id: 'chime', name: 'Chime', iconUrl: '/banks/chime-icon.png' },
-  { id: 'apple_pay', name: 'Apple Pay', iconUrl: '/banks/applepay-icon.png' },
-  { id: 'visa', name: 'Visa/MC', iconUrl: '/banks/visa-icon.jpeg' },
-  { id: 'kuraimi', name: 'الكريمي', iconUrl: '/banks/kuraimi-icon.png' },
-  { id: 'jaib', name: 'جيب', iconUrl: '/banks/jaib-icon.jpeg' },
-  { id: 'alrajhi', name: 'الراجحي', iconUrl: '/banks/alrajhi-icon.png' },
+  { id: 'cashapp', name: 'CashApp', icon: '💵', iconUrl: '/wallets/cashapp.png' },
+  { id: 'zelle', name: 'Zelle', icon: '💳', iconUrl: '/wallets/zelle.png' },
+  { id: 'chime', name: 'Chime', icon: '🏦', iconUrl: '/wallets/chime.png' },
+  { id: 'apple_pay', name: 'Apple Pay', icon: '🍎', iconUrl: '/wallets/apple-pay.png' },
+  { id: 'kuraimi', name: 'الكريمي', icon: '🏦', iconUrl: '/wallets/kuraimi.png' },
+  { id: 'jaib', name: 'جيب', icon: '📱', iconUrl: '/wallets/jaib.png' },
+  { id: 'alrajhi', name: 'الراجحي', icon: '🏦' },
 ];
 
 interface PayoutMethod {
@@ -278,9 +277,9 @@ const InstantPayoutRequest = () => {
   };
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border shrink-0">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="flex items-center justify-between p-4">
           <button
             onClick={() => navigate('/instant/banks')}
@@ -311,7 +310,7 @@ const InstantPayoutRequest = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6 pb-32">
+      <div className="p-5 space-y-6 pb-32">
         {/* Step 1: Supporter Info */}
         {currentStep === 1 && (
           <div className="space-y-4 animate-in fade-in">
@@ -354,23 +353,19 @@ const InstantPayoutRequest = () => {
                   <CreditCard className="w-4 h-4 text-warning" />
                   الداعم حوّل عبر
                 </label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {SUPPORTER_PAYMENT_METHODS.map((method) => (
                     <button
                       key={method.id}
                       onClick={() => setSupporterPaymentMethod(method.id)}
-                      className={`p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
+                      className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
                         supporterPaymentMethod === method.id
                           ? 'border-warning bg-warning/10'
                           : 'border-border hover:border-warning/50'
                       }`}
                     >
-                      <img 
-                        src={method.iconUrl} 
-                        alt={method.name} 
-                        className="w-10 h-10 object-contain rounded-lg"
-                      />
-                      <span className="text-[10px] font-medium text-foreground text-center leading-tight">{method.name}</span>
+                      <span className="text-xl">{method.icon}</span>
+                      <span className="text-xs font-medium text-foreground">{method.name}</span>
                     </button>
                   ))}
                 </div>
