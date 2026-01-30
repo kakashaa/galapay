@@ -17,13 +17,19 @@ import {
   AlertTriangle,
   Search,
   Clock,
-  Shield
+  Shield,
+  Eye,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 type ViewMode = 'menu' | 'form' | 'patterns' | 'success' | 'track';
 
@@ -160,6 +166,7 @@ export default function SpecialIdPage() {
   const [trackQuery, setTrackQuery] = useState("");
   const [trackResults, setTrackResults] = useState<SpecialIdRequest[]>([]);
   const [isTracking, setIsTracking] = useState(false);
+  const [showExampleDialog, setShowExampleDialog] = useState(false);
 
   // Get patterns for selected level
   const currentPatterns = useMemo(() => {
@@ -800,9 +807,21 @@ export default function SpecialIdPage() {
                 <Upload className="w-4 h-4" />
                 صورة من صفحة Me في غلا لايف
               </Label>
-              <p className="text-xs text-muted-foreground">
-                ارفع صورة من صفحة الحساب الشخصي (تبويب Me) لنتحقق من مستواك
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  ارفع صورة من صفحة الحساب الشخصي (تبويب Me) لنتحقق من مستواك
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowExampleDialog(true)}
+                  className="text-xs gap-1 shrink-0"
+                >
+                  <Eye className="w-3 h-3" />
+                  مثال
+                </Button>
+              </div>
               <label className="block cursor-pointer">
                 <input
                   type="file"
@@ -820,12 +839,12 @@ export default function SpecialIdPage() {
                   <div className="relative rounded-xl overflow-hidden border-2 border-primary">
                     <img src={previewImage} alt="Preview" className="w-full h-48 object-cover" />
                     {isImageVerified ? (
-                      <div className="absolute bottom-2 right-2 bg-green-500/90 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                      <div className="absolute bottom-2 right-2 bg-success/90 text-success-foreground px-3 py-1 rounded-full text-xs flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3" />
                         تم التحقق ✓
                       </div>
                     ) : (
-                      <div className="absolute bottom-2 right-2 bg-destructive/90 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                      <div className="absolute bottom-2 right-2 bg-destructive/90 text-destructive-foreground px-3 py-1 rounded-full text-xs flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         فشل التحقق
                       </div>
@@ -840,6 +859,37 @@ export default function SpecialIdPage() {
                 )}
               </label>
             </div>
+
+            {/* Example Image Dialog */}
+            <Dialog open={showExampleDialog} onOpenChange={setShowExampleDialog}>
+              <DialogContent className="max-w-md p-0 overflow-hidden">
+                <div className="relative">
+                  <button
+                    onClick={() => setShowExampleDialog(false)}
+                    className="absolute top-2 right-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-2 hover:bg-background transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                  <img
+                    src="/examples/gala-me-page-example.png"
+                    alt="مثال صورة صفحة Me"
+                    className="w-full h-auto"
+                  />
+                  <div className="p-4 bg-background">
+                    <h3 className="font-bold text-foreground mb-2">مثال على الصورة المطلوبة</h3>
+                    <p className="text-sm text-muted-foreground">
+                      يجب أن تكون الصورة من صفحة Me (الحساب الشخصي) في تطبيق غلا لايف، 
+                      حيث تظهر اللفلات (الأرقام الملونة) في أعلى الصفحة.
+                    </p>
+                    <div className="mt-3 p-2 bg-primary/10 rounded-lg">
+                      <p className="text-xs text-primary">
+                        ⭐ يجب أن يكون أحد لفلاتك 30 أو أعلى للتأهل
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* Step 2: Level Display - Only shown after verification */}
             {isImageVerified && verifiedLevel !== null && (

@@ -257,6 +257,33 @@ const InstantPayoutRequest = () => {
       
       if (insertError) throw insertError;
       
+      // Send Telegram notification
+      try {
+        await supabase.functions.invoke('send-instant-payout-notification', {
+          body: {
+            trackingCode,
+            supporterName,
+            supporterAccountId,
+            supporterAmountUsd: parseFloat(supporterAmountUsd),
+            supporterPaymentMethod: SUPPORTER_PAYMENT_METHODS.find(m => m.id === supporterPaymentMethod)?.name || supporterPaymentMethod,
+            supporterReceiptUrl: supporterUrlData.publicUrl,
+            hostName,
+            hostAccountId,
+            hostCoinsAmount,
+            hostPayoutAmount,
+            hostReceiptUrl: hostUrlData.publicUrl,
+            hostReferenceNumber,
+            hostCountry: selectedCountry?.country_name_arabic || '',
+            hostPhoneNumber: phoneNumber,
+            hostPayoutMethod: payoutMethod,
+            hostRecipientFullName: recipientFullName,
+          }
+        });
+      } catch (notifError) {
+        console.error('Telegram notification failed:', notifError);
+        // Don't fail the whole submission if notification fails
+      }
+      
       // Navigate to success page
       navigate('/success', { 
         state: { 
