@@ -154,14 +154,6 @@ const RequestDetailsModal = ({
         processed_at: nowIso,
       };
 
-      // If an admin/staff is acting before explicitly claiming, auto-claim to ensure
-      // the backend update policies pass and the request moves out of the shared pool.
-      const shouldAutoClaim = !isSuperAdmin && !!currentUserId && !request?.claimed_by;
-      if (shouldAutoClaim) {
-        updateData.claimed_by = currentUserId;
-        updateData.claimed_at = nowIso;
-      }
-
       // Status-specific fields
       if (newStatus === 'paid') {
         updateData.admin_final_receipt_image_url = finalReceiptUrl;
@@ -177,19 +169,12 @@ const RequestDetailsModal = ({
         updateData.rejection_reason = null;
       }
 
-      // Update request
-      let updateQuery = supabase
+      // Update request - only super_admin can update (enforced by RLS)
+      const { data: updatedRows, error: updateError } = await supabase
         .from('payout_requests')
         .update(updateData)
         .eq('id', requestId)
         .select('id');
-
-      // If we're auto-claiming, only succeed if it was still unclaimed (avoid stealing)
-      if (shouldAutoClaim) {
-        updateQuery = updateQuery.is('claimed_by', null);
-      }
-
-      const { data: updatedRows, error: updateError } = await updateQuery;
 
       if (updateError) throw updateError;
       if (!updatedRows || updatedRows.length === 0) {
@@ -500,8 +485,8 @@ const RequestDetailsModal = ({
             </button>
           )}
 
-          {/* Admin Section */}
-          {!isEditing && request.status !== 'paid' && request.status !== 'rejected' && (
+          {/* Admin Section - Only for Super Admin */}
+          {isSuperAdmin && !isEditing && request.status !== 'paid' && request.status !== 'rejected' && (
             <>
               <hr className="border-border" />
 
@@ -601,6 +586,15 @@ const RequestDetailsModal = ({
                 </button>
               </div>
             </>
+          )}
+
+          {/* View Only Notice for Non-Super Admin */}
+          {!isSuperAdmin && request.status !== 'paid' && request.status !== 'rejected' && (
+            <div className="p-4 rounded-xl bg-muted/50 border border-border">
+              <p className="text-sm text-muted-foreground text-center">
+                📋 هذا الطلب قيد الانتظار - فقط المسؤول الأعلى يمكنه قبوله أو رفضه
+              </p>
+            </div>
           )}
 
           {/* Completed Status */}

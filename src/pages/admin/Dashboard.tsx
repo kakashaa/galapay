@@ -17,7 +17,6 @@ import {
   Wallet,
   CheckCircle,
   XCircle,
-  ArrowUpRight,
   Video,
   Shield,
 } from 'lucide-react';
@@ -258,36 +257,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleClaimRequest = async (requestId: string) => {
-    try {
-      const { error } = await supabase
-        .from('payout_requests')
-        .update({
-          claimed_by: currentUserId,
-          claimed_at: new Date().toISOString(),
-        })
-        .eq('id', requestId)
-        .is('claimed_by', null);
-
-      if (error) throw error;
-
-      toast({
-        title: 'تم',
-        description: 'تم حجز الطلب لك',
-      });
-
-      fetchData();
-      setSelectedRequest(requestId);
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: 'خطأ',
-        description: 'فشل في حجز الطلب - قد يكون محجوزاً من قبل مدير آخر',
-        variant: 'destructive',
-      });
-      fetchData();
-    }
-  };
+  // Claiming removed - only super_admin can process requests now
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -440,13 +410,10 @@ const AdminDashboard = () => {
     }
   };
 
-  // Compact Request Card - Crypto Style
-  const RequestCard = ({ request, showClaimButton = false }: { request: PayoutRequest; showClaimButton?: boolean }) => {
-    const isClaimedByMe = request.claimed_by === currentUserId;
-    const isPendingOrReview = request.status === 'pending' || request.status === 'review';
-    
+  // Compact Request Card - Crypto Style (View Only for non-super_admin)
+  const RequestCard = ({ request }: { request: PayoutRequest }) => {
     return (
-      <div className={`dark-card p-4 space-y-3 ${showClaimButton ? 'border-primary/30' : isClaimedByMe && isPendingOrReview ? 'border-warning/30' : ''}`}>
+      <div className="dark-card p-4 space-y-3">
         {/* Header Row */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -458,7 +425,7 @@ const AdminDashboard = () => {
             <span className="text-sm font-medium">{request.recipient_full_name}</span>
           </div>
           <span className={`text-xs px-2 py-1 rounded-lg border ${getStatusBg(request.status)} ${getStatusColor(request.status)}`}>
-            {isClaimedByMe && isPendingOrReview ? 'مستلم - ' : ''}{statusLabels[request.status]}
+            {statusLabels[request.status]}
           </span>
         </div>
 
@@ -474,30 +441,16 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Actions - View Details only */}
         <div className="flex gap-2 pt-1">
-          {showClaimButton ? (
-            <button
-              onClick={() => handleClaimRequest(request.id)}
-              className="flex-1 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
-            >
-              <ArrowUpRight className="w-4 h-4" />
-              استلام الطلب
-            </button>
-          ) : (
-            <button
-              onClick={() => setSelectedRequest(request.id)}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2 ${
-                isClaimedByMe && isPendingOrReview 
-                  ? 'bg-warning text-warning-foreground hover:bg-warning/90' 
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              }`}
-            >
-              <Eye className="w-4 h-4" />
-              {isClaimedByMe && isPendingOrReview ? 'معالجة الطلب' : 'التفاصيل'}
-            </button>
-          )}
-          {isSuperAdmin && !showClaimButton && (
+          <button
+            onClick={() => setSelectedRequest(request.id)}
+            className="flex-1 py-2.5 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+          >
+            <Eye className="w-4 h-4" />
+            التفاصيل
+          </button>
+          {isSuperAdmin && (
             <button
               onClick={() => handleDeleteRequest(request.id)}
               className="p-2.5 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition-colors"
@@ -602,7 +555,7 @@ const AdminDashboard = () => {
           )}
         </div>
         {pendingRequests.slice(0, 3).map(request => (
-          <RequestCard key={request.id} request={request} showClaimButton />
+          <RequestCard key={request.id} request={request} />
         ))}
         {pendingRequests.length === 0 && (
           <div className="dark-card p-8 text-center text-muted-foreground">
@@ -624,7 +577,7 @@ const AdminDashboard = () => {
         </span>
       </div>
       {pendingRequests.map(request => (
-        <RequestCard key={request.id} request={request} showClaimButton />
+        <RequestCard key={request.id} request={request} />
       ))}
       {pendingRequests.length === 0 && (
         <div className="dark-card p-12 text-center text-muted-foreground">
@@ -851,12 +804,12 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Navigation Items
+  // Navigation Items - 'my-requests' only for super_admin since only they can process requests
   const navItems = [
     { id: 'home', icon: Home, label: 'الرئيسية' },
     { id: 'pending', icon: Clock, label: 'جديدة', badge: pendingRequests.length },
-    { id: 'my-requests', icon: Wallet, label: 'طلباتي' },
     ...(isSuperAdmin ? [
+      { id: 'my-requests', icon: Wallet, label: 'طلباتي' },
       { id: 'scan', icon: Shield, label: 'الفحص' },
       { id: 'analytics', icon: BarChart3, label: 'التحليلات' },
       { id: 'videos', icon: Video, label: 'الفيديو' },
