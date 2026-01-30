@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign } from 'lucide-react';
+import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign, Settings } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
 import { useSavedRequests } from '@/hooks/use-saved-requests';
@@ -36,6 +36,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Admin Icon - Top Right */}
+      <button
+        onClick={() => navigate('/admin/login')}
+        className="absolute top-4 left-4 p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors z-20"
+        title="دخول المسؤولين"
+      >
+        <Settings className="w-5 h-5 text-muted-foreground" />
+      </button>
+
       {/* Flying Money Background */}
       <FlyingMoney />
 

@@ -105,6 +105,8 @@ const AdminDashboard = () => {
     country: 'all',
     search: '',
     adminFilter: 'all',
+    minAmount: '',
+    maxAmount: '',
   });
   const { payoutEnabled, updateSettings } = usePayoutSettings();
   const [updatingPayoutStatus, setUpdatingPayoutStatus] = useState(false);
@@ -232,6 +234,12 @@ const AdminDashboard = () => {
         }
         if (filters.adminFilter && filters.adminFilter !== 'all') {
           query = query.eq('processed_by', filters.adminFilter);
+        }
+        if (filters.minAmount && !isNaN(Number(filters.minAmount))) {
+          query = query.gte('amount', Number(filters.minAmount));
+        }
+        if (filters.maxAmount && !isNaN(Number(filters.maxAmount))) {
+          query = query.lte('amount', Number(filters.maxAmount));
         }
 
         const { data } = await query;
@@ -739,6 +747,29 @@ const AdminDashboard = () => {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Amount Range Filter */}
+        <div className="space-y-2">
+          <span className="text-xs text-muted-foreground">البحث بالمبلغ ($)</span>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="number"
+              value={filters.minAmount}
+              onChange={(e) => setFilters(prev => ({ ...prev, minAmount: e.target.value }))}
+              placeholder="من"
+              className="input-field py-2 text-sm text-center"
+              min="0"
+            />
+            <input
+              type="number"
+              value={filters.maxAmount}
+              onChange={(e) => setFilters(prev => ({ ...prev, maxAmount: e.target.value }))}
+              placeholder="إلى"
+              className="input-field py-2 text-sm text-center"
+              min="0"
+            />
+          </div>
         </div>
 
         <Select
