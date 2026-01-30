@@ -103,60 +103,6 @@ export type Database = {
           },
         ]
       }
-      available_banks: {
-        Row: {
-          account_holder_name: string | null
-          account_number: string | null
-          additional_info: Json | null
-          bank_name: string
-          bank_name_arabic: string
-          country_code: string
-          country_name_arabic: string
-          created_at: string
-          created_by: string | null
-          display_order: number | null
-          iban: string | null
-          icon_url: string | null
-          id: string
-          is_active: boolean | null
-          updated_at: string
-        }
-        Insert: {
-          account_holder_name?: string | null
-          account_number?: string | null
-          additional_info?: Json | null
-          bank_name: string
-          bank_name_arabic: string
-          country_code: string
-          country_name_arabic: string
-          created_at?: string
-          created_by?: string | null
-          display_order?: number | null
-          iban?: string | null
-          icon_url?: string | null
-          id?: string
-          is_active?: boolean | null
-          updated_at?: string
-        }
-        Update: {
-          account_holder_name?: string | null
-          account_number?: string | null
-          additional_info?: Json | null
-          bank_name?: string
-          bank_name_arabic?: string
-          country_code?: string
-          country_name_arabic?: string
-          created_at?: string
-          created_by?: string | null
-          display_order?: number | null
-          iban?: string | null
-          icon_url?: string | null
-          id?: string
-          is_active?: boolean | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       blocked_agency_codes: {
         Row: {
           code: string
@@ -213,161 +159,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      external_charging_links: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          display_order: number | null
-          icon_url: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-          name_arabic: string
-          updated_at: string
-          url: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          display_order?: number | null
-          icon_url?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          name_arabic: string
-          updated_at?: string
-          url: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          display_order?: number | null
-          icon_url?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          name_arabic?: string
-          updated_at?: string
-          url?: string
-        }
-        Relationships: []
-      }
-      instant_payout_requests: {
-        Row: {
-          admin_final_receipt_url: string | null
-          admin_notes: string | null
-          ai_host_receipt_status: string | null
-          ai_notes: string | null
-          ai_supporter_receipt_status: string | null
-          created_at: string
-          host_account_id: string
-          host_coins_amount: number
-          host_country: string
-          host_country_dial_code: string
-          host_currency: string
-          host_method_fields: Json | null
-          host_name: string
-          host_payout_amount: number
-          host_payout_method: string
-          host_phone_number: string
-          host_receipt_reference: string
-          host_receipt_url: string
-          host_recipient_full_name: string
-          id: string
-          processed_at: string | null
-          processed_by: string | null
-          rejection_reason: string | null
-          status: Database["public"]["Enums"]["instant_request_status"]
-          supporter_account_id: string
-          supporter_amount_usd: number
-          supporter_bank_id: string | null
-          supporter_name: string
-          supporter_receipt_reference: string | null
-          supporter_receipt_url: string
-          tracking_code: string
-          updated_at: string
-        }
-        Insert: {
-          admin_final_receipt_url?: string | null
-          admin_notes?: string | null
-          ai_host_receipt_status?: string | null
-          ai_notes?: string | null
-          ai_supporter_receipt_status?: string | null
-          created_at?: string
-          host_account_id: string
-          host_coins_amount: number
-          host_country: string
-          host_country_dial_code: string
-          host_currency?: string
-          host_method_fields?: Json | null
-          host_name: string
-          host_payout_amount: number
-          host_payout_method: string
-          host_phone_number: string
-          host_receipt_reference: string
-          host_receipt_url: string
-          host_recipient_full_name: string
-          id?: string
-          processed_at?: string | null
-          processed_by?: string | null
-          rejection_reason?: string | null
-          status?: Database["public"]["Enums"]["instant_request_status"]
-          supporter_account_id: string
-          supporter_amount_usd: number
-          supporter_bank_id?: string | null
-          supporter_name: string
-          supporter_receipt_reference?: string | null
-          supporter_receipt_url: string
-          tracking_code: string
-          updated_at?: string
-        }
-        Update: {
-          admin_final_receipt_url?: string | null
-          admin_notes?: string | null
-          ai_host_receipt_status?: string | null
-          ai_notes?: string | null
-          ai_supporter_receipt_status?: string | null
-          created_at?: string
-          host_account_id?: string
-          host_coins_amount?: number
-          host_country?: string
-          host_country_dial_code?: string
-          host_currency?: string
-          host_method_fields?: Json | null
-          host_name?: string
-          host_payout_amount?: number
-          host_payout_method?: string
-          host_phone_number?: string
-          host_receipt_reference?: string
-          host_receipt_url?: string
-          host_recipient_full_name?: string
-          id?: string
-          processed_at?: string | null
-          processed_by?: string | null
-          rejection_reason?: string | null
-          status?: Database["public"]["Enums"]["instant_request_status"]
-          supporter_account_id?: string
-          supporter_amount_usd?: number
-          supporter_bank_id?: string | null
-          supporter_name?: string
-          supporter_receipt_reference?: string | null
-          supporter_receipt_url?: string
-          tracking_code?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "instant_payout_requests_supporter_bank_id_fkey"
-            columns: ["supporter_bank_id"]
-            isOneToOne: false
-            referencedRelation: "available_banks"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       payout_requests: {
         Row: {
@@ -533,16 +324,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_staff: { Args: { _user_id: string }; Returns: boolean }
-      is_reference_used: { Args: { ref_number: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "staff" | "user" | "super_admin"
-      instant_request_status:
-        | "pending"
-        | "processing"
-        | "completed"
-        | "rejected"
       request_status: "pending" | "review" | "paid" | "rejected"
     }
     CompositeTypes: {
@@ -672,12 +457,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff", "user", "super_admin"],
-      instant_request_status: [
-        "pending",
-        "processing",
-        "completed",
-        "rejected",
-      ],
       request_status: ["pending", "review", "paid", "rejected"],
     },
   },
