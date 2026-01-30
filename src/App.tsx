@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import InstantAdminDashboard from "./pages/admin/InstantDashboard";
 import InstantPayoutIntro from "./pages/instant/InstantPayoutIntro";
 import InstantPayoutBanks from "./pages/instant/InstantPayoutBanks";
+import InstantPayoutRequest from "./pages/instant/InstantPayoutRequest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/track" element={<Track />} />
           <Route path="/instant" element={<InstantPayoutIntro />} />
           <Route path="/instant/banks" element={<InstantPayoutBanks />} />
+          <Route path="/instant/request" element={<InstantPayoutRequest />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminPortal />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
