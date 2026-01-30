@@ -96,6 +96,26 @@ const Index = () => {
         </p>
       </div>
 
+      {/* Instant Payout Coming Soon Banner */}
+      {!INSTANT_SERVICE_LAUNCHED && (
+        <div className="w-full max-w-sm px-4 mb-4 z-10">
+          <div className="bg-warning/10 border border-warning/30 rounded-xl p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap className="w-4 h-4 text-warning" />
+                  <span className="text-xs font-bold text-warning">قريباً - السحب الفوري ⚡</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  اسحب راتبك بأي وقت تحتاجه! الخدمة تبدأ أول أسبوع بالشهر الجديد
+                </p>
+              </div>
+              <InstantPayoutCountdown />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Two Main Buttons Side by Side */}
       <div className="flex gap-3 z-10 w-full max-w-sm px-4">
         {/* Monthly Payout Button */}
@@ -129,10 +149,6 @@ const Index = () => {
           }}
           className="flex-1 p-3 rounded-xl bg-warning text-warning-foreground flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative"
         >
-          {/* Countdown badge - shown when service not launched */}
-          {!INSTANT_SERVICE_LAUNCHED && (
-            <InstantPayoutCountdown />
-          )}
           {INSTANT_SERVICE_LAUNCHED && (
             <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-white/20 rounded-full">
               <span className="text-[8px] font-bold">جديد ⚡</span>
