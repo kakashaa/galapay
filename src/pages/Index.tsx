@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign, Settings, Zap, BookOpen, Clock } from 'lucide-react';
+import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, Settings, Zap, BookOpen } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
@@ -10,6 +10,7 @@ import { PayoutDisabledDialog } from '@/components/PayoutDisabledDialog';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import { VideoStoryCircle } from '@/components/VideoStoryCircle';
 import InstantPayoutCountdown from '@/components/InstantPayoutCountdown';
+import { ServiceIconsGrid } from '@/components/ServiceIconsGrid';
 
 const INSTANT_INTRO_DISMISSED_KEY = 'instant_intro_dismissed';
 
@@ -135,8 +136,8 @@ const Index = () => {
         )}
       </div>
 
-      {/* Two Main Buttons Side by Side */}
-      <div className="flex gap-3 z-10 w-full max-w-sm px-4">
+      {/* Two Main Payout Buttons */}
+      <div className="flex gap-3 z-10 w-full max-w-sm px-4 mb-6">
         {/* Monthly Payout Button */}
         <button 
           onClick={handleMainButtonClick}
@@ -181,6 +182,11 @@ const Index = () => {
             <p className="text-[9px] opacity-90">سحب راتبك</p>
           </div>
         </button>
+      </div>
+
+      {/* Service Icons Grid - iPhone Style */}
+      <div className="z-10 mb-4">
+        <ServiceIconsGrid />
       </div>
 
       {/* Bottom Sheet - Only shows when payout is enabled */}
