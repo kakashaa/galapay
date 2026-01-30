@@ -1,10 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Zap, Users, Wallet, Shield, ChevronLeft, CheckCircle2, Info, AlertCircle, DollarSign } from 'lucide-react';
+
+const INSTANT_INTRO_DISMISSED_KEY = 'instant_intro_dismissed';
 
 const InstantPayoutIntro = () => {
   const navigate = useNavigate();
   const [understood, setUnderstood] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  // Check if user previously dismissed the intro
+  useEffect(() => {
+    const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
+    if (isDismissed) {
+      navigate('/instant/banks', { replace: true });
+    }
+  }, [navigate]);
+
+  const handleContinue = () => {
+    if (dontShowAgain) {
+      localStorage.setItem(INSTANT_INTRO_DISMISSED_KEY, 'true');
+    }
+    navigate('/instant/banks');
+  };
 
   const steps = [
     {
@@ -177,12 +195,25 @@ const InstantPayoutIntro = () => {
           </div>
           <span className="font-medium text-foreground">فهمت كيف تعمل الخدمة</span>
         </button>
+
+        {/* Don't show again option */}
+        <button
+          onClick={() => setDontShowAgain(!dontShowAgain)}
+          className="w-full p-3 rounded-xl border border-border bg-muted/50 hover:bg-muted transition-all flex items-center gap-3"
+        >
+          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+            dontShowAgain ? 'border-primary bg-primary' : 'border-muted-foreground'
+          }`}>
+            {dontShowAgain && <CheckCircle2 className="w-3 h-3 text-primary-foreground" />}
+          </div>
+          <span className="text-sm text-muted-foreground">عدم إظهار هذه الصفحة مجدداً</span>
+        </button>
       </div>
 
       {/* Fixed Bottom Button */}
       <div className="fixed bottom-0 left-0 right-0 p-5 bg-background/80 backdrop-blur-lg border-t border-border">
         <button
-          onClick={() => navigate('/instant/banks')}
+          onClick={handleContinue}
           disabled={!understood}
           className={`w-full p-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${
             understood
