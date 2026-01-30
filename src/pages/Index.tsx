@@ -47,9 +47,8 @@ const Index = () => {
   const { bouncingId, triggerBounce } = useBounceAnimation();
 
   useEffect(() => {
-    if (INSTANT_SERVICE_LAUNCHED) return;
     const interval = setInterval(() => {
-      setCurrentBanner((prev) => (prev === 0 ? 1 : 0));
+      setCurrentBanner((prev) => (prev + 1) % 4);
     }, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -113,6 +112,7 @@ const Index = () => {
         
         {/* Rotating Promo Banners */}
         <FadeIn delay={0.1} className="w-full max-w-sm mb-4 z-10 h-20 relative px-4">
+          {/* Banner 1 - خدمة سريعة */}
           <motion.div 
             className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 ${
               currentBanner === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
@@ -131,38 +131,84 @@ const Index = () => {
             </div>
           </motion.div>
 
-          {!INSTANT_SERVICE_LAUNCHED && (
-            <motion.div 
-              className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 ${
-                currentBanner === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-              }`}
-            >
-              <div className="flex items-center h-full">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Zap className="w-4 h-4 text-warning" />
-                    <span className="text-xs font-bold text-warning">قريباً - السحب الفوري ⚡</span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    اسحب راتبك بأي وقت تحتاجه!
-                  </p>
+          {/* Banner 2 - السحب الفوري */}
+          <motion.div 
+            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 ${
+              currentBanner === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+            }`}
+          >
+            <div className="flex items-center h-full">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap className="w-4 h-4 text-warning" />
+                  <span className="text-xs font-bold text-warning">قريباً - السحب الفوري ⚡</span>
                 </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  اسحب راتبك بأي وقت تحتاجه!
+                </p>
               </div>
-            </motion.div>
-          )}
-
-          {!INSTANT_SERVICE_LAUNCHED && (
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-              <button 
-                onClick={() => setCurrentBanner(0)}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${currentBanner === 0 ? 'bg-primary w-4 shadow-[0_0_10px_hsl(var(--primary))]' : 'bg-muted-foreground/30'}`}
-              />
-              <button 
-                onClick={() => setCurrentBanner(1)}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${currentBanner === 1 ? 'bg-warning w-4 shadow-[0_0_10px_hsl(var(--warning))]' : 'bg-muted-foreground/30'}`}
-              />
             </div>
-          )}
+          </motion.div>
+
+          {/* Banner 3 - مكافأة التبليغ */}
+          <motion.div 
+            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 border-destructive/30 ${
+              currentBanner === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+            }`}
+          >
+            <div className="flex items-center h-full">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertCircle className="w-4 h-4 text-destructive" />
+                  <span className="text-xs font-bold text-destructive">مكافأة 50,000 كوينز! 🎁</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  بلّغ عن ترويج لتطبيق آخر بالفيديو واحصل على المكافأة
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Banner 4 - رواتب مجانية */}
+          <motion.div 
+            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 ${
+              currentBanner === 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+            }`}
+          >
+            <div className="flex items-center h-full relative">
+              <motion.div 
+                className="absolute -top-1 left-2 bg-destructive text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                قريباً
+              </motion.div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Wallet className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-bold text-primary glow-text">رواتب مجانية! 🎉</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  رواتب مجانية لمضيفين متفاعلين في تطبيق غلا لايف
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Banner Indicators */}
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {[0, 1, 2, 3].map((index) => (
+              <button 
+                key={index}
+                onClick={() => setCurrentBanner(index)}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${
+                  currentBanner === index 
+                    ? `w-4 shadow-[0_0_10px_hsl(var(--primary))] ${index === 2 ? 'bg-destructive' : index === 1 ? 'bg-warning' : 'bg-primary'}`
+                    : 'bg-muted-foreground/30'
+                }`}
+              />
+            ))}
+          </div>
         </FadeIn>
 
         {/* Spotlight Area - Supporters Spotlight */}
