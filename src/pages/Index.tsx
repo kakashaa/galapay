@@ -99,7 +99,7 @@ const Index = () => {
               currentBanner === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
             }`}
           >
-            <div className="flex items-center justify-between gap-3 h-full">
+            <div className="flex items-center h-full">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className="w-4 h-4 text-warning" />
@@ -109,7 +109,6 @@ const Index = () => {
                   اسحب راتبك بأي وقت تحتاجه!
                 </p>
               </div>
-              <InstantPayoutCountdown />
             </div>
           </div>
         )}
@@ -138,7 +137,15 @@ const Index = () => {
       </div>
 
       {/* Two Main Payout Buttons */}
-      <div className="flex gap-3 z-10 w-full max-w-sm px-4 mb-6">
+      <div className="flex gap-3 z-10 w-full max-w-sm px-4 mb-6 relative">
+        {/* Coming Soon Banner for Instant Payout */}
+        {!INSTANT_SERVICE_LAUNCHED && (
+          <div className="absolute -top-8 left-4 right-[52%] bg-warning/20 border border-warning/40 rounded-lg px-2 py-1 flex items-center justify-between gap-1">
+            <span className="text-[8px] text-warning font-bold">تبدأ بعد ⚡</span>
+            <InstantPayoutCountdown />
+          </div>
+        )}
+
         {/* Monthly Payout Button */}
         <button 
           onClick={handleMainButtonClick}
@@ -170,11 +177,6 @@ const Index = () => {
           }}
           className="flex-1 p-3 rounded-xl bg-warning text-warning-foreground flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative"
         >
-          {INSTANT_SERVICE_LAUNCHED && (
-            <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-white/20 rounded-full">
-              <span className="text-[8px] font-bold">جديد ⚡</span>
-            </div>
-          )}
           <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
             <Zap className="w-4 h-4" />
           </div>
