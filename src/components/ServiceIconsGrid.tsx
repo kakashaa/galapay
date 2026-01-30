@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Headphones, UserX, Crown, Users, Star, Gift, Wallet } from 'lucide-react';
+import { Headphones, UserX, Crown, Users, Star, Gift, Wallet, LucideIcon } from 'lucide-react';
 
 interface ServiceIcon {
   id: string;
   name: string;
-  icon: React.ReactNode;
+  Icon: LucideIcon;
   gradient: string;
   comingSoon: boolean;
   path?: string;
@@ -14,14 +15,14 @@ const services: ServiceIcon[] = [
   {
     id: 'support',
     name: 'الدعم الفني',
-    icon: <Headphones className="w-7 h-7 text-white" />,
+    Icon: Headphones,
     gradient: 'from-blue-500 to-blue-600',
     comingSoon: true,
   },
   {
     id: 'ban',
     name: 'تبنيد مستخدم',
-    icon: <UserX className="w-7 h-7 text-white" />,
+    Icon: UserX,
     gradient: 'from-red-500 to-red-600',
     comingSoon: false,
     path: '/ban-report',
@@ -29,21 +30,21 @@ const services: ServiceIcon[] = [
   {
     id: 'vip',
     name: 'طلب VIP',
-    icon: <Crown className="w-7 h-7 text-white" />,
+    Icon: Crown,
     gradient: 'from-yellow-500 to-amber-600',
     comingSoon: true,
   },
   {
     id: 'bd',
     name: 'فريق BD',
-    icon: <Users className="w-7 h-7 text-white" />,
+    Icon: Users,
     gradient: 'from-purple-500 to-purple-600',
     comingSoon: true,
   },
   {
     id: 'special-id',
     name: 'ايدي مميز',
-    icon: <Star className="w-7 h-7 text-white" />,
+    Icon: Star,
     gradient: 'from-orange-500 to-orange-600',
     comingSoon: false,
     path: '/special-id',
@@ -51,14 +52,14 @@ const services: ServiceIcon[] = [
   {
     id: 'celebrity-gift',
     name: 'هدية مشاهير',
-    icon: <Gift className="w-7 h-7 text-white" />,
+    Icon: Gift,
     gradient: 'from-pink-500 to-rose-600',
     comingSoon: true,
   },
   {
     id: 'wallet',
     name: 'محفظتي',
-    icon: <Wallet className="w-7 h-7 text-white" />,
+    Icon: Wallet,
     gradient: 'from-emerald-500 to-emerald-600',
     comingSoon: true,
   },
@@ -66,6 +67,16 @@ const services: ServiceIcon[] = [
 
 export const ServiceIconsGrid = () => {
   const navigate = useNavigate();
+  const [bouncingId, setBouncingId] = useState<string | null>(null);
+  
+  const handleClick = (service: ServiceIcon) => {
+    setBouncingId(service.id);
+    setTimeout(() => setBouncingId(null), 400);
+    
+    if (service.path) {
+      setTimeout(() => navigate(service.path!), 200);
+    }
+  };
   
   return (
     <div className="w-full max-w-sm px-2">
@@ -74,18 +85,14 @@ export const ServiceIconsGrid = () => {
           <button
             key={service.id}
             className="flex flex-col items-center gap-1.5 group"
-            onClick={() => {
-              if (service.path) {
-                navigate(service.path);
-              }
-            }}
+            onClick={() => handleClick(service)}
           >
             {/* iOS-style icon */}
             <div className="relative">
               <div 
-                className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${service.gradient} flex items-center justify-center shadow-lg transition-transform group-active:scale-95`}
+                className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${service.gradient} flex items-center justify-center shadow-lg transition-transform group-active:scale-95 ${bouncingId === service.id ? 'animate-mac-bounce' : ''}`}
               >
-                {service.icon}
+                <service.Icon className="w-7 h-7 text-white" />
               </div>
               {/* Coming Soon Badge */}
               {service.comingSoon && (
