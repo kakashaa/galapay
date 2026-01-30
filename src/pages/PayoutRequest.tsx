@@ -54,7 +54,6 @@ const PayoutRequest = () => {
   const [hasPreviousPaidRequest, setHasPreviousPaidRequest] = useState(false);
   const [checkingPreviousPayouts, setCheckingPreviousPayouts] = useState(false);
   const [extractingData, setExtractingData] = useState(false);
-  const [extractionError, setExtractionError] = useState<string | null>(null);
   const [referenceExtractedByAI, setReferenceExtractedByAI] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -139,7 +138,6 @@ const PayoutRequest = () => {
       }
       setReceiptImage(file);
       setReceiptPreview(URL.createObjectURL(file));
-      setExtractionError(null);
       
       // Auto-extract data from receipt
       await extractReceiptData(file);
@@ -148,7 +146,6 @@ const PayoutRequest = () => {
 
   const extractReceiptData = async (file: File) => {
     setExtractingData(true);
-    setExtractionError(null);
     
     try {
       // Upload temporarily to get URL for AI
@@ -176,33 +173,42 @@ const PayoutRequest = () => {
 
       if (extractError) {
         console.error('Extraction error:', extractError);
-        setExtractionError('فشل في قراءة الإيصال');
+        setReferenceExtractedByAI(false);
         setExtractingData(false);
         return;
       }
 
-      if (extractResult?.success) {
-        // Auto-fill extracted data
-        if (extractResult.referenceNumber) {
-          setFormData(prev => ({ ...prev, referenceNumber: extractResult.referenceNumber }));
-          setReferenceExtractedByAI(true);
-          // Check if reference is already used
-          checkReferenceNumber(extractResult.referenceNumber);
-          toast({
-            title: '✅ تم استخراج الرقم المرجعي',
-            description: `الرقم المرجعي: ${extractResult.referenceNumber}`,
-          });
-        }
+      if (extractResult?.success && extractResult.referenceNumber) {
+        // Auto-fill extracted reference number
+        setFormData(prev => ({ ...prev, referenceNumber: extractResult.referenceNumber }));
+        setReferenceExtractedByAI(true);
+        // Check if reference is already used
+        checkReferenceNumber(extractResult.referenceNumber);
+        toast({
+          title: '✅ تم استخراج الرقم المرجعي',
+          description: `الرقم المرجعي: ${extractResult.referenceNumber}`,
+        });
         
         if (extractResult.amount && !formData.amount) {
           setFormData(prev => ({ ...prev, amount: extractResult.amount.toString() }));
         }
       } else {
-        setExtractionError(extractResult?.notes || 'لم يتم العثور على رقم مرجعي');
+        // No reference found - allow manual entry (no error, just info)
+        setReferenceExtractedByAI(false);
+        toast({
+          title: 'لم يتم استخراج الرقم المرجعي',
+          description: 'يرجى إدخال الرقم المرجعي يدوياً من الإيصال',
+        });
+        
+        // Still extract amount if available
+        if (extractResult?.amount && !formData.amount) {
+          setFormData(prev => ({ ...prev, amount: extractResult.amount.toString() }));
+        }
       }
     } catch (error) {
       console.error('Error extracting data:', error);
-      setExtractionError('حدث خطأ أثناء قراءة الإيصال');
+      // On error, just allow manual entry
+      setReferenceExtractedByAI(false);
     } finally {
       setExtractingData(false);
     }
@@ -212,7 +218,7 @@ const PayoutRequest = () => {
     setReceiptImage(null);
     setReceiptPreview(null);
     setFormData(prev => ({ ...prev, referenceNumber: '', amount: '' }));
-    setExtractionError(null);
+    
     setReferenceError(null);
     setReferenceExtractedByAI(false);
   };
@@ -750,12 +756,12 @@ const PayoutRequest = () => {
                   </div>
                 )}
                 
-                {extractionError && !extractingData && (
-                  <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/20 rounded-xl">
-                    <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
+                {!referenceExtractedByAI && !extractingData && receiptPreview && (
+                  <div className="flex items-center gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                    <Info className="w-5 h-5 text-blue-500 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-warning font-medium">{extractionError}</p>
-                      <p className="text-xs text-muted-foreground">أدخل الرقم المرجعي يدوياً</p>
+                      <p className="text-sm text-blue-400 font-medium">أدخل الرقم المرجعي يدوياً</p>
+                      <p className="text-xs text-muted-foreground">انسخ الرقم المرجعي من الإيصال أعلاه</p>
                     </div>
                   </div>
                 )}
@@ -823,11 +829,6 @@ const PayoutRequest = () => {
                   </div>
                 )}
                 
-                {!referenceExtractedByAI && extractionError && (
-                  <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                    💡 أدخل الرقم المرجعي يدوياً من الإيصال
-                  </p>
-                )}
               </div>
             )}
 
