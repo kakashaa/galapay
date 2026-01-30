@@ -113,13 +113,15 @@ const Index = () => {
         {/* Rotating Promo Banners */}
         <FadeIn delay={0.1} className="w-full max-w-sm mb-4 z-10 h-20 relative px-4">
           {/* Banner 1 - خدمة سريعة */}
-          <motion.div 
-            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 ${
+          <motion.button 
+            onClick={() => setIsOpen(true)}
+            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 cursor-pointer ${
               currentBanner === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
             }`}
+            whileTap={{ scale: 0.98 }}
           >
             <div className="flex items-center justify-between h-full">
-              <div className="flex-1">
+              <div className="flex-1 text-right">
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="w-4 h-4 text-primary" />
                   <span className="text-xs font-bold text-primary glow-text">خدمة سريعة وموثوقة</span>
@@ -129,16 +131,18 @@ const Index = () => {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </motion.button>
 
           {/* Banner 2 - السحب الفوري */}
-          <motion.div 
-            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 ${
+          <motion.button 
+            onClick={() => navigate('/instant')}
+            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 cursor-pointer ${
               currentBanner === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
             }`}
+            whileTap={{ scale: 0.98 }}
           >
             <div className="flex items-center h-full">
-              <div className="flex-1">
+              <div className="flex-1 text-right">
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className="w-4 h-4 text-warning" />
                   <span className="text-xs font-bold text-warning">قريباً - السحب الفوري ⚡</span>
@@ -148,16 +152,18 @@ const Index = () => {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </motion.button>
 
           {/* Banner 3 - مكافأة التبليغ */}
-          <motion.div 
-            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 border-destructive/30 ${
+          <motion.button 
+            onClick={() => navigate('/ban-report')}
+            className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 border-destructive/30 cursor-pointer ${
               currentBanner === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
             }`}
+            whileTap={{ scale: 0.98 }}
           >
             <div className="flex items-center h-full">
-              <div className="flex-1">
+              <div className="flex-1 text-right">
                 <div className="flex items-center gap-2 mb-1">
                   <AlertCircle className="w-4 h-4 text-destructive" />
                   <span className="text-xs font-bold text-destructive">مكافأة 50,000 كوينز! 🎁</span>
@@ -167,7 +173,7 @@ const Index = () => {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </motion.button>
 
           {/* Banner 4 - رواتب مجانية */}
           <motion.div 
@@ -183,7 +189,7 @@ const Index = () => {
               >
                 قريباً
               </motion.div>
-              <div className="flex-1">
+              <div className="flex-1 text-right">
                 <div className="flex items-center gap-2 mb-1">
                   <Wallet className="w-4 h-4 text-primary" />
                   <span className="text-xs font-bold text-primary glow-text">رواتب مجانية! 🎉</span>
