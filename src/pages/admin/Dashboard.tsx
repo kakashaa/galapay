@@ -10,6 +10,7 @@ import {
   Trash2,
   Power,
   PowerOff,
+  Loader2,
   BarChart3,
   Settings,
   Home,
@@ -108,6 +109,7 @@ const AdminDashboard = () => {
   });
   const { payoutEnabled, updateSettings } = usePayoutSettings();
   const [updatingPayoutStatus, setUpdatingPayoutStatus] = useState(false);
+  const [resendingTelegram, setResendingTelegram] = useState(false);
 
   const isSuperAdmin = userRole === 'super_admin';
 
@@ -355,6 +357,32 @@ const AdminDashboard = () => {
       title: 'تم التحميل',
       description: 'تم تحميل الملف بنجاح',
     });
+  };
+
+  const handleResendTelegramForPending = async () => {
+    if (!isSuperAdmin) return;
+    setResendingTelegram(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('resend-telegram-notifications', {
+        body: { limit: 23, statuses: ['pending', 'review'] },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'تم الإرسال',
+        description: `تم إرسال ${data?.sent ?? 0} إشعار (صورة: ${data?.photoSent ?? 0}).`,
+      });
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: 'خطأ',
+        description: 'فشل في إعادة إرسال إشعارات التليجرام',
+        variant: 'destructive',
+      });
+    } finally {
+      setResendingTelegram(false);
+    }
   };
 
   const handleTogglePayoutStatus = async () => {
@@ -752,6 +780,24 @@ const AdminDashboard = () => {
   const renderSettingsTab = () => (
     <div className="space-y-6">
       <h2 className="text-xl font-bold">إدارة المديرين</h2>
+
+      <div className="dark-card p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="font-medium text-sm">إشعارات التليجرام</p>
+            <p className="text-xs text-muted-foreground">إعادة إرسال إشعارات آخر الطلبات المعلّقة</p>
+          </div>
+          <button
+            onClick={handleResendTelegramForPending}
+            disabled={resendingTelegram}
+            className="py-2.5 px-4 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {resendingTelegram ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            إرسال الآن
+          </button>
+        </div>
+      </div>
+
       <AdminManagement onUpdate={fetchData} />
       
       {/* Blocked Agency Codes */}
