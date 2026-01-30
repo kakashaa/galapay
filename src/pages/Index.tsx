@@ -140,10 +140,15 @@ const Index = () => {
       <div className="flex gap-3 z-10 w-full max-w-sm px-4 mb-6 relative">
         {/* Coming Soon Banner for Instant Payout */}
         {!INSTANT_SERVICE_LAUNCHED && (
-          <div className="absolute -top-6 left-4 right-[55%] bg-warning/20 border border-warning/40 rounded-md px-1.5 py-0.5 flex items-center justify-between gap-0.5">
-            <span className="text-[7px] text-warning font-bold">تبدأ بعد ⚡</span>
-            <InstantPayoutCountdown />
-          </div>
+          <>
+            <div className="absolute -top-6 left-4 right-[55%] bg-warning/20 border border-warning/40 rounded-md px-1.5 py-0.5 flex items-center justify-between gap-0.5">
+              <span className="text-[7px] text-warning font-bold">تبدأ بعد ⚡</span>
+              <InstantPayoutCountdown />
+            </div>
+            <div className="absolute -top-3 left-2 bg-destructive text-destructive-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+              قريباً
+            </div>
+          </>
         )}
 
         {/* Monthly Payout Button */}
