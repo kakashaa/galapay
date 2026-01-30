@@ -231,6 +231,23 @@ const RequestDetailsModal = ({
               : 'تم تحديث حالة الطلب بنجاح',
       });
 
+      // Send Telegram notification for reserved status
+      if (newStatus === 'reserved' && request) {
+        try {
+          await supabase.functions.invoke('send-reserved-notification', {
+            body: {
+              trackingCode: request.tracking_code,
+              recipientName: request.recipient_full_name,
+              amount: request.amount,
+              reservationReason: reservationReason,
+              zalalLifeAccountId: request.zalal_life_account_id,
+            }
+          });
+        } catch (notifError) {
+          console.error('Error sending reservation notification:', notifError);
+        }
+      }
+
       onUpdate();
       onClose(); // Close modal after successful update
     } catch (error) {
