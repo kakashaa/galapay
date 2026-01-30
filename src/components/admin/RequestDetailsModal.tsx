@@ -33,6 +33,8 @@ interface PayoutRequest {
   rejection_reason: string | null;
   reference_number: string | null;
   created_at: string;
+  claimed_by: string | null;
+  claimed_at: string | null;
   processed_by: string | null;
   processed_at: string | null;
 }
@@ -143,12 +145,22 @@ const RequestDetailsModal = ({
       }
 
       // Build update object based on status
+      const nowIso = new Date().toISOString();
+
       const updateData: Record<string, unknown> = {
         status: newStatus,
         admin_notes: adminNotes || null,
         processed_by: currentUserId || null,
-        processed_at: new Date().toISOString(),
+        processed_at: nowIso,
       };
+
+      // If an admin/staff is acting before explicitly claiming, auto-claim to ensure
+      // the backend update policies pass and the request moves out of the shared pool.
+      const shouldAutoClaim = !isSuperAdmin && !!currentUserId && !request?.claimed_by;
+      if (shouldAutoClaim) {
+        updateData.claimed_by = currentUserId;
+        updateData.claimed_at = nowIso;
+      }
 
       // Status-specific fields
       if (newStatus === 'paid') {
@@ -166,12 +178,23 @@ const RequestDetailsModal = ({
       }
 
       // Update request
-      const { error: updateError } = await supabase
+      let updateQuery = supabase
         .from('payout_requests')
         .update(updateData)
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .select('id');
+
+      // If we're auto-claiming, only succeed if it was still unclaimed (avoid stealing)
+      if (shouldAutoClaim) {
+        updateQuery = updateQuery.is('claimed_by', null);
+      }
+
+      const { data: updatedRows, error: updateError } = await updateQuery;
 
       if (updateError) throw updateError;
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error('no_rows_updated');
+      }
 
       // Create audit log with descriptive action
       const actionDescriptions: Record<string, string> = {
@@ -203,6 +226,16 @@ const RequestDetailsModal = ({
       onClose(); // Close modal after successful update
     } catch (error) {
       console.error('Error updating status:', error);
+
+      if (error instanceof Error && error.message === 'no_rows_updated') {
+        toast({
+          title: 'تعذر تحديث الطلب',
+          description: 'يبدو أن الطلب تم استلامه/تعديله من مسؤول آخر. حدّث الصفحة ثم حاول مرة أخرى.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       toast({
         title: 'خطأ',
         description: 'فشل في تحديث الطلب. يرجى المحاولة مرة أخرى.',
