@@ -78,9 +78,9 @@ const TopSpotlightBoxes = () => {
   const currentHost = hosts[hostIndex];
 
   return (
-    <div className="w-full px-3">
+    <div className="w-full px-2">
       {/* Side by Side Boxes with Heart in Center */}
-      <div className="flex items-center gap-8 relative">
+      <div className="flex items-start gap-6 relative">
         
         {/* Pulsing Heart in Center - positioned between boxes */}
         <motion.div
@@ -90,8 +90,8 @@ const TopSpotlightBoxes = () => {
           }}
           transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
         >
-          <div className="w-12 h-12 rounded-full bg-card border-2 border-destructive/50 flex items-center justify-center shadow-xl shadow-destructive/20">
-            <Heart className="w-6 h-6 text-destructive fill-destructive" />
+          <div className="w-11 h-11 rounded-full bg-card border-2 border-destructive/50 flex items-center justify-center shadow-xl shadow-destructive/20">
+            <Heart className="w-5 h-5 text-destructive fill-destructive" />
           </div>
         </motion.div>
 
@@ -100,108 +100,111 @@ const TopSpotlightBoxes = () => {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="neon-card p-2 flex-1 min-h-[120px]"
+          className="flex-1"
         >
-          {/* Header */}
-          <div className="flex items-center justify-center gap-1.5 mb-2">
-            <Heart className="w-3.5 h-3.5 text-destructive fill-destructive" />
-            <h3 className="text-[11px] font-bold text-foreground">أفضل الداعمين</h3>
+          {/* Header - Outside box */}
+          <div className="flex items-center justify-center gap-1.5 mb-1.5">
+            <Heart className="w-3 h-3 text-destructive fill-destructive" />
+            <h3 className="text-[10px] font-bold text-foreground">أفضل الداعمين</h3>
           </div>
 
-          {/* Supporter Display */}
-          {loadingSupporters ? (
-            <div className="flex items-center justify-center py-3">
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            </div>
-          ) : supporters.length === 0 ? (
-            <div className="flex items-center justify-center gap-3 py-2">
-              <motion.div
-                className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border-2 border-primary/40 flex items-center justify-center"
-                animate={{ 
-                  boxShadow: [
-                    '0 0 0 0 hsla(var(--primary) / 0.3)',
-                    '0 0 10px 2px hsla(var(--primary) / 0.4)',
-                    '0 0 0 0 hsla(var(--primary) / 0.3)'
-                  ]
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <span className="text-sm text-primary/60">?</span>
-              </motion.div>
-              <span className="text-[10px] text-muted-foreground">قريباً...</span>
-            </div>
-          ) : (
-            <AnimatePresence mode="wait">
-              <motion.button
-                key={currentSupporter?.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                onClick={() => currentSupporter && setSelectedSupporter(currentSupporter)}
-                className="w-full flex items-center gap-2 cursor-pointer group px-1"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {/* Avatar */}
-                <div className="relative flex-shrink-0">
-                  <motion.div 
-                    className="absolute inset-0 bg-primary/40 rounded-full blur-lg"
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.7, 0.5] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  />
-                  {currentSupporter?.avatar_url ? (
-                    <img 
-                      src={currentSupporter.avatar_url} 
-                      alt={currentSupporter.name}
-                      className="relative w-10 h-10 rounded-full object-cover border-2 border-primary/60 shadow-lg shadow-primary/30"
-                    />
-                  ) : (
-                    <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-2 border-primary/60 flex items-center justify-center shadow-lg shadow-primary/30">
-                      <span className="text-primary font-bold text-xs">{currentSupporter && getInitials(currentSupporter.name)}</span>
-                    </div>
-                  )}
-                  {/* Click indicator */}
-                  <motion.div
-                    className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-warning rounded-full flex items-center justify-center border border-card"
-                    animate={{ scale: [1, 1.15, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <Sparkles className="w-2 h-2 text-warning-foreground" />
-                  </motion.div>
-                </div>
-
-                {/* Info */}
-                <div className="text-right flex-1 min-w-0">
-                  <h4 className="text-[10px] font-bold text-foreground truncate">
-                    {currentSupporter?.name}
-                  </h4>
-                  <p className="text-[9px] text-primary font-semibold truncate">
-                    {currentSupporter?.handle}
-                  </p>
-                  <p className="text-[8px] text-muted-foreground leading-tight line-clamp-1">
-                    {currentSupporter?.thank_you_text}
-                  </p>
-                </div>
-              </motion.button>
-            </AnimatePresence>
-          )}
-
-          {/* Counter dots */}
-          {supporters.length > 1 && (
-            <div className="flex justify-center gap-0.5 mt-1.5">
-              {supporters.slice(0, Math.min(supporters.length, 5)).map((_, index) => (
+          {/* Box Content */}
+          <div className="neon-card p-2 min-h-[100px]">
+            {/* Supporter Display */}
+            {loadingSupporters ? (
+              <div className="flex items-center justify-center py-3">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </div>
+            ) : supporters.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-2">
                 <motion.div
-                  key={index}
-                  className={`h-0.5 rounded-full transition-all duration-300 ${
-                    supporterIndex % Math.min(supporters.length, 5) === index 
-                      ? 'bg-primary w-2' 
-                      : 'bg-muted-foreground/30 w-0.5'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
+                  className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border-2 border-primary/40 flex items-center justify-center"
+                  animate={{ 
+                    boxShadow: [
+                      '0 0 0 0 hsla(var(--primary) / 0.3)',
+                      '0 0 10px 2px hsla(var(--primary) / 0.4)',
+                      '0 0 0 0 hsla(var(--primary) / 0.3)'
+                    ]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <span className="text-sm text-primary/60">?</span>
+                </motion.div>
+                <span className="text-[9px] text-muted-foreground">قريباً...</span>
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.button
+                  key={currentSupporter?.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  onClick={() => currentSupporter && setSelectedSupporter(currentSupporter)}
+                  className="w-full flex flex-col items-center gap-1 cursor-pointer group"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {/* Avatar */}
+                  <div className="relative flex-shrink-0">
+                    <motion.div 
+                      className="absolute inset-0 bg-primary/40 rounded-full blur-lg"
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.7, 0.5] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                    {currentSupporter?.avatar_url ? (
+                      <img 
+                        src={currentSupporter.avatar_url} 
+                        alt={currentSupporter.name}
+                        className="relative w-9 h-9 rounded-full object-cover border-2 border-primary/60 shadow-lg shadow-primary/30"
+                      />
+                    ) : (
+                      <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-2 border-primary/60 flex items-center justify-center shadow-lg shadow-primary/30">
+                        <span className="text-primary font-bold text-xs">{currentSupporter && getInitials(currentSupporter.name)}</span>
+                      </div>
+                    )}
+                    {/* Click indicator */}
+                    <motion.div
+                      className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-warning rounded-full flex items-center justify-center border border-card"
+                      animate={{ scale: [1, 1.15, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <Sparkles className="w-2 h-2 text-warning-foreground" />
+                    </motion.div>
+                  </div>
+
+                  {/* Info - Vertical layout */}
+                  <div className="text-center w-full">
+                    <p className="text-[9px] text-primary font-semibold truncate">
+                      {currentSupporter?.handle}
+                    </p>
+                    <h4 className="text-[10px] font-bold text-foreground truncate">
+                      {currentSupporter?.name}
+                    </h4>
+                    <p className="text-[8px] text-muted-foreground leading-tight line-clamp-2 mt-0.5">
+                      {currentSupporter?.thank_you_text}
+                    </p>
+                  </div>
+                </motion.button>
+              </AnimatePresence>
+            )}
+
+            {/* Counter dots */}
+            {supporters.length > 1 && (
+              <div className="flex justify-center gap-0.5 mt-1">
+                {supporters.slice(0, Math.min(supporters.length, 5)).map((_, index) => (
+                  <motion.div
+                    key={index}
+                    className={`h-0.5 rounded-full transition-all duration-300 ${
+                      supporterIndex % Math.min(supporters.length, 5) === index 
+                        ? 'bg-primary w-2' 
+                        : 'bg-muted-foreground/30 w-0.5'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Top Hosts Box - Left Side */}
@@ -209,39 +212,42 @@ const TopSpotlightBoxes = () => {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="neon-card p-2 flex-1 min-h-[120px]"
+          className="flex-1"
         >
-          {/* Header */}
-          <div className="flex items-center justify-center gap-1.5 mb-2">
-            <Crown className="w-3.5 h-3.5 text-warning fill-warning/30" />
-            <h3 className="text-[11px] font-bold text-foreground">أفضل المضيفات</h3>
+          {/* Header - Outside box */}
+          <div className="flex items-center justify-center gap-1.5 mb-1.5">
+            <Crown className="w-3 h-3 text-warning fill-warning/30" />
+            <h3 className="text-[10px] font-bold text-foreground">أفضل المضيفات</h3>
           </div>
 
-          {/* Host Display - Placeholder for now */}
-          <div className="flex items-center justify-center gap-3 py-2">
-            <motion.div
-              className="w-10 h-10 rounded-full bg-gradient-to-br from-warning/30 to-warning/10 border-2 border-warning/40 flex items-center justify-center"
-              animate={{ 
-                boxShadow: [
-                  '0 0 0 0 hsla(var(--warning) / 0.3)',
-                  '0 0 10px 2px hsla(var(--warning) / 0.4)',
-                  '0 0 0 0 hsla(var(--warning) / 0.3)'
-                ]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <span className="text-sm text-warning/60">?</span>
-            </motion.div>
-            <div className="text-right">
-              <span className="text-[10px] text-muted-foreground block">قريباً...</span>
+          {/* Box Content */}
+          <div className="neon-card p-2 min-h-[100px]">
+            {/* Host Display - Placeholder for now */}
+            <div className="flex flex-col items-center justify-center gap-2 py-2">
               <motion.div
-                className="flex items-center gap-1 text-[8px] text-warning"
-                animate={{ opacity: [0.5, 1, 0.5] }}
+                className="w-9 h-9 rounded-full bg-gradient-to-br from-warning/30 to-warning/10 border-2 border-warning/40 flex items-center justify-center"
+                animate={{ 
+                  boxShadow: [
+                    '0 0 0 0 hsla(var(--warning) / 0.3)',
+                    '0 0 10px 2px hsla(var(--warning) / 0.4)',
+                    '0 0 0 0 hsla(var(--warning) / 0.3)'
+                  ]
+                }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                <Sparkles className="w-2.5 h-2.5" />
-                <span>أفضل 10</span>
+                <span className="text-sm text-warning/60">?</span>
               </motion.div>
+              <div className="text-center">
+                <span className="text-[9px] text-muted-foreground block">قريباً...</span>
+                <motion.div
+                  className="flex items-center justify-center gap-1 text-[8px] text-warning mt-0.5"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Sparkles className="w-2 h-2" />
+                  <span>أفضل 10</span>
+                </motion.div>
+              </div>
             </div>
           </div>
         </motion.div>
