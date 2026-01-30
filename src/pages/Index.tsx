@@ -88,36 +88,36 @@ const Index = () => {
       </div>
 
       {/* Two Main Buttons Side by Side */}
-      <div className="flex gap-4 z-10 w-full max-w-sm px-4">
+      <div className="flex gap-3 z-10 w-full max-w-sm px-4">
         {/* Monthly Payout Button */}
         <button 
           onClick={handleMainButtonClick}
-          className="flex-1 p-5 rounded-2xl bg-primary text-primary-foreground flex flex-col items-center gap-3 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl"
+          className="flex-1 p-4 rounded-2xl bg-primary text-primary-foreground flex flex-col items-center gap-2 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl"
           disabled={settingsLoading}
         >
-          <div className="w-14 h-14 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
-            <Wallet className="w-7 h-7" />
+          <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
+            <Wallet className="w-5 h-5" />
           </div>
           <div className="text-center">
-            <p className="text-base font-bold mb-1">سحب شهري</p>
-            <p className="text-xs opacity-80">صرف راتبك</p>
+            <p className="text-sm font-bold mb-0.5">سحب شهري</p>
+            <p className="text-[10px] opacity-80">صرف راتبك</p>
           </div>
         </button>
 
         {/* Instant Payout Button */}
         <button 
           onClick={() => navigate('/instant')}
-          className="flex-1 p-5 rounded-2xl bg-warning text-warning-foreground flex flex-col items-center gap-3 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
+          className="flex-1 p-4 rounded-2xl bg-warning text-warning-foreground flex flex-col items-center gap-2 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
         >
           <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-white/20 rounded-full">
             <span className="text-[10px] font-bold">جديد ⚡</span>
           </div>
-          <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
-            <Zap className="w-7 h-7" />
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <Zap className="w-5 h-5" />
           </div>
           <div className="text-center">
-            <p className="text-base font-bold mb-1">سحب فوري</p>
-            <p className="text-xs opacity-90">بيع راتبك</p>
+            <p className="text-sm font-bold mb-0.5">سحب فوري</p>
+            <p className="text-[10px] opacity-90">بيع راتبك</p>
           </div>
         </button>
       </div>

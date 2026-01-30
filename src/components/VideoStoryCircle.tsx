@@ -56,14 +56,14 @@ export const VideoStoryCircle = () => {
       {/* Stories Row - Instagram/Snapchat Style */}
       <div className="flex gap-4 overflow-x-auto pb-2 px-2 scrollbar-hide z-10" dir="rtl">
         {videos.map((video) => (
-          <div key={video.id} className="flex flex-col items-center gap-2 flex-shrink-0">
+          <div key={video.id} className="flex flex-col items-center gap-1.5 flex-shrink-0">
             <button
               onClick={() => openVideo(video)}
               className="relative group"
             >
               {/* Gradient Ring - Story Style */}
-              <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-primary via-accent to-warning">
-                <div className="w-full h-full rounded-full bg-background p-[2px]">
+              <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-primary via-accent to-warning">
+                <div className="w-full h-full rounded-full bg-background p-[1.5px]">
                   <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
                     {video.thumbnail_url ? (
                       <img 
@@ -73,7 +73,7 @@ export const VideoStoryCircle = () => {
                       />
                     ) : (
                       <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
-                        <Play className="w-8 h-8 text-primary" />
+                        <Play className="w-5 h-5 text-primary" />
                       </div>
                     )}
                   </div>
@@ -81,8 +81,8 @@ export const VideoStoryCircle = () => {
               </div>
               
               {/* Play Badge */}
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-lg border-2 border-background">
-                <Play className="w-3.5 h-3.5 text-primary-foreground fill-current" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow-lg border-2 border-background">
+                <Play className="w-2.5 h-2.5 text-primary-foreground fill-current" />
               </div>
               
               {/* Pulse Animation - only on first video */}
@@ -92,7 +92,7 @@ export const VideoStoryCircle = () => {
             </button>
             
             {/* Title */}
-            <span className="text-xs font-medium text-foreground text-center max-w-[80px] line-clamp-2">
+            <span className="text-[10px] font-medium text-foreground text-center max-w-[56px] line-clamp-2">
               {video.title}
             </span>
           </div>
