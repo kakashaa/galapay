@@ -55,6 +55,7 @@ const PayoutRequest = () => {
   const [checkingPreviousPayouts, setCheckingPreviousPayouts] = useState(false);
   const [extractingData, setExtractingData] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+  const [referenceExtractedByAI, setReferenceExtractedByAI] = useState(false);
 
   const [formData, setFormData] = useState({
     zalalLifeAccountId: '',
@@ -184,6 +185,7 @@ const PayoutRequest = () => {
         // Auto-fill extracted data
         if (extractResult.referenceNumber) {
           setFormData(prev => ({ ...prev, referenceNumber: extractResult.referenceNumber }));
+          setReferenceExtractedByAI(true);
           // Check if reference is already used
           checkReferenceNumber(extractResult.referenceNumber);
           toast({
@@ -209,9 +211,10 @@ const PayoutRequest = () => {
   const removeImage = () => {
     setReceiptImage(null);
     setReceiptPreview(null);
-    setFormData(prev => ({ ...prev, referenceNumber: '' }));
+    setFormData(prev => ({ ...prev, referenceNumber: '', amount: '' }));
     setExtractionError(null);
     setReferenceError(null);
+    setReferenceExtractedByAI(false);
   };
 
   const handleCountryChange = (countryId: string) => {
@@ -763,6 +766,8 @@ const PayoutRequest = () => {
                     required
                     value={formData.referenceNumber}
                     onChange={(e) => {
+                      // Only allow editing if NOT extracted by AI
+                      if (referenceExtractedByAI) return;
                       const value = e.target.value;
                       setFormData(prev => ({ ...prev, referenceNumber: value }));
                       if (value.trim().length >= 3) {
@@ -772,20 +777,28 @@ const PayoutRequest = () => {
                       }
                     }}
                     disabled={extractingData}
+                    readOnly={referenceExtractedByAI}
                     className={`w-full px-4 py-3.5 text-lg rounded-xl border-2 ${
                       referenceError 
                         ? 'border-destructive bg-destructive/5' 
                         : formData.referenceNumber && !referenceError 
                           ? 'border-primary bg-primary/5' 
                           : 'border-border bg-background/50'
-                    } focus:ring-0 transition-colors text-center font-mono tracking-wider disabled:opacity-50`}
+                    } focus:ring-0 transition-colors text-center font-mono tracking-wider disabled:opacity-50 ${
+                      referenceExtractedByAI ? 'cursor-not-allowed bg-muted/30' : ''
+                    }`}
                     placeholder={extractingData ? 'جاري الاستخراج...' : 'أدخل الرقم المرجعي'}
                     dir="ltr"
                   />
                   {checkingReference && (
                     <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground animate-spin" />
                   )}
-                  {!checkingReference && !extractingData && formData.referenceNumber && !referenceError && (
+                  {!checkingReference && !extractingData && formData.referenceNumber && !referenceError && referenceExtractedByAI && (
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    </div>
+                  )}
+                  {!checkingReference && !extractingData && formData.referenceNumber && !referenceError && !referenceExtractedByAI && (
                     <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                   )}
                   {!checkingReference && referenceError && (
@@ -796,13 +809,25 @@ const PayoutRequest = () => {
                 {referenceError && (
                   <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
                     <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
-                    <p className="text-sm text-destructive font-medium">{referenceError}</p>
+                    <div>
+                      <p className="text-sm text-destructive font-medium">{referenceError}</p>
+                      <p className="text-xs text-destructive/70 mt-1">يرجى رفع إيصال جديد برقم مرجعي مختلف</p>
+                    </div>
                   </div>
                 )}
                 
-                <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                  💡 يتم استخراج الرقم المرجعي تلقائياً من الإيصال. يمكنك تعديله إذا لزم الأمر.
-                </p>
+                {referenceExtractedByAI && !referenceError && (
+                  <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                    <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                    <p className="text-sm text-primary font-medium">تم استخراج الرقم المرجعي تلقائياً ولا يمكن تعديله</p>
+                  </div>
+                )}
+                
+                {!referenceExtractedByAI && extractionError && (
+                  <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                    💡 أدخل الرقم المرجعي يدوياً من الإيصال
+                  </p>
+                )}
               </div>
             )}
 
