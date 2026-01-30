@@ -316,6 +316,45 @@ export type Database = {
         }
         Relationships: []
       }
+      hosts: {
+        Row: {
+          ai_praise_text: string | null
+          avatar_url: string | null
+          created_at: string
+          handle: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          thank_you_text: string
+          updated_at: string
+        }
+        Insert: {
+          ai_praise_text?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          handle: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          thank_you_text?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_praise_text?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          handle?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          thank_you_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       instant_payout_requests: {
         Row: {
           admin_final_receipt_url: string | null
