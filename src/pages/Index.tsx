@@ -16,6 +16,7 @@ import { FadeIn } from '@/components/AnimatedCard';
 import StarField from '@/components/StarField';
 import { useTapFeedback } from '@/hooks/use-haptic-feedback';
 import SupportersSpotlight from '@/components/SupportersSpotlight';
+import TopSpotlightBoxes from '@/components/TopSpotlightBoxes';
 
 // Track bouncing state for main buttons
 const useBounceAnimation = () => {
@@ -282,6 +283,11 @@ const Index = () => {
         <div className="w-full max-w-sm h-[180px] flex items-center justify-center z-10 mb-4 px-4 pt-4">
           <SupportersSpotlight />
         </div>
+
+        {/* Top Supporters & Hosts Boxes */}
+        <FadeIn delay={0.15} className="z-10 mb-4">
+          <TopSpotlightBoxes />
+        </FadeIn>
 
         {/* Tutorial Videos Section - Below Spotlight */}
         <FadeIn delay={0.2} className="z-10 mb-6 w-full max-w-sm">
