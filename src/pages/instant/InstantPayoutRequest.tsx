@@ -7,14 +7,15 @@ import { useToast } from '@/hooks/use-toast';
 
 const COINS_PER_DOLLAR = 8500;
 
-// Available payment methods for supporter
+// Available payment methods for supporter (our actual banks)
 const SUPPORTER_PAYMENT_METHODS = [
-  { id: 'bank_transfer', name: 'تحويل بنكي', icon: '🏦' },
-  { id: 'cashapp', name: 'CashApp', icon: '💵' },
-  { id: 'zelle', name: 'Zelle', icon: '💳' },
-  { id: 'paypal', name: 'PayPal', icon: '💰' },
-  { id: 'crypto', name: 'عملات رقمية', icon: '₿' },
-  { id: 'other', name: 'أخرى', icon: '📱' },
+  { id: 'cashapp', name: 'CashApp', icon: '💵', iconUrl: '/wallets/cashapp.png' },
+  { id: 'zelle', name: 'Zelle', icon: '💳', iconUrl: '/wallets/zelle.png' },
+  { id: 'chime', name: 'Chime', icon: '🏦', iconUrl: '/wallets/chime.png' },
+  { id: 'apple_pay', name: 'Apple Pay', icon: '🍎', iconUrl: '/wallets/apple-pay.png' },
+  { id: 'kuraimi', name: 'الكريمي', icon: '🏦', iconUrl: '/wallets/kuraimi.png' },
+  { id: 'jaib', name: 'جيب', icon: '📱', iconUrl: '/wallets/jaib.png' },
+  { id: 'alrajhi', name: 'الراجحي', icon: '🏦' },
 ];
 
 interface PayoutMethod {
