@@ -114,7 +114,7 @@ const Index = () => {
           onClick={() => {
             const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
             if (isDismissed) {
-              navigate('/instant/banks');
+              navigate('/instant');
             } else {
               setInstantInfoOpen(true);
             }
