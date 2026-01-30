@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Crown, Sparkles, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -22,9 +22,43 @@ interface Host {
   ai_praise_text: string | null;
 }
 
+// Custom hook for swipe gestures
+const useSwipe = (onSwipeLeft: () => void, onSwipeRight: () => void) => {
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchEndX.current = null;
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    
+    const distance = touchStartX.current - touchEndX.current;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      onSwipeLeft();
+    } else if (isRightSwipe) {
+      onSwipeRight();
+    }
+  };
+
+  return { onTouchStart, onTouchMove, onTouchEnd };
+};
+
 const TopSpotlightBoxes = () => {
   const [supporterIndex, setSupporterIndex] = useState(0);
   const [hostIndex, setHostIndex] = useState(0);
+  const [supporterPaused, setSupporterPaused] = useState(false);
+  const [hostPaused, setHostPaused] = useState(false);
 
   // Fetch real supporters from database
   const { data: supporters = [], isLoading: loadingSupporters } = useQuery({
@@ -58,27 +92,60 @@ const TopSpotlightBoxes = () => {
     },
   });
 
-  // Auto-rotate supporters every 5 seconds
-  useEffect(() => {
+  // Swipe handlers for supporters
+  const goToNextSupporter = () => {
     if (supporters.length === 0) return;
+    setSupporterIndex((prev) => (prev + 1) % supporters.length);
+    setSupporterPaused(true);
+    setTimeout(() => setSupporterPaused(false), 3000);
+  };
+
+  const goToPrevSupporter = () => {
+    if (supporters.length === 0) return;
+    setSupporterIndex((prev) => (prev - 1 + supporters.length) % supporters.length);
+    setSupporterPaused(true);
+    setTimeout(() => setSupporterPaused(false), 3000);
+  };
+
+  // Swipe handlers for hosts
+  const goToNextHost = () => {
+    if (hosts.length === 0) return;
+    setHostIndex((prev) => (prev + 1) % hosts.length);
+    setHostPaused(true);
+    setTimeout(() => setHostPaused(false), 3000);
+  };
+
+  const goToPrevHost = () => {
+    if (hosts.length === 0) return;
+    setHostIndex((prev) => (prev - 1 + hosts.length) % hosts.length);
+    setHostPaused(true);
+    setTimeout(() => setHostPaused(false), 3000);
+  };
+
+  const supporterSwipe = useSwipe(goToNextSupporter, goToPrevSupporter);
+  const hostSwipe = useSwipe(goToNextHost, goToPrevHost);
+
+  // Auto-rotate supporters every 5 seconds (unless paused)
+  useEffect(() => {
+    if (supporters.length === 0 || supporterPaused) return;
     
     const interval = setInterval(() => {
       setSupporterIndex((prev) => (prev + 1) % supporters.length);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [supporters.length]);
+  }, [supporters.length, supporterPaused]);
 
-  // Auto-rotate hosts every 5 seconds
+  // Auto-rotate hosts every 5 seconds (unless paused)
   useEffect(() => {
-    if (hosts.length === 0) return;
+    if (hosts.length === 0 || hostPaused) return;
     
     const interval = setInterval(() => {
       setHostIndex((prev) => (prev + 1) % hosts.length);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [hosts.length]);
+  }, [hosts.length, hostPaused]);
 
   // Get initials for placeholder
   const getInitials = (name: string) => {
@@ -106,10 +173,15 @@ const TopSpotlightBoxes = () => {
             <h3 className="text-[10px] font-bold text-foreground">أفضل الداعمين</h3>
           </div>
 
-          {/* Box Content - Fixed height */}
-          <div className="neon-card p-2 h-[115px] flex flex-col justify-between">
+          {/* Box Content - Fixed height with swipe support */}
+          <div 
+            className="neon-card p-2 h-[115px] flex flex-col justify-between cursor-grab active:cursor-grabbing touch-pan-y"
+            onTouchStart={supporterSwipe.onTouchStart}
+            onTouchMove={supporterSwipe.onTouchMove}
+            onTouchEnd={supporterSwipe.onTouchEnd}
+          >
             {/* Supporter Display */}
-            <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="flex-1 flex flex-col items-center justify-center select-none">
               {loadingSupporters ? (
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
               ) : supporters.length === 0 ? (
@@ -218,10 +290,15 @@ const TopSpotlightBoxes = () => {
             <h3 className="text-[10px] font-bold text-foreground">أفضل المضيفات</h3>
           </div>
 
-          {/* Box Content - Fixed height same as supporters */}
-          <div className="neon-card p-2 h-[115px] flex flex-col justify-between">
+          {/* Box Content - Fixed height same as supporters with swipe support */}
+          <div 
+            className="neon-card p-2 h-[115px] flex flex-col justify-between cursor-grab active:cursor-grabbing touch-pan-y"
+            onTouchStart={hostSwipe.onTouchStart}
+            onTouchMove={hostSwipe.onTouchMove}
+            onTouchEnd={hostSwipe.onTouchEnd}
+          >
             {/* Host Display */}
-            <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="flex-1 flex flex-col items-center justify-center select-none">
               {loadingHosts ? (
                 <Loader2 className="w-5 h-5 animate-spin text-warning" />
               ) : hosts.length === 0 ? (
