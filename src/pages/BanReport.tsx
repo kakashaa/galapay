@@ -134,9 +134,9 @@ export default function BanReportPage() {
       return;
     }
 
-    const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+    const maxSize = 100 * 1024 * 1024; // 100MB for both images and videos
     if (file.size > maxSize) {
-      toast.error(isVideo ? "حجم الفيديو يجب أن لا يتجاوز 50MB" : "حجم الصورة يجب أن لا يتجاوز 5MB");
+      toast.error("حجم الملف يجب أن لا يتجاوز 100MB");
       return;
     }
 
