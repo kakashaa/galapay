@@ -71,13 +71,8 @@ const Index = () => {
       {/* Flying Money Background */}
       <FlyingMoney />
 
-      {/* Video Story Circle - Tutorial */}
-      <div className="mb-6 z-10">
-        <VideoStoryCircle />
-      </div>
-
-      {/* Rotating Promo Banners */}
-      <div className="w-full max-w-sm mb-8 z-10 h-24 relative">
+      {/* Rotating Promo Banners - At Top */}
+      <div className="w-full max-w-sm mb-6 z-10 h-24 relative">
         {/* Banner 1: Main Promo */}
         <div 
           className={`promo-banner absolute inset-0 transition-all duration-500 ${
@@ -134,6 +129,14 @@ const Index = () => {
             />
           </div>
         )}
+      </div>
+
+      {/* Tutorial Videos Section */}
+      <div className="z-10 mb-6 w-full max-w-sm">
+        <h3 className="text-sm font-bold text-muted-foreground text-center mb-3">فيديوهات تعليمية 📹</h3>
+        <div className="flex justify-center">
+          <VideoStoryCircle />
+        </div>
       </div>
 
       {/* Two Main Payout Buttons */}
