@@ -13,7 +13,7 @@ const Confirm = () => {
   };
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="min-h-[100dvh] bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <div className="shrink-0 p-6 pb-0">
         <button
@@ -25,7 +25,7 @@ const Confirm = () => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-32">
         {/* Warning Card */}
         <div className="glass-card p-5 mb-5">
           <div className="flex items-center gap-3 mb-4">
