@@ -1,25 +1,45 @@
 // Haptic feedback and sound effects for touch interactions
 
+// Singleton AudioContext to prevent creating multiple contexts
+let audioContext: AudioContext | null = null;
+
+const getAudioContext = (): AudioContext | null => {
+  try {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    // Resume if suspended (required after user interaction on mobile)
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
+    }
+    return audioContext;
+  } catch (e) {
+    return null;
+  }
+};
+
 // Simple pop sound using Web Audio API
 const createPopSound = () => {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
     
     oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    gainNode.connect(ctx.destination);
     
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.05);
+    oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.05);
     
-    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    gainNode.gain.setValueAtTime(0.08, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
     
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.1);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.08);
   } catch (e) {
-    // Audio not supported
+    // Audio playback failed - silently ignore
   }
 };
 
@@ -30,7 +50,7 @@ const triggerHaptic = (pattern: number | number[] = 10) => {
       navigator.vibrate(pattern);
     }
   } catch (e) {
-    // Vibration not supported
+    // Vibration not supported - silently ignore
   }
 };
 
@@ -43,7 +63,7 @@ export const useTapFeedback = () => {
     }
     
     if (haptic) {
-      triggerHaptic([5, 30, 5]); // Short double tap pattern
+      triggerHaptic([5, 20, 5]); // Short double tap pattern
     }
   };
 

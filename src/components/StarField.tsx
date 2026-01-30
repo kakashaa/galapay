@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 interface Star {
   x: number;
@@ -14,6 +14,26 @@ export const StarField = ({ starCount = 50 }: { starCount?: number }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const starsRef = useRef<Star[]>([]);
   const animationRef = useRef<number>(0);
+  const isRunningRef = useRef(true);
+
+  const resizeHandler = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Recreate stars on resize
+    starsRef.current = Array.from({ length: starCount }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2 + 0.5,
+      opacity: Math.random() * 0.5 + 0.2,
+      speed: Math.random() * 0.3 + 0.1,
+      pulse: Math.random() * Math.PI * 2,
+      pulseSpeed: Math.random() * 0.02 + 0.01,
+    }));
+  }, [starCount]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -22,22 +42,7 @@ export const StarField = ({ starCount = 50 }: { starCount?: number }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    const createStars = () => {
-      starsRef.current = Array.from({ length: starCount }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        size: Math.random() * 2 + 0.5,
-        opacity: Math.random() * 0.5 + 0.2,
-        speed: Math.random() * 0.3 + 0.1,
-        pulse: Math.random() * Math.PI * 2,
-        pulseSpeed: Math.random() * 0.02 + 0.01,
-      }));
-    };
+    isRunningRef.current = true;
 
     const drawStar = (star: Star) => {
       const pulseFactor = Math.sin(star.pulse) * 0.3 + 0.7;
@@ -66,6 +71,8 @@ export const StarField = ({ starCount = 50 }: { starCount?: number }) => {
     };
 
     const animate = () => {
+      if (!isRunningRef.current) return;
+      
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       starsRef.current.forEach((star) => {
@@ -85,20 +92,19 @@ export const StarField = ({ starCount = 50 }: { starCount?: number }) => {
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    resizeCanvas();
-    createStars();
+    // Initialize
+    resizeHandler();
     animate();
 
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-      createStars();
-    });
+    // Add resize listener
+    window.addEventListener('resize', resizeHandler);
 
     return () => {
+      isRunningRef.current = false;
       cancelAnimationFrame(animationRef.current);
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', resizeHandler);
     };
-  }, [starCount]);
+  }, [starCount, resizeHandler]);
 
   return (
     <canvas
