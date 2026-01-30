@@ -29,7 +29,7 @@ const Confirm = () => {
         Content scrolls; actions are pinned to bottom to avoid mobile Safari
         nested-scroll edge cases that can block reaching the last button.
       */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-44">
+      <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-32">
         {/* Warning Card */}
         <div className="glass-card p-5 mb-5">
           <div className="flex items-center gap-3 mb-4">
@@ -100,39 +100,31 @@ const Confirm = () => {
         </div>
       </div>
 
-      {/* Pinned actions */}
-      <div className="fixed inset-x-0 bottom-0 z-40 p-6 pt-4">
-        <div className="glass-card p-4">
-          {/* Confirmation Checkbox */}
-          <button
-            onClick={() => setConfirmed((v) => !v)}
-            className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${
-              confirmed ? 'bg-primary/10 border-primary' : 'bg-card border-border'
-            }`}
-          >
-            {confirmed ? (
-              <CheckSquare className="w-6 h-6 text-primary" />
-            ) : (
-              <Square className="w-6 h-6 text-muted-foreground" />
-            )}
-            <span className={`text-right font-medium ${confirmed ? 'text-primary' : 'text-foreground'}`}>
-              أؤكد أني حولت إلى غلا لايف (10000) ولدي إيصال مشابه
-            </span>
-          </button>
+      {/* Confirmation Checkbox */}
+      <button
+        onClick={() => setConfirmed(!confirmed)}
+        className={`flex items-center gap-3 p-4 rounded-xl border mb-6 transition-all ${
+          confirmed ? 'bg-primary/10 border-primary' : 'bg-card border-border'
+        }`}
+      >
+        {confirmed ? (
+          <CheckSquare className="w-6 h-6 text-primary" />
+        ) : (
+          <Square className="w-6 h-6 text-muted-foreground" />
+        )}
+        <span className={`font-medium ${confirmed ? 'text-primary' : 'text-foreground'}`}>
+          أؤكد أني حولت إلى غلا لايف (10000) ولدي إيصال مشابه
+        </span>
+      </button>
 
-          {/* Continue Button */}
-          <button
-            onClick={handleContinue}
-            disabled={!confirmed}
-            className={`mobile-btn-primary mt-3 ${!confirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            متابعة لرفع الطلب
-          </button>
-
-          {/* Safe-area padding for iPhone home indicator */}
-          <div className="h-[env(safe-area-inset-bottom)]" />
-        </div>
-      </div>
+      {/* Continue Button */}
+      <button
+        onClick={handleContinue}
+        disabled={!confirmed}
+        className={`mobile-btn-primary ${!confirmed ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
+        متابعة لرفع الطلب
+      </button>
     </div>
   );
 };
