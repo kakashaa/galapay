@@ -36,10 +36,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Admin Icon - Top Right */}
+      {/* Admin Icon - Top Left */}
       <button
         onClick={() => navigate('/admin/login')}
-        className="absolute top-4 left-4 p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors z-20"
+        className="absolute top-14 left-4 p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors z-20"
         title="دخول المسؤولين"
       >
         <Settings className="w-5 h-5 text-muted-foreground" />
