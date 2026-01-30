@@ -69,7 +69,7 @@ const AdminLogin = () => {
         description: `تم تسجيل الدخول بنجاح`,
       });
       
-      navigate('/admin/dashboard');
+      navigate('/admin');
     } catch (error: any) {
       console.error('Error:', error);
       toast({

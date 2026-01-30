@@ -9,6 +9,7 @@ import PayoutRequest from "./pages/PayoutRequest";
 import Success from "./pages/Success";
 import Track from "./pages/Track";
 import AdminLogin from "./pages/admin/Login";
+import AdminPortal from "./pages/admin/AdminPortal";
 import AdminDashboard from "./pages/admin/Dashboard";
 import InstantPayoutIntro from "./pages/instant/InstantPayoutIntro";
 import InstantPayoutBanks from "./pages/instant/InstantPayoutBanks";
@@ -31,7 +32,9 @@ const App = () => (
           <Route path="/instant" element={<InstantPayoutIntro />} />
           <Route path="/instant/banks" element={<InstantPayoutBanks />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminPortal />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/instant" element={<AdminDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
