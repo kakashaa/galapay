@@ -83,7 +83,7 @@ const InstantDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-warning/10 backdrop-blur-xl border-b border-warning/30 px-4 py-3">
         <div className="flex items-center gap-3">
@@ -119,7 +119,7 @@ const InstantDashboard = () => {
       </div>
 
       {/* Requests List */}
-      <main className="flex-1 p-4 space-y-3">
+      <main className="flex-1 overflow-y-auto p-4 space-y-3">
         {filteredRequests.length === 0 ? (
           <div className="text-center py-12">
             <Zap className="w-12 h-12 text-muted-foreground mx-auto mb-4" />

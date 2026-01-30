@@ -277,9 +277,9 @@ const InstantPayoutRequest = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
+    <div className="h-screen bg-background flex flex-col overflow-hidden" dir="rtl">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border shrink-0">
         <div className="flex items-center justify-between p-4">
           <button
             onClick={() => navigate('/instant/banks')}
@@ -310,7 +310,7 @@ const InstantPayoutRequest = () => {
         </div>
       </div>
 
-      <div className="p-5 space-y-6 pb-32">
+      <div className="flex-1 overflow-y-auto p-5 space-y-6 pb-32">
         {/* Step 1: Supporter Info */}
         {currentStep === 1 && (
           <div className="space-y-4 animate-in fade-in">
