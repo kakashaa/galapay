@@ -865,32 +865,39 @@ export default function SpecialIdPage() {
               </label>
             </div>
 
-            {/* Example Image Dialog */}
+            {/* Example Image Dialog - Compact Box Style */}
             <Dialog open={showExampleDialog} onOpenChange={setShowExampleDialog}>
-              <DialogContent className="max-w-md p-0 overflow-hidden">
-                <div className="relative">
-                  <button
-                    onClick={() => setShowExampleDialog(false)}
-                    className="absolute top-2 right-2 z-10 bg-background/80 backdrop-blur-sm rounded-full p-2 hover:bg-background transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                  <img
-                    src="/examples/gala-me-page-example.png"
-                    alt="مثال صورة صفحة Me"
-                    className="w-full h-auto"
-                  />
-                  <div className="p-4 bg-background">
-                    <h3 className="font-bold text-foreground mb-2">مثال على الصورة المطلوبة</h3>
-                    <p className="text-sm text-muted-foreground">
-                      يجب أن تكون الصورة من صفحة Me (الحساب الشخصي) في تطبيق غلا لايف، 
-                      حيث تظهر اللفلات (الأرقام الملونة) في أعلى الصفحة.
+              <DialogContent className="max-w-xs sm:max-w-sm p-4 rounded-2xl">
+                <div className="space-y-3">
+                  {/* Header with close button */}
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-foreground text-sm">مثال على الصورة المطلوبة</h3>
+                    <button
+                      onClick={() => setShowExampleDialog(false)}
+                      className="bg-muted rounded-full p-1.5 hover:bg-muted/80 transition-colors"
+                    >
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </div>
+                  
+                  {/* Image in contained box */}
+                  <div className="border-2 border-border rounded-xl overflow-hidden bg-muted/30">
+                    <img
+                      src="/examples/gala-me-page-example.png"
+                      alt="مثال صورة صفحة Me"
+                      className="w-full h-auto max-h-[300px] object-contain"
+                    />
+                  </div>
+                  
+                  {/* Description */}
+                  <p className="text-xs text-muted-foreground text-center">
+                    يجب أن تكون الصورة من صفحة Me حيث تظهر اللفلات الملونة
+                  </p>
+                  
+                  <div className="p-2 bg-primary/10 rounded-lg text-center">
+                    <p className="text-xs text-primary">
+                      ⭐ يجب أن يكون أحد لفلاتك 30 أو أعلى
                     </p>
-                    <div className="mt-3 p-2 bg-primary/10 rounded-lg">
-                      <p className="text-xs text-primary">
-                        ⭐ يجب أن يكون أحد لفلاتك 30 أو أعلى للتأهل
-                      </p>
-                    </div>
                   </div>
                 </div>
               </DialogContent>
