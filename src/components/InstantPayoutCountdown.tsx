@@ -41,9 +41,9 @@ const InstantPayoutCountdown = () => {
   }, []);
 
   return (
-    <div className="flex items-center gap-1.5 bg-black/30 rounded-full px-2.5 py-1">
-      <Clock className="w-3 h-3 text-white" />
-      <span className="text-[10px] text-white font-bold tabular-nums" dir="ltr">
+    <div className="flex items-center gap-1 bg-black/30 rounded-full px-1.5 py-0.5">
+      <Clock className="w-2.5 h-2.5 text-white" />
+      <span className="text-[8px] text-white font-bold tabular-nums" dir="ltr">
         {timeLeft.days}d {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
       </span>
     </div>
