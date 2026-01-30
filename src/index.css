@@ -355,4 +355,148 @@
   .crypto-label {
     @apply text-xs text-muted-foreground;
   }
+
+  /* Neon card with animated border */
+  .neon-card {
+    @apply rounded-2xl;
+    background: linear-gradient(145deg, hsla(150, 35%, 10%, 0.95), hsla(150, 35%, 6%, 0.98));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsla(142, 70%, 45%, 0.3);
+    box-shadow: 
+      0 0 20px hsla(142, 76%, 50%, 0.15),
+      inset 0 1px 0 hsla(142, 70%, 50%, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .neon-card:hover {
+    border-color: hsla(142, 70%, 45%, 0.5);
+    box-shadow: 
+      0 0 30px hsla(142, 76%, 50%, 0.25),
+      0 0 60px hsla(142, 76%, 50%, 0.1),
+      inset 0 1px 0 hsla(142, 70%, 50%, 0.15);
+    transform: translateY(-2px);
+  }
+
+  /* Premium page background */
+  .premium-bg {
+    background: 
+      radial-gradient(ellipse at 20% 0%, hsla(142, 76%, 50%, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, hsla(142, 76%, 50%, 0.05) 0%, transparent 50%),
+      linear-gradient(180deg, hsl(150 40% 4%) 0%, hsl(150 35% 3%) 100%);
+  }
+
+  /* Animated gradient border */
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(145deg, hsla(150, 35%, 10%, 0.95), hsla(150, 35%, 6%, 0.98));
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(
+      45deg,
+      hsla(142, 76%, 50%, 0.5),
+      hsla(150, 70%, 45%, 0.3),
+      hsla(142, 76%, 50%, 0.5)
+    );
+    border-radius: inherit;
+    z-index: -1;
+    animation: gradient-rotate 3s linear infinite;
+  }
+
+  @keyframes gradient-rotate {
+    0% {
+      filter: hue-rotate(0deg);
+    }
+    100% {
+      filter: hue-rotate(360deg);
+    }
+  }
+
+  /* Glow text effect */
+  .glow-text {
+    text-shadow: 0 0 10px hsla(142, 76%, 50%, 0.5), 0 0 20px hsla(142, 76%, 50%, 0.3);
+  }
+
+  /* Premium button with glow */
+  .btn-glow {
+    @apply relative overflow-hidden;
+    box-shadow: 0 0 20px hsla(142, 76%, 50%, 0.3);
+    transition: all 0.3s ease;
+  }
+
+  .btn-glow:hover {
+    box-shadow: 0 0 30px hsla(142, 76%, 50%, 0.5), 0 0 60px hsla(142, 76%, 50%, 0.2);
+    transform: translateY(-2px);
+  }
+
+  .btn-glow:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  /* Premium input styling */
+  .premium-input {
+    @apply w-full px-4 py-4 text-base rounded-xl;
+    background: hsla(150, 35%, 8%, 0.8);
+    border: 1px solid hsla(142, 70%, 45%, 0.2);
+    color: hsl(var(--foreground));
+    transition: all 0.3s ease;
+  }
+
+  .premium-input:focus {
+    outline: none;
+    border-color: hsla(142, 70%, 45%, 0.5);
+    box-shadow: 0 0 20px hsla(142, 76%, 50%, 0.2);
+  }
+
+  .premium-input::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Status badges with glow */
+  .status-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+    box-shadow: 0 0 10px currentColor;
+  }
+
+  /* Scroll animations */
+  .scroll-fade-in {
+    animation: scroll-fade 0.6s ease-out forwards;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  @keyframes scroll-fade {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Ripple effect for buttons */
+  .ripple {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ripple::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, hsla(142, 76%, 50%, 0.3) 0%, transparent 70%);
+    transform: scale(0);
+    opacity: 0;
+    transition: transform 0.5s ease, opacity 0.3s ease;
+  }
+
+  .ripple:active::after {
+    transform: scale(2);
+    opacity: 1;
+    transition: transform 0s, opacity 0s;
+  }
 }
