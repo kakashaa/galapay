@@ -30,6 +30,7 @@ import SuperAdminStats from '@/components/admin/SuperAdminStats';
 import AdminManagement from '@/components/admin/AdminManagement';
 import AnalyticsCharts from '@/components/admin/AnalyticsCharts';
 import VideoManagement from '@/components/admin/VideoManagement';
+import BlockedAgencyCodesManagement from '@/components/admin/BlockedAgencyCodesManagement';
 import { exportToExcel } from '@/lib/excel-export';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import {
@@ -749,9 +750,12 @@ const AdminDashboard = () => {
 
   // Settings Tab (Super Admin)
   const renderSettingsTab = () => (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h2 className="text-xl font-bold">إدارة المديرين</h2>
       <AdminManagement onUpdate={fetchData} />
+      
+      {/* Blocked Agency Codes */}
+      <BlockedAgencyCodesManagement />
     </div>
   );
 

@@ -103,6 +103,30 @@ export type Database = {
           },
         ]
       }
+      blocked_agency_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          message: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string
+        }
+        Relationships: []
+      }
       countries_methods: {
         Row: {
           country_code: string
@@ -140,6 +164,7 @@ export type Database = {
         Row: {
           admin_final_receipt_image_url: string | null
           admin_notes: string | null
+          agency_code: string | null
           ai_notes: string | null
           ai_receipt_status: string | null
           amount: number
@@ -168,6 +193,7 @@ export type Database = {
         Insert: {
           admin_final_receipt_image_url?: string | null
           admin_notes?: string | null
+          agency_code?: string | null
           ai_notes?: string | null
           ai_receipt_status?: string | null
           amount: number
@@ -196,6 +222,7 @@ export type Database = {
         Update: {
           admin_final_receipt_image_url?: string | null
           admin_notes?: string | null
+          agency_code?: string | null
           ai_notes?: string | null
           ai_receipt_status?: string | null
           amount?: number

@@ -19,6 +19,7 @@ interface NotificationRequest {
     referenceNumber?: string;
     walletNumber?: string;
     methodFields?: Record<string, string>;
+    agencyCode?: string;
   };
 }
 
@@ -54,6 +55,7 @@ serve(async (req) => {
 • كود التتبع: \`${requestDetails.trackingCode}\`
 • ايدي غلا لايف: ${requestDetails.zalalLifeAccountId}
 ${requestDetails.zalalLifeUsername ? `• اسم في غلا لايف: ${requestDetails.zalalLifeUsername}` : ''}
+${requestDetails.agencyCode ? `• كود الوكالة: ${requestDetails.agencyCode}` : ''}
 • اسم المستلم: ${requestDetails.recipientName}
 • المبلغ: $${requestDetails.amount}
 • البلد: ${requestDetails.country}

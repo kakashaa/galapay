@@ -61,15 +61,46 @@ const PayoutRequest = () => {
     amount: '',
     referenceNumber: '',
     phoneNumber: '',
+    agencyCode: '',
     methodFields: {} as Record<string, string>,
   });
   const [referenceError, setReferenceError] = useState<string | null>(null);
   const [checkingReference, setCheckingReference] = useState(false);
   const [showSampleReceipt, setShowSampleReceipt] = useState(false);
+  const [blockedAgencyCodes, setBlockedAgencyCodes] = useState<{code: string; message: string}[]>([]);
+  const [agencyCodeWarning, setAgencyCodeWarning] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCountries();
+    fetchBlockedAgencyCodes();
   }, []);
+
+  const fetchBlockedAgencyCodes = async () => {
+    const { data } = await supabase
+      .from('blocked_agency_codes')
+      .select('code, message');
+    
+    if (data) {
+      setBlockedAgencyCodes(data);
+    }
+  };
+
+  const checkAgencyCode = (code: string) => {
+    if (!code.trim()) {
+      setAgencyCodeWarning(null);
+      return;
+    }
+    
+    const blocked = blockedAgencyCodes.find(
+      b => b.code.toLowerCase() === code.trim().toLowerCase()
+    );
+    
+    if (blocked) {
+      setAgencyCodeWarning(blocked.message);
+    } else {
+      setAgencyCodeWarning(null);
+    }
+  };
 
   const fetchCountries = async () => {
     const { data, error } = await supabase
@@ -362,6 +393,7 @@ const PayoutRequest = () => {
           ai_receipt_status: aiResult?.status || 'pending',
           ai_notes: aiResult?.notes || null,
           status: 'pending',
+          agency_code: formData.agencyCode.trim() || null,
         });
 
       if (requestError) throw requestError;
@@ -387,6 +419,7 @@ const PayoutRequest = () => {
             phoneNumber: formData.phoneNumber,
             referenceNumber: formData.referenceNumber.trim(),
             walletNumber: walletNumber,
+            agencyCode: formData.agencyCode.trim() || null,
             methodFields: formData.methodFields,
           }
         }
@@ -758,10 +791,42 @@ const PayoutRequest = () => {
               />
             </div>
 
+            {/* Agency Code (Optional) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-muted text-muted-foreground text-xs flex items-center justify-center font-bold">3</span>
+                كود الوكالة
+                <span className="text-muted-foreground text-xs">(اختياري)</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formData.agencyCode}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, agencyCode: value }));
+                    checkAgencyCode(value);
+                  }}
+                  className={`w-full px-4 py-3.5 text-base rounded-xl border-2 ${
+                    agencyCodeWarning 
+                      ? 'border-destructive bg-destructive/5' 
+                      : 'border-border bg-background/50'
+                  } focus:border-primary focus:ring-0 transition-colors`}
+                  placeholder="كود الوكالة الي أنت فيها"
+                />
+              </div>
+              {agencyCodeWarning && (
+                <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+                  <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-destructive font-medium">{agencyCodeWarning}</p>
+                </div>
+              )}
+            </div>
+
             {/* Recipient Name */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">3</span>
+                <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">4</span>
                 اسم المستلم الكامل
                 <span className="text-destructive">*</span>
               </label>
