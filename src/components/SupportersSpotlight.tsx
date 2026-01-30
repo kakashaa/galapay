@@ -118,10 +118,10 @@ const SupportersSpotlight = () => {
               <img 
                 src={currentSupporter.avatar_url} 
                 alt={currentSupporter.name}
-                className="relative w-20 h-20 rounded-full object-cover border-3 border-primary/60 shadow-lg shadow-primary/20"
+                className="relative w-20 h-20 rounded-full object-cover border-2 border-primary/60 shadow-lg shadow-primary/20"
               />
             ) : (
-              <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-3 border-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+              <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-2 border-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
                 <span className="text-primary font-bold text-xl">{getInitials(currentSupporter.name)}</span>
               </div>
             )}
