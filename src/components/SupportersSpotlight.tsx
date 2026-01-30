@@ -109,7 +109,7 @@ const SupportersSpotlight = () => {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="flex flex-col items-center text-center"
+          className="neon-card p-4 flex flex-col items-center text-center"
         >
           {/* Avatar with glow effect */}
           <div className="relative mb-3">
@@ -118,23 +118,23 @@ const SupportersSpotlight = () => {
               <img 
                 src={currentSupporter.avatar_url} 
                 alt={currentSupporter.name}
-                className="relative w-20 h-20 rounded-full object-cover border-2 border-primary/60 shadow-lg shadow-primary/20"
+                className="relative w-16 h-16 rounded-full object-cover border-2 border-primary/60 shadow-lg shadow-primary/20"
               />
             ) : (
-              <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-2 border-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
-                <span className="text-primary font-bold text-xl">{getInitials(currentSupporter.name)}</span>
+              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-2 border-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+                <span className="text-primary font-bold text-lg">{getInitials(currentSupporter.name)}</span>
               </div>
             )}
           </div>
 
           {/* Name */}
-          <h4 className="text-base font-bold text-foreground mb-0.5">{currentSupporter.name}</h4>
+          <h4 className="text-sm font-bold text-foreground mb-0.5">{currentSupporter.name}</h4>
           
           {/* ID/Handle */}
           <p className="text-xs text-primary font-semibold mb-2">{currentSupporter.handle}</p>
 
           {/* Thank you message */}
-          <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px] line-clamp-2">
+          <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[220px] line-clamp-2">
             {currentSupporter.thank_you_text}
           </p>
         </motion.div>
