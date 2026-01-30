@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Zap, Users, Wallet, Shield, ChevronLeft, CheckCircle2, Info } from 'lucide-react';
+import { ArrowRight, Zap, Users, Wallet, Shield, ChevronLeft, CheckCircle2, Info, AlertCircle } from 'lucide-react';
 
 const InstantPayoutIntro = () => {
   const navigate = useNavigate();
@@ -9,18 +9,18 @@ const InstantPayoutIntro = () => {
   const steps = [
     {
       icon: Users,
-      title: 'الدعم يحوّل لك الفلوس',
-      description: 'الداعم يحول المبلغ على أحد حساباتنا البنكية',
+      title: 'داعمك يختار طريقة الدفع',
+      description: 'نوفر لداعمك جميع البنوك (أمريكا، السعودية، اليمن) عشان يختار اللي تناسبه',
     },
     {
       icon: Wallet,
-      title: 'أنت تحوّل الكوينزات للوكالة',
-      description: 'حوّل الكوينزات لحساب الوكالة (آيدي 10000)',
+      title: 'الداعم يحوّل على حساباتنا',
+      description: 'داعمك يحول المبلغ على أحد حساباتنا البنكية المتاحة',
     },
     {
       icon: Zap,
-      title: 'استلم فلوسك فوراً',
-      description: 'نحوّل لك المبلغ خلال دقائق بعد التأكد من الإيصالات',
+      title: 'نحوّل لك على بنكك',
+      description: 'بعد التأكد من الحوالة، نحوّل لك المبلغ على حسابك البنكي فوراً!',
     },
   ];
 
@@ -48,10 +48,10 @@ const InstantPayoutIntro = () => {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-foreground mb-2">
-              بيع راتبك في أي وقت! ⚡
+              سهّل على داعمك! 🤝
             </h2>
             <p className="text-muted-foreground">
-              خدمة سريعة تساعدك تستلم فلوسك فوراً من الداعمين
+              نوفر لداعمك كل طرق الدفع ونحوّل لك الفلوس مباشرة
             </p>
           </div>
         </div>
@@ -63,11 +63,12 @@ const InstantPayoutIntro = () => {
               <Info className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-bold text-foreground mb-1">ما هي هذه الخدمة؟</h3>
+              <h3 className="font-bold text-foreground mb-1">كيف نساعدك؟</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                إذا عندك داعم يريد يشحن لك في تطبيق غلا لايف، بدل ما تنتظر الراتب الشهري، 
-                الداعم يحوّل الفلوس على حساباتنا البنكية، وأنت تحوّل له الكوينزات، 
-                وإحنا نحوّل لك المبلغ فوراً! 💰
+                داعمك يريد يشحن لك كوينزات لكن ما عنده نفس البنك اللي عندك؟ 🤔
+                <br /><br />
+                <strong className="text-foreground">لا تقلق!</strong> إحنا نوفر لداعمك جميع طرق الدفع (أمريكا، السعودية، اليمن)، 
+                الداعم يحوّل على حساباتنا، وإحنا نحوّل لك المبلغ على بنكك الخاص فوراً! 💰
               </p>
             </div>
           </div>
@@ -97,28 +98,45 @@ const InstantPayoutIntro = () => {
           </div>
         </div>
 
+        {/* Critical Warning */}
+        <div className="bg-destructive/10 border-2 border-destructive/50 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-6 h-6 text-destructive" />
+            <h3 className="font-bold text-destructive">⚠️ تنبيه مهم جداً!</h3>
+          </div>
+          <p className="text-sm text-foreground font-medium leading-relaxed">
+            لا تحوّل الكوينزات لداعمك إلا بعد ما نتأكد إن الفلوس وصلت لحساباتنا!
+            <br />
+            <span className="text-muted-foreground">انتظر تأكيدنا أولاً لحماية نفسك من أي احتيال.</span>
+          </p>
+        </div>
+
         {/* Important Notes */}
         <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-warning" />
-            <h3 className="font-bold text-foreground">ملاحظات مهمة</h3>
+            <h3 className="font-bold text-foreground">كيف تتم العملية؟</h3>
           </div>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>الداعم يحول على حساباتنا فقط (سنعرضها لك)</span>
+              <span>أرسل لداعمك رابط حساباتنا البنكية</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>أنت تحول الكوينزات لوكالة <strong className="text-primary">10000</strong> (غلا لايف)</span>
+              <span>الداعم يحوّل على الحساب اللي يناسبه</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>نحتاج إيصال تحويل الداعم + إيصال تحويلك للكوينزات</span>
+              <span>نتأكد من وصول المبلغ ونبلغك</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>العملية تستغرق من دقيقة إلى 10 دقائق</span>
+              <span>حوّل الكوينزات لداعمك بعد تأكيدنا</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <span>نحوّل لك المبلغ على بنكك خلال دقائق!</span>
             </li>
           </ul>
         </div>
