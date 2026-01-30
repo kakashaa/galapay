@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useSavedRequests } from "@/hooks/use-saved-requests";
 import { 
   ShieldBan, 
   Search, 
@@ -76,6 +77,7 @@ const MIN_DESCRIPTION_LENGTH = 20;
 
 export default function BanReportPage() {
   const navigate = useNavigate();
+  const { saveTrackingCode } = useSavedRequests();
   
   const [viewMode, setViewMode] = useState<ViewMode>('menu');
   const [currentStep, setCurrentStep] = useState(1);
@@ -211,6 +213,9 @@ export default function BanReportPage() {
         console.error('Telegram notification failed:', telegramError);
         // Don't fail the whole submission if notification fails
       }
+
+      // Save report to local storage for tracking
+      saveTrackingCode(data.id, 'ban_report', reporterGalaId);
 
       setRequestId(data.id.substring(0, 8).toUpperCase());
       setIsSuccess(true);

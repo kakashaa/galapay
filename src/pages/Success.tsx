@@ -16,7 +16,9 @@ const Success = () => {
   // Save tracking code to localStorage when page loads
   useEffect(() => {
     if (trackingCode) {
-      saveTrackingCode(trackingCode);
+      // Save with appropriate type
+      const requestType = isInstant ? 'instant' : 'payout';
+      saveTrackingCode(trackingCode, requestType);
       setSaved(true);
       // Show save confirmation
       toast({
@@ -24,7 +26,7 @@ const Success = () => {
         description: 'يمكنك الوصول لطلباتك السابقة من الصفحة الرئيسية',
       });
     }
-  }, [trackingCode, saveTrackingCode]);
+  }, [trackingCode, isInstant, saveTrackingCode]);
 
   if (!trackingCode) {
     return <Navigate to="/" replace />;

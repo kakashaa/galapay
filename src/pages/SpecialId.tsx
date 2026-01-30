@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useSavedRequests } from "@/hooks/use-saved-requests";
 import {
   Dialog,
   DialogContent,
@@ -140,6 +141,7 @@ interface SpecialIdRequest {
 
 export default function SpecialIdPage() {
   const navigate = useNavigate();
+  const { saveTrackingCode } = useSavedRequests();
   
   const [viewMode, setViewMode] = useState<ViewMode>('menu');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -404,6 +406,9 @@ export default function SpecialIdPage() {
       } catch (notifError) {
         console.error("Notification error:", notifError);
       }
+
+      // Save request to local storage for tracking
+      saveTrackingCode(data.id, 'special_id', galaUserId.trim());
 
       setSubmittedRequestId(data.id);
       setViewMode("success");

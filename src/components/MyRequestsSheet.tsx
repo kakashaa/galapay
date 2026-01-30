@@ -8,19 +8,24 @@ import {
   XCircle, 
   Trash2,
   Loader2,
-  ChevronLeft
+  ChevronLeft,
+  Zap,
+  ShieldBan,
+  Crown,
+  DollarSign
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
-import { useSavedRequests } from '@/hooks/use-saved-requests';
+import { useSavedRequests, RequestType } from '@/hooks/use-saved-requests';
 
 interface RequestStatus {
   tracking_code: string;
-  status: 'pending' | 'review' | 'paid' | 'rejected';
-  amount: number;
-  currency: string;
+  status: string;
+  amount?: number;
+  currency?: string;
   created_at: string;
+  type: RequestType;
 }
 
 const statusConfig = {
@@ -36,8 +41,26 @@ const statusConfig = {
     bgClass: 'bg-primary/10',
     textClass: 'text-primary',
   },
+  processing: {
+    label: 'قيد المعالجة',
+    icon: Eye,
+    bgClass: 'bg-primary/10',
+    textClass: 'text-primary',
+  },
   paid: {
     label: 'تم التحويل',
+    icon: CheckCircle2,
+    bgClass: 'bg-success/10',
+    textClass: 'text-success',
+  },
+  completed: {
+    label: 'مكتمل',
+    icon: CheckCircle2,
+    bgClass: 'bg-success/10',
+    textClass: 'text-success',
+  },
+  approved: {
+    label: 'تمت الموافقة',
     icon: CheckCircle2,
     bgClass: 'bg-success/10',
     textClass: 'text-success',
@@ -47,6 +70,29 @@ const statusConfig = {
     icon: XCircle,
     bgClass: 'bg-destructive/10',
     textClass: 'text-destructive',
+  },
+};
+
+const typeConfig = {
+  payout: {
+    label: 'راتب شهري',
+    icon: DollarSign,
+    color: 'text-green-500',
+  },
+  instant: {
+    label: 'سحب فوري',
+    icon: Zap,
+    color: 'text-warning',
+  },
+  ban_report: {
+    label: 'بلاغ حظر',
+    icon: ShieldBan,
+    color: 'text-destructive',
+  },
+  special_id: {
+    label: 'ايدي مميز',
+    icon: Crown,
+    color: 'text-primary',
   },
 };
 
@@ -71,16 +117,74 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
   const fetchRequestStatuses = async () => {
     setLoading(true);
     try {
-      const trackingCodes = savedRequests.map((r) => r.trackingCode);
+      const results: RequestStatus[] = [];
       
-      const { data, error } = await supabase
-        .from('payout_requests')
-        .select('tracking_code, status, amount, currency, created_at')
-        .in('tracking_code', trackingCodes);
+      // Get payout requests
+      const payoutCodes = savedRequests.filter(r => r.type === 'payout').map(r => r.trackingCode);
+      if (payoutCodes.length > 0) {
+        const { data: payoutData } = await supabase
+          .from('payout_requests')
+          .select('tracking_code, status, amount, currency, created_at')
+          .in('tracking_code', payoutCodes);
+        if (payoutData) {
+          results.push(...payoutData.map(d => ({ ...d, type: 'payout' as RequestType })));
+        }
+      }
+      
+      // Get instant payout requests
+      const instantCodes = savedRequests.filter(r => r.type === 'instant').map(r => r.trackingCode);
+      if (instantCodes.length > 0) {
+        const { data: instantData } = await supabase
+          .from('instant_payout_requests')
+          .select('tracking_code, status, host_payout_amount, host_currency, created_at')
+          .in('tracking_code', instantCodes);
+        if (instantData) {
+          results.push(...instantData.map(d => ({ 
+            tracking_code: d.tracking_code,
+            status: d.status,
+            amount: d.host_payout_amount,
+            currency: d.host_currency,
+            created_at: d.created_at,
+            type: 'instant' as RequestType 
+          })));
+        }
+      }
+      
+      // Get ban reports (using id as tracking_code)
+      const banReportIds = savedRequests.filter(r => r.type === 'ban_report').map(r => r.trackingCode);
+      if (banReportIds.length > 0) {
+        const { data: banData } = await supabase
+          .from('ban_reports')
+          .select('id, is_verified, created_at')
+          .in('id', banReportIds);
+        if (banData) {
+          results.push(...banData.map(d => ({ 
+            tracking_code: d.id,
+            status: d.is_verified ? 'approved' : 'pending',
+            created_at: d.created_at,
+            type: 'ban_report' as RequestType 
+          })));
+        }
+      }
+      
+      // Get special ID requests
+      const specialIdIds = savedRequests.filter(r => r.type === 'special_id').map(r => r.trackingCode);
+      if (specialIdIds.length > 0) {
+        const { data: specialData } = await supabase
+          .from('special_id_requests')
+          .select('id, status, created_at')
+          .in('id', specialIdIds);
+        if (specialData) {
+          results.push(...specialData.map(d => ({ 
+            tracking_code: d.id,
+            status: d.status,
+            created_at: d.created_at,
+            type: 'special_id' as RequestType 
+          })));
+        }
+      }
 
-      if (error) throw error;
-
-      setRequestStatuses(data as RequestStatus[]);
+      setRequestStatuses(results);
     } catch (error) {
       console.error('Error fetching request statuses:', error);
     } finally {
@@ -88,9 +192,15 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
     }
   };
 
-  const handleViewRequest = (trackingCode: string) => {
+  const handleViewRequest = (trackingCode: string, type: RequestType) => {
     onOpenChange(false);
-    navigate('/track', { state: { trackingCode } });
+    if (type === 'ban_report') {
+      navigate('/ban-report');
+    } else if (type === 'special_id') {
+      navigate('/special-id');
+    } else {
+      navigate('/track', { state: { trackingCode } });
+    }
   };
 
   const handleRemoveRequest = (e: React.MouseEvent, trackingCode: string) => {
@@ -131,33 +241,41 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
             ) : (
               savedRequests.map((saved) => {
                 const status = getStatusInfo(saved.trackingCode);
-                const config = status ? statusConfig[status.status] : null;
-                const StatusIcon = config?.icon || Clock;
+                const statusConfigItem = status?.status ? statusConfig[status.status as keyof typeof statusConfig] : null;
+                const typeItem = typeConfig[saved.type];
+                const StatusIcon = statusConfigItem?.icon || Clock;
+                const TypeIcon = typeItem?.icon || FileText;
 
                 return (
                   <div
                     key={saved.trackingCode}
-                    onClick={() => handleViewRequest(saved.trackingCode)}
+                    onClick={() => handleViewRequest(saved.trackingCode, saved.type)}
                     className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/50 transition-colors"
                   >
-                    {/* Status Icon */}
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${config?.bgClass || 'bg-muted'}`}>
-                      <StatusIcon className={`w-6 h-6 ${config?.textClass || 'text-muted-foreground'}`} />
+                    {/* Type Icon */}
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${statusConfigItem?.bgClass || 'bg-muted'}`}>
+                      <TypeIcon className={`w-6 h-6 ${typeItem?.color || 'text-muted-foreground'}`} />
                     </div>
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-mono text-sm text-foreground mb-1" dir="ltr">
-                        {saved.trackingCode}
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs font-bold ${typeItem?.color}`}>{typeItem?.label}</span>
+                      </div>
+                      <p className="font-mono text-xs text-muted-foreground mb-1" dir="ltr">
+                        {saved.trackingCode.length > 12 ? saved.trackingCode.substring(0, 8) + '...' : saved.trackingCode}
                       </p>
                       {status ? (
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-medium ${config?.textClass}`}>
-                            {config?.label}
+                          <StatusIcon className={`w-3 h-3 ${statusConfigItem?.textClass}`} />
+                          <span className={`text-xs font-medium ${statusConfigItem?.textClass}`}>
+                            {statusConfigItem?.label}
                           </span>
-                          <span className="text-xs text-muted-foreground">
-                            • {status.amount.toLocaleString()} {status.currency}
-                          </span>
+                          {status.amount && status.currency && (
+                            <span className="text-xs text-muted-foreground">
+                              • {status.amount.toLocaleString()} {status.currency}
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">جاري التحميل...</span>
