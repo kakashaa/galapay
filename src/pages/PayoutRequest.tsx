@@ -531,7 +531,7 @@ const PayoutRequest = () => {
   const isStep3Complete = selectedCountry && selectedMethod && formData.phoneNumber;
 
   return (
-    <div className="min-h-screen bg-background pb-8">
+    <div className="min-h-screen premium-bg pb-8">
       {/* Preview Mode Banner */}
       {isPreviewMode && (
         <div className="bg-warning text-warning-foreground py-3 px-4 text-center sticky top-0 z-20">
@@ -545,7 +545,7 @@ const PayoutRequest = () => {
       )}
 
       {/* Header */}
-      <div className={`sticky ${isPreviewMode ? 'top-[44px]' : 'top-0'} bg-background/95 backdrop-blur-sm border-b border-border z-10`}>
+      <div className={`sticky ${isPreviewMode ? 'top-[44px]' : 'top-0'} bg-card/80 backdrop-blur-xl border-b border-primary/20 z-10`}>
         <div className="max-w-md mx-auto p-4">
           <div className="flex items-center gap-3">
             <button
@@ -554,7 +554,7 @@ const PayoutRequest = () => {
             >
               <ArrowRight className="w-5 h-5 text-muted-foreground" />
             </button>
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-xl font-bold text-foreground glow-text">
               {isPreviewMode ? 'معاينة طريقة رفع الراتب' : 'طلب صرف جديد'}
             </h1>
           </div>
@@ -566,13 +566,13 @@ const PayoutRequest = () => {
                 <div className="flex flex-col items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
                     currentStep >= step.id 
-                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' 
+                      ? 'bg-primary text-primary-foreground' 
                       : 'bg-muted text-muted-foreground'
-                  }`}>
+                  }`} style={currentStep >= step.id ? { boxShadow: '0 0 20px hsla(142, 76%, 50%, 0.4)' } : undefined}>
                     <step.icon className="w-5 h-5" />
                   </div>
                   <span className={`text-[10px] mt-1 font-medium ${
-                    currentStep >= step.id ? 'text-primary' : 'text-muted-foreground'
+                    currentStep >= step.id ? 'text-primary glow-text' : 'text-muted-foreground'
                   }`}>
                     {step.title}
                   </span>
@@ -580,7 +580,7 @@ const PayoutRequest = () => {
                 {index < steps.length - 1 && (
                   <div className={`w-8 h-0.5 mx-1 transition-colors duration-300 ${
                     currentStep > step.id ? 'bg-primary' : 'bg-muted'
-                  }`} />
+                  }`} style={currentStep > step.id ? { boxShadow: '0 0 10px hsla(142, 76%, 50%, 0.3)' } : undefined} />
                 )}
               </div>
             ))}
@@ -590,14 +590,14 @@ const PayoutRequest = () => {
 
       <form onSubmit={handleSubmit} className="max-w-md mx-auto">
         {/* Step 1: Receipt & Reference (MOVED TO FIRST) */}
-        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 1 ? 'block' : 'hidden'}`}>
-          <div className="bg-card rounded-2xl p-5 border border-border space-y-5">
-            <div className="flex items-center gap-3 pb-3 border-b border-border">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 1 ? 'block animate-in fade-in slide-in-from-right-5' : 'hidden'}`}>
+          <div className="neon-card p-5 space-y-5">
+            <div className="flex items-center gap-3 pb-3 border-b border-primary/20">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center" style={{ boxShadow: '0 0 15px hsla(142, 76%, 50%, 0.2)' }}>
                 <Image className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-bold text-foreground">إيصال التحويل</h2>
+                <h2 className="font-bold text-foreground glow-text">إيصال التحويل</h2>
                 <p className="text-xs text-muted-foreground">ارفع إيصال تحويلك لغلا لايف</p>
               </div>
             </div>
