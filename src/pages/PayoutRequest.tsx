@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { motion } from 'framer-motion';
 import {
   Select,
   SelectContent,
@@ -856,14 +857,20 @@ const PayoutRequest = () => {
         </div>
 
         {/* Step 2: Personal Info */}
-        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 2 ? 'block' : 'hidden'}`}>
-          <div className="bg-card rounded-2xl p-5 border border-border space-y-5">
-            <div className="flex items-center gap-3 pb-3 border-b border-border">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+        {/* Step 2: Your Info */}
+        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 2 ? 'block animate-in fade-in slide-in-from-right-5' : 'hidden'}`}>
+          <motion.div 
+            className="neon-card p-5 space-y-5"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b border-primary/20">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center" style={{ boxShadow: '0 0 15px hsla(142, 76%, 50%, 0.2)' }}>
                 <User className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-bold text-foreground">معلومات الحساب</h2>
+                <h2 className="font-bold text-foreground glow-text">معلومات الحساب</h2>
                 <p className="text-xs text-muted-foreground">بيانات حسابك في غلا لايف</p>
               </div>
             </div>
@@ -974,36 +981,45 @@ const PayoutRequest = () => {
               </div>
               <p className="text-xs text-muted-foreground">يجب أن يكون 3-4 أجزاء مطابقاً للهوية</p>
             </div>
-          </div>
+          </motion.div>
 
           <div className="flex gap-3">
-            <button
+            <motion.button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="flex-1 py-4 rounded-xl font-bold text-lg bg-muted text-foreground transition-all hover:bg-muted/80 active:scale-[0.98]"
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-muted text-foreground transition-all hover:bg-muted/80"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               السابق
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => isStep2Complete && setCurrentStep(3)}
               disabled={!isStep2Complete}
-              className="flex-1 py-4 rounded-xl font-bold text-lg bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-primary/90 active:scale-[0.98]"
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed btn-glow"
+              whileHover={isStep2Complete ? { scale: 1.02 } : undefined}
+              whileTap={isStep2Complete ? { scale: 0.98 } : undefined}
             >
               التالي
-            </button>
+            </motion.button>
           </div>
         </div>
 
         {/* Step 3: Payout Details */}
-        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 3 ? 'block' : 'hidden'}`}>
-          <div className="bg-card rounded-2xl p-5 border border-border space-y-5">
-            <div className="flex items-center gap-3 pb-3 border-b border-border">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 3 ? 'block animate-in fade-in slide-in-from-right-5' : 'hidden'}`}>
+          <motion.div 
+            className="neon-card p-5 space-y-5"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b border-primary/20">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center" style={{ boxShadow: '0 0 15px hsla(142, 76%, 50%, 0.2)' }}>
                 <MapPin className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-bold text-foreground">بيانات الاستلام</h2>
+                <h2 className="font-bold text-foreground glow-text">بيانات الاستلام</h2>
                 <p className="text-xs text-muted-foreground">اختر البلد وطريقة الصرف</p>
               </div>
             </div>
@@ -1127,36 +1143,49 @@ const PayoutRequest = () => {
                 />
               </div>
             ))}
-          </div>
+          </motion.div>
 
           <div className="flex gap-3">
-            <button
+            <motion.button
               type="button"
               onClick={() => setCurrentStep(2)}
-              className="flex-1 py-4 rounded-xl font-bold text-lg bg-muted text-foreground transition-all hover:bg-muted/80 active:scale-[0.98]"
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-muted text-foreground transition-all hover:bg-muted/80"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               السابق
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => isStep3Complete && setCurrentStep(4)}
               disabled={!isStep3Complete}
-              className="flex-1 py-4 rounded-xl font-bold text-lg bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-primary/90 active:scale-[0.98]"
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed btn-glow"
+              whileHover={isStep3Complete ? { scale: 1.02 } : undefined}
+              whileTap={isStep3Complete ? { scale: 0.98 } : undefined}
             >
               التالي
-            </button>
+            </motion.button>
           </div>
         </div>
 
         {/* Step 4: Confirmation */}
-        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 4 ? 'block' : 'hidden'}`}>
-          <div className="bg-card rounded-2xl p-5 border border-border space-y-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-border">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+        <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 4 ? 'block animate-in fade-in slide-in-from-right-5' : 'hidden'}`}>
+          <motion.div 
+            className="neon-card p-5 space-y-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b border-primary/20">
+              <motion.div 
+                className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"
+                animate={{ boxShadow: ['0 0 15px hsla(142, 76%, 50%, 0.2)', '0 0 25px hsla(142, 76%, 50%, 0.4)', '0 0 15px hsla(142, 76%, 50%, 0.2)'] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
                 <CheckCircle2 className="w-5 h-5 text-primary" />
-              </div>
+              </motion.div>
               <div>
-                <h2 className="font-bold text-foreground">تأكيد الطلب</h2>
+                <h2 className="font-bold text-foreground glow-text">تأكيد الطلب</h2>
                 <p className="text-xs text-muted-foreground">راجع البيانات قبل الإرسال</p>
               </div>
             </div>
@@ -1164,14 +1193,20 @@ const PayoutRequest = () => {
             {/* Summary Cards */}
             <div className="space-y-3">
               {/* Amount Card */}
-              <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
+              <motion.div 
+                className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20"
+                style={{ boxShadow: '0 0 20px hsla(142, 76%, 50%, 0.15)' }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+              >
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">المبلغ</span>
-                  <span className="text-2xl font-bold text-primary" dir="ltr">
+                  <span className="text-2xl font-bold text-primary glow-text" dir="ltr">
                     ${formData.amount || '0'}
                   </span>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Details */}
               <div className="bg-muted/30 rounded-xl p-4 space-y-3">
@@ -1208,20 +1243,24 @@ const PayoutRequest = () => {
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
           <div className="flex gap-3">
-            <button
+            <motion.button
               type="button"
               onClick={() => setCurrentStep(3)}
-              className="flex-1 py-4 rounded-xl font-bold text-lg bg-muted text-foreground transition-all hover:bg-muted/80 active:scale-[0.98]"
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-muted text-foreground transition-all hover:bg-muted/80"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               تعديل
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="submit"
               disabled={loading}
-              className="flex-1 py-4 rounded-xl font-bold text-lg bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-primary/90 active:scale-[0.98] shadow-lg shadow-primary/30"
+              className="flex-1 py-4 rounded-xl font-bold text-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed btn-glow"
+              whileHover={!loading ? { scale: 1.02 } : undefined}
+              whileTap={!loading ? { scale: 0.98 } : undefined}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -1231,7 +1270,7 @@ const PayoutRequest = () => {
               ) : (
                 'إرسال الطلب'
               )}
-            </button>
+            </motion.button>
           </div>
         </div>
       </form>
