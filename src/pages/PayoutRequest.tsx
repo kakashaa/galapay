@@ -192,17 +192,22 @@ const PayoutRequest = () => {
             title: '✅ تم استخراج الرقم المرجعي',
             description: `الرقم المرجعي: ${extractResult.referenceNumber}`,
           });
+        } else {
+          // No reference number found - that's okay, field won't show
+          setReferenceExtractedByAI(false);
         }
         
         if (extractResult.amount && !formData.amount) {
           setFormData(prev => ({ ...prev, amount: extractResult.amount.toString() }));
         }
       } else {
-        setExtractionError(extractResult?.notes || 'لم يتم العثور على رقم مرجعي');
+        // Extraction failed - no reference number field will show
+        setReferenceExtractedByAI(false);
       }
     } catch (error) {
       console.error('Error extracting data:', error);
-      setExtractionError('حدث خطأ أثناء قراءة الإيصال');
+      // On error - no reference number field will show
+      setReferenceExtractedByAI(false);
     } finally {
       setExtractingData(false);
     }
@@ -349,23 +354,25 @@ const PayoutRequest = () => {
       return;
     }
 
-    // Validate reference number
-    if (!formData.referenceNumber || formData.referenceNumber.trim().length < 3) {
-      toast({
-        title: 'خطأ',
-        description: 'يرجى إدخال الرقم المرجعي من الإيصال',
-        variant: 'destructive',
-      });
-      return;
-    }
+    // Validate reference number only if it was extracted by AI
+    if (referenceExtractedByAI) {
+      if (!formData.referenceNumber || formData.referenceNumber.trim().length < 3) {
+        toast({
+          title: 'خطأ',
+          description: 'يرجى إدخال الرقم المرجعي من الإيصال',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-    if (referenceError) {
-      toast({
-        title: 'خطأ',
-        description: referenceError,
-        variant: 'destructive',
-      });
-      return;
+      if (referenceError) {
+        toast({
+          title: 'خطأ',
+          description: referenceError,
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     // Check if user already has a successful paid payout
@@ -391,20 +398,22 @@ const PayoutRequest = () => {
       return;
     }
 
-    // Double-check reference number before submission
-    const { data: existingRef } = await supabase
-      .from('payout_requests')
-      .select('id')
-      .eq('reference_number', formData.referenceNumber.trim())
-      .maybeSingle();
+    // Double-check reference number before submission (only if extracted)
+    if (referenceExtractedByAI && formData.referenceNumber.trim()) {
+      const { data: existingRef } = await supabase
+        .from('payout_requests')
+        .select('id')
+        .eq('reference_number', formData.referenceNumber.trim())
+        .maybeSingle();
 
-    if (existingRef) {
-      toast({
-        title: 'خطأ',
-        description: 'هذا الرقم المرجعي مستخدم مسبقاً. لا يمكن استخدام نفس الإيصال مرتين.',
-        variant: 'destructive',
-      });
-      return;
+      if (existingRef) {
+        toast({
+          title: 'خطأ',
+          description: 'هذا الرقم المرجعي مستخدم مسبقاً. لا يمكن استخدام نفس الإيصال مرتين.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     setLoading(true);
@@ -734,8 +743,8 @@ const PayoutRequest = () => {
               )}
             </div>
 
-            {/* Reference Number */}
-            {receiptPreview && (
+            {/* Reference Number - Only show if AI extracted it OR still extracting */}
+            {receiptPreview && (extractingData || referenceExtractedByAI) && (
               <div className="space-y-3">
                 <label className="text-sm font-medium text-foreground flex items-center gap-2">
                   <Hash className="w-4 h-4 text-primary" />
@@ -750,83 +759,45 @@ const PayoutRequest = () => {
                   </div>
                 )}
                 
-                {extractionError && !extractingData && (
-                  <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/20 rounded-xl">
-                    <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
-                    <div>
-                      <p className="text-sm text-warning font-medium">{extractionError}</p>
-                      <p className="text-xs text-muted-foreground">أدخل الرقم المرجعي يدوياً</p>
+                {!extractingData && referenceExtractedByAI && (
+                  <>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={formData.referenceNumber}
+                        readOnly
+                        className="w-full px-4 py-3.5 text-lg rounded-xl border-2 border-primary bg-primary/5 focus:ring-0 transition-colors text-center font-mono tracking-wider cursor-not-allowed bg-muted/30"
+                        dir="ltr"
+                      />
+                      {checkingReference && (
+                        <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground animate-spin" />
+                      )}
+                      {!checkingReference && !referenceError && (
+                        <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
+                      )}
+                      {!checkingReference && referenceError && (
+                        <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-destructive" />
+                      )}
                     </div>
-                  </div>
-                )}
-                
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    value={formData.referenceNumber}
-                    onChange={(e) => {
-                      // Only allow editing if NOT extracted by AI
-                      if (referenceExtractedByAI) return;
-                      const value = e.target.value;
-                      setFormData(prev => ({ ...prev, referenceNumber: value }));
-                      if (value.trim().length >= 3) {
-                        checkReferenceNumber(value.trim());
-                      } else {
-                        setReferenceError(null);
-                      }
-                    }}
-                    disabled={extractingData}
-                    readOnly={referenceExtractedByAI}
-                    className={`w-full px-4 py-3.5 text-lg rounded-xl border-2 ${
-                      referenceError 
-                        ? 'border-destructive bg-destructive/5' 
-                        : formData.referenceNumber && !referenceError 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-border bg-background/50'
-                    } focus:ring-0 transition-colors text-center font-mono tracking-wider disabled:opacity-50 ${
-                      referenceExtractedByAI ? 'cursor-not-allowed bg-muted/30' : ''
-                    }`}
-                    placeholder={extractingData ? 'جاري الاستخراج...' : 'أدخل الرقم المرجعي'}
-                    dir="ltr"
-                  />
-                  {checkingReference && (
-                    <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground animate-spin" />
-                  )}
-                  {!checkingReference && !extractingData && formData.referenceNumber && !referenceError && referenceExtractedByAI && (
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                      <CheckCircle2 className="w-5 h-5 text-primary" />
-                    </div>
-                  )}
-                  {!checkingReference && !extractingData && formData.referenceNumber && !referenceError && !referenceExtractedByAI && (
-                    <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
-                  )}
-                  {!checkingReference && referenceError && (
-                    <AlertCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-destructive" />
-                  )}
-                </div>
-                
-                {referenceError && (
-                  <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
-                    <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
-                    <div>
-                      <p className="text-sm text-destructive font-medium">{referenceError}</p>
-                      <p className="text-xs text-destructive/70 mt-1">يرجى رفع إيصال جديد برقم مرجعي مختلف</p>
-                    </div>
-                  </div>
-                )}
-                
-                {referenceExtractedByAI && !referenceError && (
-                  <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-xl">
-                    <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                    <p className="text-sm text-primary font-medium">تم استخراج الرقم المرجعي تلقائياً ولا يمكن تعديله</p>
-                  </div>
-                )}
-                
-                {!referenceExtractedByAI && extractionError && (
-                  <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                    💡 أدخل الرقم المرجعي يدوياً من الإيصال
-                  </p>
+                    
+                    {referenceError && (
+                      <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+                        <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+                        <div>
+                          <p className="text-sm text-destructive font-medium">{referenceError}</p>
+                          <p className="text-xs text-destructive/70 mt-1">يرجى رفع إيصال جديد برقم مرجعي مختلف</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!referenceError && (
+                      <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                        <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                        <p className="text-sm text-primary font-medium">تم استخراج الرقم المرجعي تلقائياً ولا يمكن تعديله</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
