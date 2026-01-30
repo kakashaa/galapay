@@ -16,7 +16,7 @@ const banksByCountry = {
         tag: '$Galalive313',
         accountHolder: 'Dobeee Soneee',
         qrImage: '/banks/cashapp-galalive313.jpeg',
-        iconUrl: '/wallets/cashapp.png',
+        iconUrl: '/banks/cashapp-logo.png',
       },
       {
         name: 'CashApp',
@@ -24,7 +24,7 @@ const banksByCountry = {
         tag: '$cashalk1',
         accountHolder: 'Gala live chat',
         qrImage: '/banks/cashapp-cashalk1.jpeg',
-        iconUrl: '/wallets/cashapp.png',
+        iconUrl: '/banks/cashapp-logo.png',
       },
       {
         name: 'Zelle',
@@ -32,26 +32,26 @@ const banksByCountry = {
         email: 'ghalibali32@gmail.com',
         accountHolder: 'ASSAF GHALIB',
         qrImage: '/banks/zelle-assaf.jpeg',
-        iconUrl: '/wallets/zelle.png',
+        iconUrl: '/banks/zelle-logo.png',
       },
       {
         name: 'Zelle',
         nameArabic: 'زيل (حساب 2)',
         accountHolder: 'Hamza Ghalib',
         qrImage: '/banks/zelle-hamza.jpeg',
-        iconUrl: '/wallets/zelle.png',
+        iconUrl: '/banks/zelle-logo.png',
       },
       {
         name: 'Chime',
         nameArabic: 'تشايم',
         qrImage: '/banks/chime-qr.png',
-        iconUrl: '/wallets/chime.png',
+        iconUrl: '/banks/chime-logo.png',
       },
       {
         name: 'Apple Pay',
         nameArabic: 'آبل باي',
         phoneNumber: '7146844346',
-        iconUrl: '/wallets/apple-pay.png',
+        iconUrl: '/banks/applepay-logo.png',
       },
     ],
   },
@@ -65,7 +65,7 @@ const banksByCountry = {
         accountHolder: 'حمزه علي حسين غالب',
         accountNumber: '3183733892',
         qrImage: '/banks/kuraimi-sar.jpeg',
-        iconUrl: '/wallets/kuraimi.png',
+        iconUrl: '/banks/kuraimi-logo.png',
       },
       {
         name: 'Kuraimi USD',
@@ -73,7 +73,7 @@ const banksByCountry = {
         accountHolder: 'حمزه علي حسين غالب',
         accountNumber: '3183929703',
         qrImage: '/banks/kuraimi-usd.jpeg',
-        iconUrl: '/wallets/kuraimi.png',
+        iconUrl: '/banks/kuraimi-logo.png',
       },
       {
         name: 'Kuraimi YER',
@@ -81,7 +81,7 @@ const banksByCountry = {
         accountHolder: 'حمزه علي حسين غالب',
         accountNumber: '3183742708',
         qrImage: '/banks/kuraimi-yer.jpeg',
-        iconUrl: '/wallets/kuraimi.png',
+        iconUrl: '/banks/kuraimi-logo.png',
       },
       {
         name: 'Jaib',
@@ -89,7 +89,7 @@ const banksByCountry = {
         phoneNumber: '776168713',
         accountHolder: 'حمزه علي حسين غالب',
         qrImage: '/banks/jaib-qr.jpeg',
-        iconUrl: '/wallets/jaib.png',
+        iconUrl: '/banks/jaib-logo.jpeg',
         additionalInfo: {
           'الرقم البديل': '1542377',
         },
@@ -107,6 +107,7 @@ const banksByCountry = {
         accountNumber: '618000010006080901670',
         iban: 'SA67 8000 0618 6080 1090 1670',
         qrImage: '/banks/alrajhi-qr.png',
+        iconUrl: '/banks/alrajhi-logo.png',
         additionalInfo: {
           'كود السويفت': 'RJHISARI',
         },
