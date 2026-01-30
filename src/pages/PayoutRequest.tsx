@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, DollarSign, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info } from 'lucide-react';
+import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -53,6 +53,8 @@ const PayoutRequest = () => {
   const [dailyLimitError, setDailyLimitError] = useState<string | null>(null);
   const [hasPreviousPaidRequest, setHasPreviousPaidRequest] = useState(false);
   const [checkingPreviousPayouts, setCheckingPreviousPayouts] = useState(false);
+  const [extractingData, setExtractingData] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     zalalLifeAccountId: '',
@@ -123,7 +125,7 @@ const PayoutRequest = () => {
     })) || []);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
@@ -136,12 +138,80 @@ const PayoutRequest = () => {
       }
       setReceiptImage(file);
       setReceiptPreview(URL.createObjectURL(file));
+      setExtractionError(null);
+      
+      // Auto-extract data from receipt
+      await extractReceiptData(file);
+    }
+  };
+
+  const extractReceiptData = async (file: File) => {
+    setExtractingData(true);
+    setExtractionError(null);
+    
+    try {
+      // Upload temporarily to get URL for AI
+      const fileExt = file.name.split('.').pop();
+      const fileName = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('receipts')
+        .upload(`temp-extractions/${fileName}`, file);
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        setExtractingData(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('receipts')
+        .getPublicUrl(`temp-extractions/${fileName}`);
+
+      // Call AI to extract data
+      const { data: extractResult, error: extractError } = await supabase.functions.invoke('extract-receipt-data', {
+        body: { imageUrl: urlData.publicUrl }
+      });
+
+      if (extractError) {
+        console.error('Extraction error:', extractError);
+        setExtractionError('فشل في قراءة الإيصال');
+        setExtractingData(false);
+        return;
+      }
+
+      if (extractResult?.success) {
+        // Auto-fill extracted data
+        if (extractResult.referenceNumber) {
+          setFormData(prev => ({ ...prev, referenceNumber: extractResult.referenceNumber }));
+          // Check if reference is already used
+          checkReferenceNumber(extractResult.referenceNumber);
+          toast({
+            title: '✅ تم استخراج الرقم المرجعي',
+            description: `الرقم المرجعي: ${extractResult.referenceNumber}`,
+          });
+        }
+        
+        if (extractResult.amount && !formData.amount) {
+          setFormData(prev => ({ ...prev, amount: extractResult.amount.toString() }));
+        }
+      } else {
+        setExtractionError(extractResult?.notes || 'لم يتم العثور على رقم مرجعي');
+      }
+    } catch (error) {
+      console.error('Error extracting data:', error);
+      setExtractionError('حدث خطأ أثناء قراءة الإيصال');
+    } finally {
+      setExtractingData(false);
     }
   };
 
   const removeImage = () => {
     setReceiptImage(null);
     setReceiptPreview(null);
+    setFormData(prev => ({ ...prev, referenceNumber: '' }));
+    setExtractionError(null);
+    setReferenceError(null);
   };
 
   const handleCountryChange = (countryId: string) => {
@@ -619,14 +689,27 @@ const PayoutRequest = () => {
                     className="w-full h-48 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-3 right-3 flex items-center gap-2 text-white text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-primary" />
-                    تم رفع الإيصال
-                  </div>
+                  
+                  {/* Loading overlay during extraction */}
+                  {extractingData && (
+                    <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
+                      <Loader2 className="w-10 h-10 text-primary animate-spin mb-3" />
+                      <span className="text-sm font-medium text-foreground">جاري قراءة الإيصال...</span>
+                      <span className="text-xs text-muted-foreground">استخراج الرقم المرجعي تلقائياً</span>
+                    </div>
+                  )}
+                  
+                  {!extractingData && (
+                    <div className="absolute bottom-3 right-3 flex items-center gap-2 text-white text-sm">
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                      تم رفع الإيصال
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="absolute top-3 left-3 p-2 bg-destructive text-white rounded-full shadow-lg hover:bg-destructive/90 transition-colors"
+                    disabled={extractingData}
+                    className="absolute top-3 left-3 p-2 bg-destructive text-white rounded-full shadow-lg hover:bg-destructive/90 transition-colors disabled:opacity-50"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -655,6 +738,25 @@ const PayoutRequest = () => {
                   <Hash className="w-4 h-4 text-primary" />
                   الرقم المرجعي من الإيصال <span className="text-destructive">*</span>
                 </label>
+                
+                {/* Extraction status */}
+                {extractingData && (
+                  <div className="flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                    <Loader2 className="w-5 h-5 text-primary animate-spin flex-shrink-0" />
+                    <span className="text-sm text-primary font-medium">جاري استخراج الرقم المرجعي تلقائياً...</span>
+                  </div>
+                )}
+                
+                {extractionError && !extractingData && (
+                  <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/20 rounded-xl">
+                    <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-warning font-medium">{extractionError}</p>
+                      <p className="text-xs text-muted-foreground">أدخل الرقم المرجعي يدوياً</p>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="relative">
                   <input
                     type="text"
@@ -669,20 +771,21 @@ const PayoutRequest = () => {
                         setReferenceError(null);
                       }
                     }}
+                    disabled={extractingData}
                     className={`w-full px-4 py-3.5 text-lg rounded-xl border-2 ${
                       referenceError 
                         ? 'border-destructive bg-destructive/5' 
                         : formData.referenceNumber && !referenceError 
                           ? 'border-primary bg-primary/5' 
                           : 'border-border bg-background/50'
-                    } focus:ring-0 transition-colors text-center font-mono tracking-wider`}
-                    placeholder="أدخل الرقم المرجعي"
+                    } focus:ring-0 transition-colors text-center font-mono tracking-wider disabled:opacity-50`}
+                    placeholder={extractingData ? 'جاري الاستخراج...' : 'أدخل الرقم المرجعي'}
                     dir="ltr"
                   />
                   {checkingReference && (
                     <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground animate-spin" />
                   )}
-                  {!checkingReference && formData.referenceNumber && !referenceError && (
+                  {!checkingReference && !extractingData && formData.referenceNumber && !referenceError && (
                     <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                   )}
                   {!checkingReference && referenceError && (
@@ -698,7 +801,7 @@ const PayoutRequest = () => {
                 )}
                 
                 <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                  💡 الرقم المرجعي موجود في إيصال التحويل ويستخدم مرة واحدة فقط
+                  💡 يتم استخراج الرقم المرجعي تلقائياً من الإيصال. يمكنك تعديله إذا لزم الأمر.
                 </p>
               </div>
             )}

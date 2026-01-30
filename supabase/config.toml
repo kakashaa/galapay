@@ -2,3 +2,6 @@ project_id = "bduzroexsjwkiqcwzjha"
 
 [functions.validate-receipt]
 verify_jwt = false
+
+[functions.extract-receipt-data]
+verify_jwt = false
