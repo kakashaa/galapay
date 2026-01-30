@@ -19,15 +19,19 @@ import {
   CheckCircle2,
   Loader2,
   Eye,
+  Clock,
+  FileText,
+  CheckCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type BanType = 'promotion' | 'insult' | 'defamation';
-type ViewMode = 'menu' | 'report' | 'search';
+type ViewMode = 'menu' | 'report' | 'search' | 'track';
 
 interface BanReport {
   id: string;
   reported_user_id: string;
+  reporter_gala_id: string;
   ban_type: BanType;
   description: string;
   evidence_url: string;
@@ -35,6 +39,9 @@ interface BanReport {
   created_at: string;
   is_verified: boolean;
   expires_at: string | null;
+  reward_amount: number | null;
+  reward_paid: boolean;
+  admin_notes: string | null;
 }
 
 const BAN_TYPES: { value: BanType; label: string; icon: React.ReactNode; description: string; requiresVideo: boolean; reward?: number; duration?: string }[] = [
@@ -65,6 +72,8 @@ const BAN_TYPES: { value: BanType; label: string; icon: React.ReactNode; descrip
   },
 ];
 
+const MIN_DESCRIPTION_LENGTH = 20;
+
 export default function BanReportPage() {
   const navigate = useNavigate();
   
@@ -90,9 +99,14 @@ export default function BanReportPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedReport, setSelectedReport] = useState<BanReport | null>(null);
 
+  // Track state
+  const [trackQuery, setTrackQuery] = useState("");
+  const [trackResults, setTrackResults] = useState<BanReport[]>([]);
+  const [isTracking, setIsTracking] = useState(false);
+
   // Evidence rendering state
   const [resolvedEvidenceUrl, setResolvedEvidenceUrl] = useState("");
-  const [isResolvingEvidence, setIsResolvingEvidence] = useState(false);
+  const [isResolvingEvidence] = useState(false);
   const [evidenceLoadError, setEvidenceLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -130,9 +144,18 @@ export default function BanReportPage() {
     setEvidencePreview(URL.createObjectURL(file));
   };
 
+  const canProceedToConfirmation = () => {
+    return evidenceFile && description.trim().length >= MIN_DESCRIPTION_LENGTH;
+  };
+
   const handleSubmit = async () => {
     if (!banType || !reportedUserId || !evidenceFile || !reporterGalaId) {
       toast.error("يرجى ملء جميع الحقول المطلوبة");
+      return;
+    }
+
+    if (description.trim().length < MIN_DESCRIPTION_LENGTH) {
+      toast.error(`يجب أن يكون الوصف ${MIN_DESCRIPTION_LENGTH} حرف على الأقل`);
       return;
     }
 
@@ -169,21 +192,24 @@ export default function BanReportPage() {
 
       if (error) throw error;
 
-      // Send Telegram notification
-      await supabase.functions.invoke('send-telegram-notification', {
-        body: {
-          type: 'new_request',
-          requestType: 'ban_report',
-          requestId: data.id,
-          reporterGalaId,
-          banType,
-          reportedUserId,
-          description,
-          evidenceUrl: urlData.publicUrl,
-          evidenceType: isVideo ? 'video' : 'image',
-          reward: selectedBanType?.reward,
-        }
-      });
+      // Send Telegram notification for ban report
+      try {
+        await supabase.functions.invoke('send-ban-report-notification', {
+          body: {
+            reportId: data.id,
+            reporterGalaId,
+            reportedUserId,
+            banType: selectedBanType?.label || banType,
+            description,
+            evidenceUrl: urlData.publicUrl,
+            evidenceType: isVideo ? 'video' : 'image',
+            reward: selectedBanType?.reward,
+          }
+        });
+      } catch (telegramError) {
+        console.error('Telegram notification failed:', telegramError);
+        // Don't fail the whole submission if notification fails
+      }
 
       setRequestId(data.id.substring(0, 8).toUpperCase());
       setIsSuccess(true);
@@ -230,6 +256,36 @@ export default function BanReportPage() {
     }
   };
 
+  const handleTrackReports = async () => {
+    if (!trackQuery.trim()) {
+      toast.error("يرجى إدخال الآيدي للتتبع");
+      return;
+    }
+
+    setIsTracking(true);
+    setTrackResults([]);
+
+    try {
+      const { data, error } = await supabase
+        .from('ban_reports')
+        .select('*')
+        .eq('reporter_gala_id', trackQuery.trim())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setTrackResults((data || []) as unknown as BanReport[]);
+      if (!data?.length) {
+        toast.info("لا توجد بلاغات مقدمة من هذا الآيدي");
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error("حدث خطأ أثناء البحث");
+    } finally {
+      setIsTracking(false);
+    }
+  };
+
   const resetForm = () => {
     setCurrentStep(1);
     setBanType(null);
@@ -244,6 +300,23 @@ export default function BanReportPage() {
 
   const getBanTypeLabel = (type: BanType) => {
     return BAN_TYPES.find(t => t.value === type)?.label || type;
+  };
+
+  const getStatusBadge = (report: BanReport) => {
+    if (report.is_verified) {
+      return (
+        <span className="flex items-center gap-1 bg-success/20 text-success px-2 py-1 rounded-full text-xs font-bold">
+          <CheckCircle className="w-3 h-3" />
+          تم التحقق
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center gap-1 bg-warning/20 text-warning px-2 py-1 rounded-full text-xs font-bold">
+        <Clock className="w-3 h-3" />
+        قيد المراجعة
+      </span>
+    );
   };
 
   if (isSuccess) {
@@ -261,6 +334,10 @@ export default function BanReportPage() {
             
             <h1 className="text-2xl font-bold">تم إرسال البلاغ بنجاح!</h1>
             <p className="text-muted-foreground">رقم البلاغ: #{requestId}</p>
+            
+            <div className="bg-muted/50 border border-border rounded-xl p-4 text-sm text-muted-foreground">
+              <p>يمكنك تتبع حالة البلاغ من خلال "تتبع بلاغاتي" باستخدام آيدي غلا لايف الخاص بك</p>
+            </div>
             
             {selectedBanType?.reward && (
               <div className="bg-warning/10 border border-warning/30 rounded-xl p-4">
@@ -300,24 +377,20 @@ export default function BanReportPage() {
       {/* Header */}
       <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
-          {viewMode !== 'menu' && (
-            <button
-              className="p-2 -ml-2 rounded-xl hover:bg-muted transition-colors"
-              onClick={() => {
-                if (currentStep > 1) {
+          <button
+            className="p-2 -ml-2 rounded-xl hover:bg-muted transition-colors"
+            onClick={() => {
+              if (viewMode !== 'menu') {
+                if (currentStep > 1 && viewMode === 'report') {
                   setCurrentStep(currentStep - 1);
                 } else {
                   setViewMode('menu');
                   resetForm();
                 }
-              }}
-            >
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          )}
-          <button
-            className="p-2 -ml-2 rounded-xl hover:bg-muted transition-colors"
-            onClick={() => navigate('/')}
+              } else {
+                navigate('/');
+              }
+            }}
           >
             <ArrowRight className="w-5 h-5" />
           </button>
@@ -329,7 +402,9 @@ export default function BanReportPage() {
               <h1 className="font-bold">البلاغات والبند</h1>
               <p className="text-xs text-muted-foreground">
                 {viewMode === 'menu' ? 'بلّغ أو ابحث عن سبب البند' : 
-                 viewMode === 'report' ? 'تقديم بلاغ جديد' : 'البحث عن سبب البند'}
+                 viewMode === 'report' ? 'تقديم بلاغ جديد' : 
+                 viewMode === 'track' ? 'تتبع بلاغاتي' :
+                 'البحث عن سبب البند'}
               </p>
             </div>
           </div>
@@ -376,6 +451,23 @@ export default function BanReportPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Track Option */}
+              <button
+                onClick={() => setViewMode('track')}
+                className="w-full bg-gradient-to-r from-purple-600/10 to-pink-600/10 border border-purple-500/20 rounded-2xl p-6 text-right"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
+                    <FileText className="w-7 h-7 text-purple-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-lg font-bold">تتبع بلاغاتي</p>
+                    <p className="text-sm text-muted-foreground">تابع حالة البلاغات التي قدمتها</p>
+                  </div>
+                  <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+                </div>
+              </button>
 
               {/* Search Option */}
               <button
@@ -512,17 +604,32 @@ export default function BanReportPage() {
                 <div className="space-y-4">
                   <h2 className="text-lg font-bold text-center">شرح المخالفة والإثبات</h2>
                   
-                  <Textarea
-                    placeholder="اشرح المخالفة بالتفصيل (اختياري)"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-[100px]"
-                  />
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">
+                      وصف المخالفة <span className="text-destructive">*</span>
+                    </label>
+                    <Textarea
+                      placeholder={`اشرح المخالفة بالتفصيل (${MIN_DESCRIPTION_LENGTH} حرف على الأقل)`}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="min-h-[120px]"
+                    />
+                    <div className="flex justify-between text-xs">
+                      <span className={description.length < MIN_DESCRIPTION_LENGTH ? 'text-destructive' : 'text-success'}>
+                        {description.length} / {MIN_DESCRIPTION_LENGTH} حرف (الحد الأدنى)
+                      </span>
+                      {description.length < MIN_DESCRIPTION_LENGTH && (
+                        <span className="text-destructive">
+                          متبقي {MIN_DESCRIPTION_LENGTH - description.length} حرف
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Evidence Upload */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium">
-                      رفع {selectedBanType?.requiresVideo ? 'فيديو (مطلوب)' : 'صورة أو فيديو'} الإثبات
+                      رفع {selectedBanType?.requiresVideo ? 'فيديو' : 'صورة أو فيديو'} الإثبات <span className="text-destructive">*</span>
                     </label>
                     
                     {selectedBanType?.requiresVideo && (
@@ -581,12 +688,18 @@ export default function BanReportPage() {
 
                   <Button
                     className="w-full h-12 bg-gradient-to-r from-destructive to-orange-600"
-                    disabled={!evidenceFile}
+                    disabled={!canProceedToConfirmation()}
                     onClick={() => setCurrentStep(5)}
                   >
                     التالي
                     <ArrowLeft className="w-4 h-4 mr-2" />
                   </Button>
+                  
+                  {!canProceedToConfirmation() && (
+                    <p className="text-xs text-center text-muted-foreground">
+                      يجب رفع الإثبات وكتابة وصف ({MIN_DESCRIPTION_LENGTH} حرف على الأقل) للمتابعة
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -608,12 +721,10 @@ export default function BanReportPage() {
                       <span className="text-muted-foreground">الآيدي المُبلَّغ عنه:</span>
                       <span className="font-bold">{reportedUserId}</span>
                     </div>
-                    {description && (
-                      <div>
-                        <span className="text-muted-foreground">الشرح:</span>
-                        <p className="text-sm mt-1">{description}</p>
-                      </div>
-                    )}
+                    <div>
+                      <span className="text-muted-foreground">الوصف:</span>
+                      <p className="text-sm mt-1">{description}</p>
+                    </div>
                     {selectedBanType?.reward && (
                       <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 text-center">
                         <Gift className="w-5 h-5 text-warning inline ml-2" />
@@ -638,6 +749,113 @@ export default function BanReportPage() {
                       'إرسال البلاغ'
                     )}
                   </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Track View */}
+          {viewMode === 'track' && (
+            <motion.div
+              key="track"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-4"
+            >
+              <h2 className="text-lg font-bold text-center">تتبع بلاغاتي</h2>
+              
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="أدخل آيدي غلا لايف الخاص بك"
+                  value={trackQuery}
+                  onChange={(e) => setTrackQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleTrackReports()}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleTrackReports}
+                  disabled={isTracking}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600"
+                >
+                  {isTracking ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Track Results */}
+              {trackResults.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-bold text-sm text-muted-foreground">
+                    بلاغاتك ({trackResults.length})
+                  </h3>
+                  {trackResults.map((report) => (
+                    <motion.div
+                      key={report.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-card border rounded-xl p-4 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-destructive/20 text-destructive px-3 py-1 rounded-full text-sm font-bold">
+                            {getBanTypeLabel(report.ban_type)}
+                          </span>
+                          {getStatusBadge(report)}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(report.created_at).toLocaleDateString('ar-SA')}
+                        </span>
+                      </div>
+                      
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">المُبلَّغ عنه:</span>
+                          <span className="font-bold">{report.reported_user_id}</span>
+                        </div>
+                      </div>
+                      
+                      {report.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">{report.description}</p>
+                      )}
+                      
+                      {report.is_verified && report.reward_amount && (
+                        <div className={`text-sm rounded-lg p-2 ${
+                          report.reward_paid 
+                            ? 'bg-success/10 text-success' 
+                            : 'bg-warning/10 text-warning'
+                        }`}>
+                          <Gift className="w-4 h-4 inline ml-1" />
+                          {report.reward_paid 
+                            ? `تم صرف المكافأة: ${report.reward_amount.toLocaleString()} كوينز` 
+                            : `مكافأة مستحقة: ${report.reward_amount.toLocaleString()} كوينز`
+                          }
+                        </div>
+                      )}
+
+                      {report.admin_notes && (
+                        <div className="bg-muted/50 rounded-lg p-2 text-sm">
+                          <span className="text-muted-foreground">ملاحظات الإدارة: </span>
+                          {report.admin_notes}
+                        </div>
+                      )}
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setSelectedReport(report)}
+                      >
+                        <Eye className="w-4 h-4 ml-2" />
+                        عرض الإثبات
+                      </Button>
+                    </motion.div>
+                  ))}
                 </div>
               )}
             </motion.div>
@@ -733,73 +951,73 @@ export default function BanReportPage() {
                   ))}
                 </div>
               )}
-
-              {/* Evidence Modal */}
-              {selectedReport && (
-                <div 
-                  className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-                  onClick={() => setSelectedReport(null)}
-                >
-                  <div 
-                    className="max-w-2xl w-full bg-card rounded-xl p-4 max-h-[90vh] overflow-auto"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <h3 className="font-bold mb-4 text-center">إثبات البلاغ</h3>
-                    <div className="rounded-lg overflow-hidden border border-border bg-muted/30">
-                      {isResolvingEvidence ? (
-                        <div className="p-10 flex items-center justify-center text-muted-foreground gap-2">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          جاري تحميل الدليل...
-                        </div>
-                      ) : !resolvedEvidenceUrl ? (
-                        <div className="p-10 text-center text-muted-foreground">
-                          لا يوجد دليل لهذا البلاغ.
-                        </div>
-                      ) : selectedReport.evidence_type === 'video' ? (
-                        <video
-                          key={resolvedEvidenceUrl}
-                          src={resolvedEvidenceUrl}
-                          controls
-                          playsInline
-                          preload="metadata"
-                          className="w-full max-h-[70vh] object-contain"
-                          onError={() => {
-                            setEvidenceLoadError("تعذر تحميل الفيديو داخل التطبيق.");
-                          }}
-                        />
-                      ) : (
-                        <img
-                          key={resolvedEvidenceUrl}
-                          src={resolvedEvidenceUrl}
-                          alt="دليل البلاغ"
-                          className="w-full max-h-[70vh] object-contain"
-                          loading="eager"
-                          onError={() => {
-                            setEvidenceLoadError("تعذر تحميل الصورة داخل التطبيق.");
-                          }}
-                        />
-                      )}
-                    </div>
-
-                    {evidenceLoadError && (
-                      <div className="mt-3 text-sm text-muted-foreground bg-muted/40 border border-border rounded-lg p-3">
-                        {evidenceLoadError}
-                      </div>
-                    )}
-                    
-                    <Button
-                      variant="outline"
-                      className="w-full mt-4"
-                      onClick={() => setSelectedReport(null)}
-                    >
-                      إغلاق
-                    </Button>
-                  </div>
-                </div>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Evidence Modal */}
+        {selectedReport && (
+          <div 
+            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedReport(null)}
+          >
+            <div 
+              className="max-w-2xl w-full bg-card rounded-xl p-4 max-h-[90vh] overflow-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="font-bold mb-4 text-center">إثبات البلاغ</h3>
+              <div className="rounded-lg overflow-hidden border border-border bg-muted/30">
+                {isResolvingEvidence ? (
+                  <div className="p-10 flex items-center justify-center text-muted-foreground gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    جاري تحميل الدليل...
+                  </div>
+                ) : !resolvedEvidenceUrl ? (
+                  <div className="p-10 text-center text-muted-foreground">
+                    لا يوجد دليل لهذا البلاغ.
+                  </div>
+                ) : selectedReport.evidence_type === 'video' ? (
+                  <video
+                    key={resolvedEvidenceUrl}
+                    src={resolvedEvidenceUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="w-full max-h-[70vh] object-contain"
+                    onError={() => {
+                      setEvidenceLoadError("تعذر تحميل الفيديو داخل التطبيق.");
+                    }}
+                  />
+                ) : (
+                  <img
+                    key={resolvedEvidenceUrl}
+                    src={resolvedEvidenceUrl}
+                    alt="دليل البلاغ"
+                    className="w-full max-h-[70vh] object-contain"
+                    loading="eager"
+                    onError={() => {
+                      setEvidenceLoadError("تعذر تحميل الصورة داخل التطبيق.");
+                    }}
+                  />
+                )}
+              </div>
+
+              {evidenceLoadError && (
+                <div className="mt-3 text-sm text-muted-foreground bg-muted/40 border border-border rounded-lg p-3">
+                  {evidenceLoadError}
+                </div>
+              )}
+              
+              <Button
+                variant="outline"
+                className="w-full mt-4"
+                onClick={() => setSelectedReport(null)}
+              >
+                إغلاق
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
