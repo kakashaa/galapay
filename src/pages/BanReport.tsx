@@ -238,10 +238,12 @@ export default function BanReportPage() {
     setSelectedReport(null);
 
     try {
+      // Only show verified/approved reports in search results
       const { data, error } = await supabase
         .from('ban_reports')
         .select('*')
         .eq('reported_user_id', searchQuery.trim())
+        .eq('is_verified', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
