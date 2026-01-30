@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.bulk-resend-notifications]
 verify_jwt = false
+
+[functions.generate-thank-you]
+verify_jwt = false
