@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, Settings, Zap, BookOpen } from 'lucide-react';
+import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, Settings, Zap, BookOpen, ChevronLeft } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
@@ -121,10 +121,11 @@ const Index = () => {
             whileTap={{ scale: 0.98 }}
           >
             <div className="flex items-center justify-between h-full">
+              <ChevronLeft className="w-5 h-5 text-primary/60 shrink-0" />
               <div className="flex-1 text-right">
-                <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="w-4 h-4 text-primary" />
+                <div className="flex items-center gap-2 mb-1 justify-end">
                   <span className="text-xs font-bold text-primary glow-text">خدمة سريعة وموثوقة</span>
+                  <Sparkles className="w-4 h-4 text-primary" />
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   ارفع راتبك واستلمه فوراً! 💰
@@ -142,10 +143,11 @@ const Index = () => {
             whileTap={{ scale: 0.98 }}
           >
             <div className="flex items-center h-full">
+              <ChevronLeft className="w-5 h-5 text-warning/60 shrink-0" />
               <div className="flex-1 text-right">
-                <div className="flex items-center gap-2 mb-1">
-                  <Zap className="w-4 h-4 text-warning" />
+                <div className="flex items-center gap-2 mb-1 justify-end">
                   <span className="text-xs font-bold text-warning">قريباً - السحب الفوري ⚡</span>
+                  <Zap className="w-4 h-4 text-warning" />
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   اسحب راتبك بأي وقت تحتاجه!
@@ -163,10 +165,11 @@ const Index = () => {
             whileTap={{ scale: 0.98 }}
           >
             <div className="flex items-center h-full">
+              <ChevronLeft className="w-5 h-5 text-destructive/60 shrink-0" />
               <div className="flex-1 text-right">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertCircle className="w-4 h-4 text-destructive" />
+                <div className="flex items-center gap-2 mb-1 justify-end">
                   <span className="text-xs font-bold text-destructive">مكافأة 50,000 كوينز! 🎁</span>
+                  <AlertCircle className="w-4 h-4 text-destructive" />
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   بلّغ عن ترويج لتطبيق آخر بالفيديو واحصل على المكافأة
