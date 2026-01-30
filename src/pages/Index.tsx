@@ -457,14 +457,6 @@ const Index = () => {
         </motion.button>
       )}
 
-      <motion.p 
-        className="text-muted-foreground text-xs mt-6 text-center z-10"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-      >
-        اضغط على الزر للبدء
-      </motion.p>
 
       <MyRequestsSheet open={myRequestsOpen} onOpenChange={setMyRequestsOpen} />
       <PayoutDisabledDialog open={disabledDialogOpen} onOpenChange={setDisabledDialogOpen} nextDate={nextPayoutDate} />
