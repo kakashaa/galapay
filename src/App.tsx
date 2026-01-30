@@ -10,6 +10,7 @@ import Success from "./pages/Success";
 import Track from "./pages/Track";
 import BanReport from "./pages/BanReport";
 import SpecialId from "./pages/SpecialId";
+import SupporterDetails from "./pages/SupporterDetails";
 import AdminLogin from "./pages/admin/Login";
 import AdminPortal from "./pages/admin/AdminPortal";
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/track" element={<Track />} />
           <Route path="/ban-report" element={<BanReport />} />
           <Route path="/special-id" element={<SpecialId />} />
+          <Route path="/supporter/:id" element={<SupporterDetails />} />
           <Route path="/instant" element={<InstantPayoutIntro />} />
           <Route path="/instant/banks" element={<InstantPayoutBanks />} />
           <Route path="/instant/request" element={<InstantPayoutRequest />} />

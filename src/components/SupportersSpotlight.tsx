@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Loader2, Sparkles } from 'lucide-react';
 
 interface Supporter {
   id: string;
@@ -11,9 +12,11 @@ interface Supporter {
   avatar_url: string | null;
   thank_you_text: string;
   sort_order: number;
+  ai_praise_text: string | null;
 }
 
 const SupportersSpotlight = () => {
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -23,7 +26,7 @@ const SupportersSpotlight = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('supporters')
-        .select('id, name, handle, avatar_url, thank_you_text, sort_order')
+        .select('id, name, handle, avatar_url, thank_you_text, sort_order, ai_praise_text')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
       
@@ -103,14 +106,27 @@ const SupportersSpotlight = () => {
       onTouchEnd={() => setTimeout(() => setIsPaused(false), 2000)}
     >
       <AnimatePresence mode="wait">
-        <motion.div
+        <motion.button
           key={currentSupporter.id}
+          onClick={() => navigate(`/supporter/${currentSupporter.id}`)}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="neon-card p-4 flex flex-col items-center text-center"
+          className="neon-card p-4 flex flex-col items-center text-center w-full cursor-pointer hover:border-primary/60 transition-all relative"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
+          {/* AI Badge - Clickable indicator */}
+          <motion.div
+            className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 rounded-full bg-warning/20 text-warning text-[10px] font-bold"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Sparkles className="w-3 h-3" />
+            <span>اضغط للمزيد</span>
+          </motion.div>
+
           {/* Avatar with glow effect */}
           <div className="relative mb-3">
             <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
@@ -137,7 +153,7 @@ const SupportersSpotlight = () => {
           <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[220px] line-clamp-2">
             {currentSupporter.thank_you_text}
           </p>
-        </motion.div>
+        </motion.button>
       </AnimatePresence>
 
       {/* Navigation Arrows - outside the content */}
