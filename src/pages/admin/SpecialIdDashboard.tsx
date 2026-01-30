@@ -49,6 +49,7 @@ interface SpecialIdRequest {
 export default function SpecialIdDashboard() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<SpecialIdRequest[]>([]);
+  const [allRequests, setAllRequests] = useState<SpecialIdRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("pending");
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,6 +61,24 @@ export default function SpecialIdDashboard() {
   useEffect(() => {
     fetchRequests();
   }, [filter]);
+
+  useEffect(() => {
+    fetchAllStats();
+  }, []);
+
+  const fetchAllStats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("special_id_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setAllRequests(data || []);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -83,6 +102,15 @@ export default function SpecialIdDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Calculate stats
+  const stats = {
+    pending: allRequests.filter(r => r.status === "pending").length,
+    approved: allRequests.filter(r => r.status === "approved").length,
+    rejected: allRequests.filter(r => r.status === "rejected").length,
+    banned: allRequests.filter(r => r.status === "banned").length,
+    total: allRequests.length,
   };
 
   const handleApprove = async () => {
@@ -246,6 +274,30 @@ export default function SpecialIdDashboard() {
           </Button>
         </div>
 
+        {/* Stats Cards */}
+        <div className="grid grid-cols-4 gap-3">
+          <div className="dark-card p-3 text-center">
+            <Clock className="w-5 h-5 mx-auto mb-1 text-yellow-500" />
+            <p className="text-2xl font-bold text-yellow-500">{stats.pending}</p>
+            <p className="text-xs text-muted-foreground">قيد المراجعة</p>
+          </div>
+          <div className="dark-card p-3 text-center">
+            <CheckCircle className="w-5 h-5 mx-auto mb-1 text-green-500" />
+            <p className="text-2xl font-bold text-green-500">{stats.approved}</p>
+            <p className="text-xs text-muted-foreground">موافق عليها</p>
+          </div>
+          <div className="dark-card p-3 text-center">
+            <XCircle className="w-5 h-5 mx-auto mb-1 text-red-400" />
+            <p className="text-2xl font-bold text-red-400">{stats.rejected}</p>
+            <p className="text-xs text-muted-foreground">مرفوضة</p>
+          </div>
+          <div className="dark-card p-3 text-center">
+            <Ban className="w-5 h-5 mx-auto mb-1 text-red-600" />
+            <p className="text-2xl font-bold text-red-600">{stats.banned}</p>
+            <p className="text-xs text-muted-foreground">محظورين</p>
+          </div>
+        </div>
+
         {/* Search & Filters */}
         <div className="dark-card p-4 space-y-3">
           <div className="relative">
@@ -260,11 +312,11 @@ export default function SpecialIdDashboard() {
 
           <div className="flex gap-2 flex-wrap">
             {[
-              { value: "pending", label: "قيد المراجعة" },
-              { value: "approved", label: "موافق عليها" },
-              { value: "rejected", label: "مرفوضة" },
-              { value: "banned", label: "محظورين" },
-              { value: "all", label: "الكل" },
+              { value: "pending", label: `قيد المراجعة (${stats.pending})` },
+              { value: "approved", label: `موافق عليها (${stats.approved})` },
+              { value: "rejected", label: `مرفوضة (${stats.rejected})` },
+              { value: "banned", label: `محظورين (${stats.banned})` },
+              { value: "all", label: `الكل (${stats.total})` },
             ].map((f) => (
               <Button
                 key={f.value}
