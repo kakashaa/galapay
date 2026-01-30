@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Crown, Sparkles, Loader2, X } from 'lucide-react';
+import { Heart, Crown, Sparkles, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface Supporter {
   id: string;
@@ -25,8 +24,6 @@ interface Host {
 const TopSpotlightBoxes = () => {
   const [supporterIndex, setSupporterIndex] = useState(0);
   const [hostIndex, setHostIndex] = useState(0);
-  const [selectedSupporter, setSelectedSupporter] = useState<Supporter | null>(null);
-  const [selectedHost, setSelectedHost] = useState<Host | null>(null);
 
   // Fetch real supporters from database
   const { data: supporters = [], isLoading: loadingSupporters } = useQuery({
@@ -123,16 +120,13 @@ const TopSpotlightBoxes = () => {
                 </>
               ) : (
                 <AnimatePresence mode="wait">
-                  <motion.button
+                  <motion.div
                     key={currentSupporter?.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
-                    onClick={() => currentSupporter && setSelectedSupporter(currentSupporter)}
-                    className="w-full flex flex-col items-center gap-1 cursor-pointer group"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    className="w-full flex flex-col items-center gap-1"
                   >
                     {/* Avatar */}
                     <div className="relative flex-shrink-0">
@@ -174,7 +168,7 @@ const TopSpotlightBoxes = () => {
                         {currentSupporter?.thank_you_text}
                       </p>
                     </div>
-                  </motion.button>
+                  </motion.div>
                 </AnimatePresence>
               )}
             </div>
@@ -248,140 +242,6 @@ const TopSpotlightBoxes = () => {
         </motion.div>
 
       </div>
-
-      {/* Supporter Praise Dialog */}
-      <Dialog open={!!selectedSupporter} onOpenChange={() => setSelectedSupporter(null)}>
-        <DialogContent className="max-w-sm mx-auto bg-card/95 backdrop-blur-xl border-primary/30 p-0 overflow-hidden">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="relative"
-          >
-            {/* Close button */}
-            <button
-              onClick={() => setSelectedSupporter(null)}
-              className="absolute top-3 left-3 p-1.5 rounded-full bg-muted/50 hover:bg-muted transition-colors z-10"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-
-            {/* Header with gradient */}
-            <div className="bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-6 pb-8 text-center">
-              {/* Avatar with glow */}
-              <motion.div 
-                className="relative inline-block mb-3"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-              >
-                <motion.div 
-                  className="absolute inset-0 bg-primary/40 rounded-full blur-2xl"
-                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-                {selectedSupporter?.avatar_url ? (
-                  <img 
-                    src={selectedSupporter.avatar_url} 
-                    alt={selectedSupporter.name}
-                    className="relative w-20 h-20 rounded-full object-cover border-3 border-primary/60 shadow-2xl shadow-primary/30"
-                  />
-                ) : (
-                  <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-3 border-primary/60 flex items-center justify-center shadow-2xl shadow-primary/30">
-                    <span className="text-primary font-bold text-xl">{selectedSupporter && getInitials(selectedSupporter.name)}</span>
-                  </div>
-                )}
-                <motion.div
-                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-card"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3, type: "spring" }}
-                >
-                  <Heart className="w-3 h-3 text-primary-foreground fill-current" />
-                </motion.div>
-              </motion.div>
-
-              {/* Name and Handle */}
-              <motion.h3 
-                className="text-lg font-bold text-foreground mb-1"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                {selectedSupporter?.name}
-              </motion.h3>
-              <motion.p 
-                className="text-sm text-primary font-semibold"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
-              >
-                {selectedSupporter?.handle}
-              </motion.p>
-            </div>
-
-            {/* AI Praise Content */}
-            <div className="p-5 pt-0 -mt-4">
-              <motion.div
-                className="bg-gradient-to-br from-primary/10 to-transparent rounded-2xl p-4 border border-primary/20"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                {/* AI Badge */}
-                <div className="flex items-center gap-2 mb-3">
-                  <motion.div
-                    className="flex items-center gap-1 px-2 py-1 rounded-full bg-warning/20 text-warning text-[10px] font-bold"
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    <span>رسالة من الذكاء الاصطناعي</span>
-                  </motion.div>
-                </div>
-
-                {/* Praise Text */}
-                <motion.p
-                  className="text-sm text-foreground leading-relaxed text-right"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  {selectedSupporter?.ai_praise_text || 'شكراً جزيلاً لدعمك الكبير لتطبيق غلا لايف! أنت من أفضل الداعمين ❤️'}
-                </motion.p>
-              </motion.div>
-
-              {/* Thank you footer */}
-              <motion.div
-                className="text-center mt-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                <p className="text-xs text-muted-foreground">
-                  شكراً لدعمك الكبير لتطبيق غلا لايف ❤️
-                </p>
-              </motion.div>
-            </div>
-          </motion.div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Host Praise Dialog - Will be implemented when host data is ready */}
-      <Dialog open={!!selectedHost} onOpenChange={() => setSelectedHost(null)}>
-        <DialogContent className="max-w-sm mx-auto bg-card/95 backdrop-blur-xl border-warning/30 p-0 overflow-hidden">
-          {/* Similar structure as supporter dialog but with warning colors */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="p-6 text-center"
-          >
-            <Crown className="w-12 h-12 text-warning mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-foreground mb-2">قريباً!</h3>
-            <p className="text-sm text-muted-foreground">سيتم الإعلان عن أفضل المضيفات قريباً</p>
-          </motion.div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
