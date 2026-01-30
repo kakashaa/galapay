@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.extract-receipt-data]
 verify_jwt = false
+
+[functions.telegram-ban-bot]
+verify_jwt = false
