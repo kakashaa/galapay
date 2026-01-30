@@ -591,7 +591,7 @@ const PayoutRequest = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto max-w-md mx-auto pb-8">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto max-w-md mx-auto pb-32">
         {/* Step 1: Receipt & Reference (MOVED TO FIRST) */}
         <div className={`p-4 space-y-4 transition-all duration-300 ${currentStep === 1 ? 'block' : 'hidden'}`}>
           <div className="bg-card rounded-2xl p-5 border border-border space-y-5">
