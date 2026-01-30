@@ -94,6 +94,7 @@ const RequestDetailsModal = ({
   };
 
   const updateStatus = async (newStatus: 'pending' | 'review' | 'paid' | 'rejected') => {
+    // Validation for paid status - require receipt
     if (newStatus === 'paid' && !finalReceipt && !request?.admin_final_receipt_image_url) {
       toast({
         title: 'خطأ',
@@ -103,6 +104,7 @@ const RequestDetailsModal = ({
       return;
     }
 
+    // Validation for rejected status - require reason
     if (newStatus === 'rejected' && !rejectionReason.trim()) {
       toast({
         title: 'خطأ',
@@ -115,62 +117,95 @@ const RequestDetailsModal = ({
     setUpdating(true);
 
     try {
-      let finalReceiptUrl = request?.admin_final_receipt_image_url;
+      let finalReceiptUrl: string | null = null;
 
-      // Upload final receipt if provided
-      if (finalReceipt) {
-        const fileExt = finalReceipt.name.split('.').pop();
-        const fileName = `admin-${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('receipts')
-          .upload(`admin-receipts/${fileName}`, finalReceipt);
+      // Only upload and set receipt URL for 'paid' status
+      if (newStatus === 'paid') {
+        if (finalReceipt) {
+          const fileExt = finalReceipt.name.split('.').pop();
+          const fileName = `admin-${Date.now()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('receipts')
+            .upload(`admin-receipts/${fileName}`, finalReceipt);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from('receipts')
-          .getPublicUrl(`admin-receipts/${fileName}`);
+          const { data: urlData } = supabase.storage
+            .from('receipts')
+            .getPublicUrl(`admin-receipts/${fileName}`);
 
-        finalReceiptUrl = urlData.publicUrl;
+          finalReceiptUrl = urlData.publicUrl;
+        } else {
+          // Keep existing receipt if no new one uploaded
+          finalReceiptUrl = request?.admin_final_receipt_image_url || null;
+        }
       }
 
-      // Update request with processed_by info
+      // Build update object based on status
+      const updateData: Record<string, unknown> = {
+        status: newStatus,
+        admin_notes: adminNotes || null,
+        processed_by: currentUserId || null,
+        processed_at: new Date().toISOString(),
+      };
+
+      // Status-specific fields
+      if (newStatus === 'paid') {
+        updateData.admin_final_receipt_image_url = finalReceiptUrl;
+        updateData.rejection_reason = null; // Clear any previous rejection reason
+      } else if (newStatus === 'rejected') {
+        updateData.rejection_reason = rejectionReason;
+        updateData.admin_final_receipt_image_url = null; // Clear receipt for rejected
+      } else if (newStatus === 'review') {
+        // For review status, keep existing values but clear rejection reason
+        updateData.rejection_reason = null;
+      } else if (newStatus === 'pending') {
+        // For pending (revert), clear processed info
+        updateData.rejection_reason = null;
+      }
+
+      // Update request
       const { error: updateError } = await supabase
         .from('payout_requests')
-        .update({
-          status: newStatus,
-          admin_notes: adminNotes || null,
-          admin_final_receipt_image_url: finalReceiptUrl,
-          rejection_reason: newStatus === 'rejected' ? rejectionReason : null,
-          processed_by: currentUserId || null,
-          processed_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', requestId);
 
       if (updateError) throw updateError;
 
-      // Create audit log
+      // Create audit log with descriptive action
+      const actionDescriptions: Record<string, string> = {
+        pending: 'إعادة الطلب إلى قيد الانتظار',
+        review: 'بدء مراجعة الطلب',
+        paid: 'تأكيد دفع الطلب',
+        rejected: `رفض الطلب: ${rejectionReason}`,
+      };
+
       await supabase.from('audit_log').insert({
         request_id: requestId,
         user_id: currentUserId || null,
-        action: `Changed status to ${newStatus}`,
+        action: actionDescriptions[newStatus] || `Changed status to ${newStatus}`,
         old_status: request?.status,
         new_status: newStatus,
-        notes: adminNotes || null,
+        notes: newStatus === 'rejected' ? rejectionReason : (adminNotes || null),
       });
 
       toast({
         title: 'تم التحديث',
-        description: 'تم تحديث حالة الطلب بنجاح',
+        description: newStatus === 'rejected' 
+          ? 'تم رفض الطلب بنجاح' 
+          : newStatus === 'paid' 
+            ? 'تم تأكيد الدفع بنجاح'
+            : 'تم تحديث حالة الطلب بنجاح',
       });
 
       onUpdate();
+      onClose(); // Close modal after successful update
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error updating status:', error);
       toast({
         title: 'خطأ',
-        description: 'فشل في تحديث الطلب',
+        description: 'فشل في تحديث الطلب. يرجى المحاولة مرة أخرى.',
         variant: 'destructive',
       });
     } finally {
