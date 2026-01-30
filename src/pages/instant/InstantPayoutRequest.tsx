@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Upload, CheckCircle2, User, DollarSign, Phone, MapPin, Loader2, AlertCircle, Lock, CreditCard, Coins } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Upload, CheckCircle2, User, DollarSign, MapPin, Loader2, AlertCircle, Lock, CreditCard, Coins } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -17,11 +17,25 @@ const SUPPORTER_PAYMENT_METHODS = [
   { id: 'other', name: 'أخرى', icon: '📱' },
 ];
 
+interface PayoutMethod {
+  name: string;
+  nameArabic?: string;
+  iconUrl?: string;
+  fields?: Array<{ name: string; label: string; type: string; required: boolean }>;
+  requiredFields?: Array<{ name: string; label: string; labelArabic?: string; type: string; required?: boolean; optional?: boolean }>;
+}
+
+interface Country {
+  id: string;
+  country_name_arabic: string;
+  country_code: string;
+  dial_code: string;
+  methods: PayoutMethod[];
+}
+
 const InstantPayoutRequest = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
-  const selectedCountry = location.state?.selectedCountry || 'US';
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,7 +59,8 @@ const InstantPayoutRequest = () => {
   const [referenceExtracted, setReferenceExtracted] = useState(false);
   const [referenceError, setReferenceError] = useState<string | null>(null);
   
-  // Payout details
+  // Payout details - Step 3
+  const [selectedCountryId, setSelectedCountryId] = useState<string>('');
   const [recipientFullName, setRecipientFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [payoutMethod, setPayoutMethod] = useState('');
@@ -64,12 +79,20 @@ const InstantPayoutRequest = () => {
         .eq('is_active', true)
         .order('country_name_arabic');
       if (error) throw error;
-      return data;
+      return data?.map(c => ({
+        ...c,
+        methods: c.methods as unknown as PayoutMethod[]
+      })) as Country[];
     },
   });
 
-  const selectedCountryData = countries?.find(c => c.country_code === selectedCountry);
-  const methods = selectedCountryData?.methods as Array<{ name: string; nameArabic: string; iconUrl?: string; fields?: Array<{ name: string; label: string; type: string; required: boolean }> }> || [];
+  // Get selected country data
+  const selectedCountry = countries?.find(c => c.id === selectedCountryId);
+  const methods = selectedCountry?.methods || [];
+  
+  // Get selected method fields
+  const selectedMethodData = methods.find(m => m.name === payoutMethod);
+  const methodFieldsConfig = selectedMethodData?.fields || selectedMethodData?.requiredFields || [];
 
   // Calculate coins from USD amount
   const hostCoinsAmount = hostUsdAmount ? Math.round(parseFloat(hostUsdAmount) * COINS_PER_DOLLAR) : 0;
@@ -220,8 +243,8 @@ const InstantPayoutRequest = () => {
           host_payout_amount: hostPayoutAmount,
           host_receipt_url: hostUrlData.publicUrl,
           host_receipt_reference: hostReferenceNumber,
-          host_country: selectedCountry,
-          host_country_dial_code: selectedCountryData?.dial_code || '+1',
+          host_country: selectedCountry?.country_name_arabic || '',
+          host_country_dial_code: selectedCountry?.dial_code || '+1',
           host_phone_number: phoneNumber,
           host_payout_method: payoutMethod,
           host_recipient_full_name: recipientFullName,
@@ -251,9 +274,6 @@ const InstantPayoutRequest = () => {
       setIsSubmitting(false);
     }
   };
-
-  const selectedMethod = methods.find(m => m.name === payoutMethod);
-  const methodFieldsConfig = selectedMethod?.fields || [];
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
@@ -573,7 +593,7 @@ const InstantPayoutRequest = () => {
             <div className="bg-muted border border-border rounded-xl p-4">
               <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />
-                تفاصيل الاستلام
+                تفاصيل التحويل
               </h3>
               <p className="text-sm text-muted-foreground">
                 أدخل بيانات استلام المبلغ
@@ -581,73 +601,107 @@ const InstantPayoutRequest = () => {
             </div>
 
             <div className="space-y-4">
+              {/* Recipient Name */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">الاسم الكامل للمستلم</label>
+                <label className="block text-sm font-medium text-foreground mb-2">اسم المستلم</label>
                 <input
                   type="text"
                   value={recipientFullName}
                   onChange={(e) => setRecipientFullName(e.target.value)}
-                  placeholder="الاسم كما في الهوية"
+                  placeholder="الاسم الكامل كما في الهوية"
                   className="w-full p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
 
+              {/* Country Selection */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">رقم الهاتف</label>
-                <div className="flex gap-2">
-                  <div className="px-3 py-3 rounded-xl border border-border bg-muted text-foreground text-sm">
-                    {selectedCountryData?.dial_code || '+1'}
-                  </div>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
-                    placeholder="رقم الهاتف"
-                    className="flex-1 p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </div>
+                <label className="block text-sm font-medium text-foreground mb-2">بلد الاستلام</label>
+                <select
+                  value={selectedCountryId}
+                  onChange={(e) => {
+                    const countryId = e.target.value;
+                    setSelectedCountryId(countryId);
+                    setPayoutMethod('');
+                    setMethodFields({});
+                    const country = countries?.find(c => c.id === countryId);
+                    if (country) {
+                      setPhoneNumber(country.dial_code);
+                    }
+                  }}
+                  className="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="">اختر البلد</option>
+                  {countries?.map((country) => (
+                    <option key={country.id} value={country.id}>
+                      {country.country_name_arabic}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">طريقة الاستلام</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {methods.map((method) => (
-                    <button
-                      key={method.name}
-                      onClick={() => {
-                        setPayoutMethod(method.name);
-                        setMethodFields({});
-                      }}
-                      className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-                        payoutMethod === method.name
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      {method.iconUrl && (
-                        <img src={method.iconUrl} alt={method.name} className="w-8 h-8 object-contain" />
-                      )}
-                      <span className="text-xs font-medium text-foreground">{method.nameArabic}</span>
-                    </button>
-                  ))}
+              {/* Payout Method Selection - Show after country */}
+              {selectedCountry && methods.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">طريقة الاستلام</label>
+                  <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                    {methods.map((method) => (
+                      <button
+                        key={method.name}
+                        onClick={() => {
+                          setPayoutMethod(method.name);
+                          setMethodFields({});
+                        }}
+                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                          payoutMethod === method.name
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        {method.iconUrl && (
+                          <img src={method.iconUrl} alt={method.name} className="w-8 h-8 object-contain" />
+                        )}
+                        <span className="text-xs font-medium text-foreground text-center">{method.nameArabic || method.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Phone Number - Show after method */}
+              {payoutMethod && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">رقم الجوال</label>
+                  <div className="flex gap-2">
+                    <div className="px-3 py-3 rounded-xl border border-border bg-muted text-foreground text-sm min-w-[70px] text-center">
+                      {selectedCountry?.dial_code || '+1'}
+                    </div>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      value={phoneNumber.replace(selectedCountry?.dial_code || '', '')}
+                      onChange={(e) => setPhoneNumber((selectedCountry?.dial_code || '') + e.target.value.replace(/\D/g, ''))}
+                      placeholder="رقم الجوال"
+                      className="flex-1 p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Dynamic method fields */}
-              {methodFieldsConfig.length > 0 && (
+              {methodFieldsConfig.length > 0 && payoutMethod && (
                 <div className="space-y-4 pt-2">
-                  {methodFieldsConfig.map((field: { name: string; label: string; type: string; required: boolean }) => (
+                  {methodFieldsConfig.map((field) => (
                     <div key={field.name}>
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        {field.label}
-                        {field.required && <span className="text-destructive">*</span>}
+                        {field.labelArabic || field.label}
+                        {(field.required || !field.optional) && <span className="text-destructive">*</span>}
                       </label>
                       <input
                         type={field.type}
+                        inputMode={field.type === 'number' ? 'numeric' : undefined}
                         value={methodFields[field.name] || ''}
                         onChange={(e) => setMethodFields(prev => ({ ...prev, [field.name]: e.target.value }))}
-                        placeholder={field.label}
+                        placeholder={field.labelArabic || field.label}
                         className="w-full p-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                     </div>
