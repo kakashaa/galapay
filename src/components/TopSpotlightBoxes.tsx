@@ -79,21 +79,8 @@ const TopSpotlightBoxes = () => {
 
   return (
     <div className="w-full px-2">
-      {/* Side by Side Boxes with Heart in Center */}
-      <div className="flex items-start gap-6 relative">
-        
-        {/* Pulsing Heart in Center - positioned between boxes */}
-        <motion.div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
-          animate={{ 
-            scale: [1, 1.3, 1],
-          }}
-          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <div className="w-11 h-11 rounded-full bg-card border-2 border-destructive/50 flex items-center justify-center shadow-xl shadow-destructive/20">
-            <Heart className="w-5 h-5 text-destructive fill-destructive" />
-          </div>
-        </motion.div>
+      {/* Side by Side Boxes */}
+      <div className="flex items-start gap-4">
 
         {/* Top Supporters Box - Right Side */}
         <motion.div
