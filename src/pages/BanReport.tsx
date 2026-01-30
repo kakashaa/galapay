@@ -200,6 +200,7 @@ export default function BanReportPage() {
             reporterGalaId,
             reportedUserId,
             banType: selectedBanType?.label || banType,
+            banTypeDuration: selectedBanType?.duration || '24 ساعة',
             description,
             evidenceUrl: urlData.publicUrl,
             evidenceType: isVideo ? 'video' : 'image',
