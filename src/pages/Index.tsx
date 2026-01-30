@@ -166,7 +166,7 @@ const Index = () => {
         </FadeIn>
 
         {/* Spotlight Area - Supporters Spotlight */}
-        <div className="w-full max-w-sm flex items-center justify-center z-10 mb-4 py-2">
+        <div className="w-full max-w-sm h-[180px] flex items-center justify-center z-10 mb-4 px-4 pt-4">
           <SupportersSpotlight />
         </div>
 
