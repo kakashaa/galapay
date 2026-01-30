@@ -73,12 +73,31 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen premium-bg flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen premium-bg flex flex-col items-center relative overflow-hidden">
       <StarField starCount={35} />
+      
+      {/* Sticky Top Banner - Coming Soon */}
+      {!INSTANT_SERVICE_LAUNCHED && (
+        <div className="sticky top-0 left-0 right-0 z-50 w-full bg-card/95 backdrop-blur-xl border-b border-warning/30">
+          <div className="flex items-center justify-center gap-3 px-4 py-2">
+            <motion.div
+              className="flex items-center gap-2"
+              animate={{ opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Zap className="w-4 h-4 text-warning" />
+              <span className="text-xs font-bold text-warning">قريباً - السحب الفوري ⚡</span>
+            </motion.div>
+            <div className="h-4 w-px bg-warning/30" />
+            <InstantPayoutCountdown />
+          </div>
+        </div>
+      )}
+
       {/* Admin Icon */}
       <motion.button
         onClick={() => navigate('/admin/login')}
-        className="absolute top-14 left-4 p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors z-20 backdrop-blur-sm border border-border/50"
+        className="absolute top-16 left-4 p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors z-20 backdrop-blur-sm border border-border/50"
         title="دخول المسؤولين"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
@@ -88,141 +107,142 @@ const Index = () => {
 
       <FlyingMoney />
 
-      {/* Rotating Promo Banners */}
-      <FadeIn delay={0.1} className="w-full max-w-sm mb-6 z-10 h-20 relative px-4">
-        <motion.div 
-          className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 ${
-            currentBanner === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
-          }`}
-        >
-          <div className="flex items-center justify-between h-full">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span className="text-xs font-bold text-primary glow-text">خدمة سريعة وموثوقة</span>
-              </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                ارفع راتبك واستلمه فوراً! 💰
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {!INSTANT_SERVICE_LAUNCHED && (
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full p-6">
+        
+        {/* Rotating Promo Banners */}
+        <FadeIn delay={0.1} className="w-full max-w-sm mb-4 z-10 h-20 relative px-4">
           <motion.div 
             className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 ${
-              currentBanner === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+              currentBanner === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
             }`}
           >
-            <div className="flex items-center h-full">
+            <div className="flex items-center justify-between h-full">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <Zap className="w-4 h-4 text-warning" />
-                  <span className="text-xs font-bold text-warning">قريباً - السحب الفوري ⚡</span>
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-bold text-primary glow-text">خدمة سريعة وموثوقة</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  اسحب راتبك بأي وقت تحتاجه!
+                  ارفع راتبك واستلمه فوراً! 💰
                 </p>
               </div>
             </div>
           </motion.div>
-        )}
 
-        {!INSTANT_SERVICE_LAUNCHED && (
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-            <button 
-              onClick={() => setCurrentBanner(0)}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${currentBanner === 0 ? 'bg-primary w-4 shadow-[0_0_10px_hsl(var(--primary))]' : 'bg-muted-foreground/30'}`}
-            />
-            <button 
-              onClick={() => setCurrentBanner(1)}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${currentBanner === 1 ? 'bg-warning w-4 shadow-[0_0_10px_hsl(var(--warning))]' : 'bg-muted-foreground/30'}`}
-            />
+          {!INSTANT_SERVICE_LAUNCHED && (
+            <motion.div 
+              className={`absolute inset-x-4 inset-y-0 neon-card p-3 transition-all duration-500 ${
+                currentBanner === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+              }`}
+            >
+              <div className="flex items-center h-full">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Zap className="w-4 h-4 text-warning" />
+                    <span className="text-xs font-bold text-warning">قريباً - السحب الفوري ⚡</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    اسحب راتبك بأي وقت تحتاجه!
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {!INSTANT_SERVICE_LAUNCHED && (
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+              <button 
+                onClick={() => setCurrentBanner(0)}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${currentBanner === 0 ? 'bg-primary w-4 shadow-[0_0_10px_hsl(var(--primary))]' : 'bg-muted-foreground/30'}`}
+              />
+              <button 
+                onClick={() => setCurrentBanner(1)}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${currentBanner === 1 ? 'bg-warning w-4 shadow-[0_0_10px_hsl(var(--warning))]' : 'bg-muted-foreground/30'}`}
+              />
+            </div>
+          )}
+        </FadeIn>
+
+        {/* Spotlight Area - Reserved for future element */}
+        <div className="w-full max-w-sm h-[160px] flex items-center justify-center z-10 mb-4">
+          {/* Placeholder - This area is reserved for a future spotlight element */}
+          <div className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/20 flex items-center justify-center">
+            <span className="text-muted-foreground/30 text-xs">مساحة مخصصة</span>
           </div>
-        )}
-      </FadeIn>
-
-      {/* Tutorial Videos Section */}
-      <FadeIn delay={0.2} className="z-10 mb-6 w-full max-w-sm">
-        <h3 className="text-sm font-bold text-muted-foreground text-center mb-3">فيديوهات تعليمية 📹</h3>
-        <div className="flex justify-center">
-          <VideoStoryCircle />
         </div>
-      </FadeIn>
 
-      {/* Two Main Payout Buttons */}
-      <FadeIn delay={0.3} className="flex gap-3 z-10 w-full max-w-sm px-4 mb-6 relative">
-        {!INSTANT_SERVICE_LAUNCHED && (
-          <>
-            <motion.div 
-              className="absolute -top-6 left-4 right-[55%] bg-warning/20 border border-warning/40 rounded-md px-1.5 py-0.5 flex items-center justify-between gap-0.5 backdrop-blur-sm"
-              animate={{ opacity: [0.8, 1, 0.8] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <span className="text-[7px] text-warning font-bold">تبدأ بعد ⚡</span>
-              <InstantPayoutCountdown />
-            </motion.div>
-            <motion.div 
-              className="absolute -top-3 left-2 bg-destructive text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full"
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              قريباً
-            </motion.div>
-          </>
-        )}
-
-        {/* Monthly Payout Button */}
-        <motion.button 
-          onClick={handleMainButtonClick}
-          className="flex-1 p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex flex-col items-center gap-1.5 btn-glow ripple"
-          disabled={settingsLoading}
-          whileHover={{ scale: 1.03, y: -2 }}
-          whileTap={{ scale: 0.97 }}
-        >
-          <div className={`w-8 h-8 rounded-lg bg-primary-foreground/20 flex items-center justify-center backdrop-blur-sm ${bouncingId === 'monthly' ? 'animate-mac-bounce' : ''}`}>
-            <Wallet className="w-4 h-4" />
+        {/* Tutorial Videos Section - Below Spotlight */}
+        <FadeIn delay={0.2} className="z-10 mb-6 w-full max-w-sm">
+          <h3 className="text-sm font-bold text-muted-foreground text-center mb-3">فيديوهات تعليمية 📹</h3>
+          <div className="flex justify-center">
+            <VideoStoryCircle />
           </div>
-          <div className="text-center">
-            <p className="text-xs font-bold">سحب شهري</p>
-            <p className="text-[9px] opacity-80">صرف راتبك</p>
-          </div>
-        </motion.button>
+        </FadeIn>
 
-        {/* Instant Payout Button */}
-        <motion.button 
-          onClick={() => {
-            triggerBounce('instant');
-            if (!INSTANT_SERVICE_LAUNCHED) {
-              setTimeout(() => navigate('/instant'), 200);
-            } else {
-              const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
-              if (isDismissed) {
+        {/* Two Main Payout Buttons */}
+        <FadeIn delay={0.3} className="flex gap-3 z-10 w-full max-w-sm px-4 mb-6 relative">
+          {/* Monthly Payout Button */}
+          <motion.button 
+            onClick={handleMainButtonClick}
+            className="flex-1 p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex flex-col items-center gap-1.5 btn-glow ripple"
+            disabled={settingsLoading}
+            whileHover={{ scale: 1.03, y: -2 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <div className={`w-8 h-8 rounded-lg bg-primary-foreground/20 flex items-center justify-center backdrop-blur-sm ${bouncingId === 'monthly' ? 'animate-mac-bounce' : ''}`}>
+              <Wallet className="w-4 h-4" />
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-bold">سحب شهري</p>
+              <p className="text-[9px] opacity-80">صرف راتبك</p>
+            </div>
+          </motion.button>
+
+          {/* Instant Payout Button */}
+          <motion.button 
+            onClick={() => {
+              triggerBounce('instant');
+              if (!INSTANT_SERVICE_LAUNCHED) {
                 setTimeout(() => navigate('/instant'), 200);
               } else {
-                setTimeout(() => setInstantInfoOpen(true), 200);
+                const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
+                if (isDismissed) {
+                  setTimeout(() => navigate('/instant'), 200);
+                } else {
+                  setTimeout(() => setInstantInfoOpen(true), 200);
+                }
               }
-            }
-          }}
-          className="flex-1 p-3 rounded-xl bg-gradient-to-br from-warning to-warning/80 text-warning-foreground flex flex-col items-center gap-1.5 relative ripple"
-          style={{ boxShadow: '0 0 20px hsla(38, 92%, 55%, 0.3)' }}
-          whileHover={{ scale: 1.03, y: -2 }}
-          whileTap={{ scale: 0.97 }}
-        >
-          <div className={`w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm ${bouncingId === 'instant' ? 'animate-mac-bounce' : ''}`}>
-            <Zap className="w-4 h-4" />
-          </div>
-          <div className="text-center">
-            <p className="text-xs font-bold">سحب فوري</p>
-            <p className="text-[9px] opacity-90">سحب راتبك</p>
-          </div>
-        </motion.button>
-      </FadeIn>
+            }}
+            className="flex-1 p-3 rounded-xl bg-gradient-to-br from-warning to-warning/80 text-warning-foreground flex flex-col items-center gap-1.5 relative ripple"
+            style={{ boxShadow: '0 0 20px hsla(38, 92%, 55%, 0.3)' }}
+            whileHover={{ scale: 1.03, y: -2 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            {!INSTANT_SERVICE_LAUNCHED && (
+              <motion.div 
+                className="absolute -top-3 left-2 bg-destructive text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                قريباً
+              </motion.div>
+            )}
+            <div className={`w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm ${bouncingId === 'instant' ? 'animate-mac-bounce' : ''}`}>
+              <Zap className="w-4 h-4" />
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-bold">سحب فوري</p>
+              <p className="text-[9px] opacity-90">سحب راتبك</p>
+            </div>
+          </motion.button>
+        </FadeIn>
 
-      {/* Service Icons Grid */}
-      <FadeIn delay={0.4} className="z-10 mb-4">
-        <ServiceIconsGrid />
-      </FadeIn>
+        {/* Service Icons Grid */}
+        <FadeIn delay={0.4} className="z-10 mb-4">
+          <ServiceIconsGrid />
+        </FadeIn>
+      </div>
 
       {/* Bottom Sheet */}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
