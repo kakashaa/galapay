@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign, Settings, Zap, BookOpen } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -10,12 +10,15 @@ import { PayoutDisabledDialog } from '@/components/PayoutDisabledDialog';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import { VideoStoryCircle } from '@/components/VideoStoryCircle';
 
+const INSTANT_INTRO_DISMISSED_KEY = 'instant_intro_dismissed';
+
 const Index = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [myRequestsOpen, setMyRequestsOpen] = useState(false);
   const [disabledDialogOpen, setDisabledDialogOpen] = useState(false);
   const [instantInfoOpen, setInstantInfoOpen] = useState(false);
+  const [dontShowInstantAgain, setDontShowInstantAgain] = useState(false);
   const { hasSavedRequests } = useSavedRequests();
   const { payoutEnabled, nextPayoutDate, loading: settingsLoading } = usePayoutSettings();
 
@@ -108,7 +111,14 @@ const Index = () => {
 
         {/* Instant Payout Button */}
         <button 
-          onClick={() => setInstantInfoOpen(true)}
+          onClick={() => {
+            const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
+            if (isDismissed) {
+              navigate('/instant/banks');
+            } else {
+              setInstantInfoOpen(true);
+            }
+          }}
           className="flex-1 p-3 rounded-xl bg-warning text-warning-foreground flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
         >
           <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-white/20 rounded-full">
@@ -224,7 +234,10 @@ const Index = () => {
       />
 
       {/* Instant Payout Info Dialog */}
-      <Dialog open={instantInfoOpen} onOpenChange={setInstantInfoOpen}>
+      <Dialog open={instantInfoOpen} onOpenChange={(open) => {
+        setInstantInfoOpen(open);
+        if (!open) setDontShowInstantAgain(false);
+      }}>
         <DialogContent className="max-w-sm mx-auto rounded-2xl p-6" dir="rtl">
           <DialogTitle className="sr-only">معلومات السحب الفوري</DialogTitle>
           <div className="text-center space-y-4">
@@ -237,8 +250,25 @@ const Index = () => {
                 لو سمحت اقرأ الشرح بعناية لفهم كيف يعمل نظام السحب الفوري قبل المتابعة
               </p>
             </div>
+            
+            {/* Don't show again checkbox */}
+            <button
+              onClick={() => setDontShowInstantAgain(!dontShowInstantAgain)}
+              className="w-full p-3 rounded-xl border border-border bg-muted/50 hover:bg-muted transition-all flex items-center justify-center gap-3"
+            >
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                dontShowInstantAgain ? 'border-warning bg-warning' : 'border-muted-foreground'
+              }`}>
+                {dontShowInstantAgain && <CheckCircle2 className="w-3 h-3 text-warning-foreground" />}
+              </div>
+              <span className="text-sm text-muted-foreground">عدم إظهار هذا مجدداً</span>
+            </button>
+
             <button
               onClick={() => {
+                if (dontShowInstantAgain) {
+                  localStorage.setItem(INSTANT_INTRO_DISMISSED_KEY, 'true');
+                }
                 setInstantInfoOpen(false);
                 navigate('/instant');
               }}
