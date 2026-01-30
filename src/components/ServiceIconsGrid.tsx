@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Headphones, UserX, Crown, Users, Star, Gift, Wallet, LucideIcon } from 'lucide-react';
+import { useTapFeedback } from '@/hooks/use-haptic-feedback';
 
 interface ServiceIcon {
   id: string;
@@ -68,9 +69,11 @@ const services: ServiceIcon[] = [
 export const ServiceIconsGrid = () => {
   const navigate = useNavigate();
   const [bouncingId, setBouncingId] = useState<string | null>(null);
+  const { triggerFeedback } = useTapFeedback();
   
   const handleClick = (service: ServiceIcon) => {
     setBouncingId(service.id);
+    triggerFeedback({ sound: true, haptic: true });
     setTimeout(() => setBouncingId(null), 400);
     
     if (service.path) {

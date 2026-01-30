@@ -14,13 +14,16 @@ import { ServiceIconsGrid } from '@/components/ServiceIconsGrid';
 import { motion } from 'framer-motion';
 import { FadeIn, AnimatedCard } from '@/components/AnimatedCard';
 import StarField from '@/components/StarField';
+import { useTapFeedback } from '@/hooks/use-haptic-feedback';
 
 // Track bouncing state for main buttons
 const useBounceAnimation = () => {
   const [bouncingId, setBouncingId] = useState<string | null>(null);
+  const { triggerFeedback } = useTapFeedback();
   
   const triggerBounce = (id: string) => {
     setBouncingId(id);
+    triggerFeedback({ sound: true, haptic: true });
     setTimeout(() => setBouncingId(null), 400);
   };
   
