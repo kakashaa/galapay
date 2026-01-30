@@ -23,7 +23,7 @@ interface PayoutRequest {
 }
 
 interface DuplicateGroup {
-  type: 'account_id' | 'reference_number' | 'similar_receipt';
+  type: 'account_id' | 'reference_number' | 'similar_receipt' | 'reference_mismatch';
   reason: string;
   requests: PayoutRequest[];
 }
@@ -40,7 +40,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch all requests (not just pending, but all to find patterns)
+    // Fetch all requests
     const { data: requests, error } = await supabase
       .from("payout_requests")
       .select("*")
@@ -93,22 +93,28 @@ serve(async (req) => {
       }
     }
 
-    // 3. Use AI to analyze receipt images for similarity
+    // 3. Use AI to check each receipt for reference number mismatch
     if (lovableApiKey && requests && requests.length > 0) {
-      // Get pending/review requests for AI image analysis
       const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'review');
       
-      if (pendingRequests.length >= 2) {
-        // Prepare image URLs for AI analysis
-        const imageData = pendingRequests.slice(0, 20).map(r => ({
-          id: r.id,
-          tracking_code: r.tracking_code,
-          image_url: r.user_receipt_image_url,
-          zalal_life_account_id: r.zalal_life_account_id,
-          amount: r.amount,
-        }));
-
+      console.log(`Analyzing ${pendingRequests.length} pending requests for reference mismatches...`);
+      
+      // Analyze each request individually for reference mismatch
+      for (const req of pendingRequests.slice(0, 15)) {
         try {
+          console.log(`Checking request ${req.tracking_code}...`);
+          
+          // Fetch and convert image to base64
+          const imageResponse = await fetch(req.user_receipt_image_url);
+          if (!imageResponse.ok) {
+            console.error(`Failed to fetch image for ${req.tracking_code}`);
+            continue;
+          }
+          
+          const imageBuffer = await imageResponse.arrayBuffer();
+          const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+          const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+
           const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -123,104 +129,88 @@ serve(async (req) => {
                   content: [
                     {
                       type: "text",
-                      text: `أنت محلل أمني متخصص في كشف الاحتيال. قم بتحليل الإيصالات التالية وحدد أي إيصالات متشابهة أو مشبوهة.
+                      text: `استخرج البيانات من صورة الإيصال هذه.
+                      
+البيانات المدخلة من المستخدم:
+- الرقم المرجعي: ${req.reference_number || 'غير متوفر'}
+- المبلغ: $${req.amount}
 
-قواعد الفحص:
-1. ابحث عن إيصالات متطابقة أو متشابهة جداً (نفس الصورة مع تعديلات بسيطة)
-2. ابحث عن أنماط مشبوهة (مثل نفس الخط اليدوي، نفس التصميم، نفس الأرقام)
-3. حدد أي إيصال يبدو مزيفاً أو معدلاً رقمياً
-
-قائمة الإيصالات للتحليل:
-${imageData.map((d, i) => `${i + 1}. ID: ${d.tracking_code}, المبلغ: $${d.amount}, الايدي: ${d.zalal_life_account_id}`).join('\n')}
-
-قم بإرجاع النتيجة بصيغة JSON فقط:
+استخرج من الصورة وقارن. أرجع JSON فقط بدون أي نص آخر:
 {
-  "suspicious_pairs": [
-    {
-      "tracking_codes": ["CODE1", "CODE2"],
-      "reason": "سبب الاشتباه"
-    }
-  ],
-  "suspicious_single": [
-    {
-      "tracking_code": "CODE",
-      "reason": "سبب الاشتباه"
-    }
-  ]
-}
-
-إذا لم تجد أي شيء مشبوه، أرجع:
-{"suspicious_pairs": [], "suspicious_single": []}`,
+  "extracted_reference": "الرقم المرجعي المستخرج من الصورة",
+  "extracted_amount": المبلغ المستخرج كرقم,
+  "reference_match": true إذا تطابق أو false إذا لم يتطابق,
+  "amount_match": true إذا تطابق أو false إذا لم يتطابق,
+  "is_fake": true إذا الإيصال يبدو مزيف أو معدل,
+  "notes": "أي ملاحظات مهمة"
+}`,
                     },
-                    ...imageData.slice(0, 10).map(d => ({
-                      type: "image_url" as const,
-                      image_url: { url: d.image_url },
-                    })),
+                    {
+                      type: "image_url",
+                      image_url: { url: `data:${mimeType};base64,${base64Image}` },
+                    },
                   ],
                 },
               ],
-              max_tokens: 2000,
+              max_tokens: 500,
             }),
           });
 
           if (aiResponse.ok) {
             const aiResult = await aiResponse.json();
             const content = aiResult.choices?.[0]?.message?.content || "";
+            console.log(`AI response for ${req.tracking_code}:`, content);
             
-            // Parse AI response
             const jsonMatch = content.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
               try {
                 const parsed = JSON.parse(jsonMatch[0]);
                 
-                // Process suspicious pairs
-                if (parsed.suspicious_pairs && Array.isArray(parsed.suspicious_pairs)) {
-                  for (const pair of parsed.suspicious_pairs) {
-                    const matchingRequests = pendingRequests.filter(r => 
-                      pair.tracking_codes?.includes(r.tracking_code)
-                    );
-                    if (matchingRequests.length >= 2) {
-                      duplicateGroups.push({
-                        type: 'similar_receipt',
-                        reason: `🤖 ${pair.reason || 'إيصالات متشابهة'}`,
-                        requests: matchingRequests,
-                      });
-                    }
-                  }
+                // Check for reference number mismatch
+                if (parsed.reference_match === false && parsed.extracted_reference) {
+                  duplicateGroups.push({
+                    type: 'reference_mismatch',
+                    reason: `🔴 الرقم المرجعي غير متطابق! المدخل: ${req.reference_number || 'فارغ'} - في الصورة: ${parsed.extracted_reference}`,
+                    requests: [req],
+                  });
                 }
-
-                // Process suspicious single requests
-                if (parsed.suspicious_single && Array.isArray(parsed.suspicious_single)) {
-                  for (const single of parsed.suspicious_single) {
-                    const matchingRequest = pendingRequests.find(r => 
-                      r.tracking_code === single.tracking_code
-                    );
-                    if (matchingRequest) {
-                      duplicateGroups.push({
-                        type: 'similar_receipt',
-                        reason: `🤖 ${single.reason || 'إيصال مشبوه'}`,
-                        requests: [matchingRequest],
-                      });
-                    }
-                  }
+                
+                // Check for amount mismatch
+                if (parsed.amount_match === false && parsed.extracted_amount) {
+                  duplicateGroups.push({
+                    type: 'similar_receipt',
+                    reason: `🟠 المبلغ غير متطابق! المدخل: $${req.amount} - في الصورة: $${parsed.extracted_amount}`,
+                    requests: [req],
+                  });
+                }
+                
+                // Check if receipt is suspicious/fake
+                if (parsed.is_fake === true) {
+                  duplicateGroups.push({
+                    type: 'similar_receipt',
+                    reason: `🤖 إيصال مشبوه: ${parsed.notes || 'يبدو مزيف أو معدل'}`,
+                    requests: [req],
+                  });
                 }
               } catch (parseError) {
-                console.error("Error parsing AI response:", parseError);
+                console.error("Error parsing AI response for request:", req.tracking_code, parseError);
               }
             }
+          } else {
+            console.error(`AI request failed for ${req.tracking_code}:`, await aiResponse.text());
           }
-        } catch (aiError) {
-          console.error("AI analysis error:", aiError);
+        } catch (reqError) {
+          console.error("Error analyzing request:", req.tracking_code, reqError);
         }
       }
     }
 
-    // Remove duplicate entries (same request appearing in multiple groups)
+    // Remove duplicate entries
     const uniqueGroups: DuplicateGroup[] = [];
     const seenRequestSets = new Set<string>();
 
     for (const group of duplicateGroups) {
-      const key = group.requests.map(r => r.id).sort().join('|') + '|' + group.type;
+      const key = group.requests.map(r => r.id).sort().join('|') + '|' + group.type + '|' + group.reason;
       if (!seenRequestSets.has(key)) {
         seenRequestSets.add(key);
         uniqueGroups.push(group);
@@ -235,6 +225,7 @@ ${imageData.map((d, i) => `${i + 1}. ID: ${d.tracking_code}, المبلغ: $${d.
         summary: {
           accountIdDuplicates: uniqueGroups.filter(g => g.type === 'account_id').length,
           referenceNumberDuplicates: uniqueGroups.filter(g => g.type === 'reference_number').length,
+          referenceMismatches: uniqueGroups.filter(g => g.type === 'reference_mismatch').length,
           similarReceipts: uniqueGroups.filter(g => g.type === 'similar_receipt').length,
         },
       }),
