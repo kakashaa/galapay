@@ -17,9 +17,7 @@ import {
   AlertTriangle,
   Search,
   Clock,
-  FileText,
-  Shield,
-  Ban
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,7 +136,6 @@ export default function SpecialIdPage() {
   const navigate = useNavigate();
   
   const [viewMode, setViewMode] = useState<ViewMode>('menu');
-  const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [submittedRequestId, setSubmittedRequestId] = useState("");
@@ -147,8 +144,11 @@ export default function SpecialIdPage() {
   const [galaUserId, setGalaUserId] = useState("");
   const [galaUsername, setGalaUsername] = useState("");
   const [userLevel, setUserLevel] = useState("");
+  const [verifiedLevel, setVerifiedLevel] = useState<number | null>(null);
+  const [allLevels, setAllLevels] = useState<number[]>([]);
   const [profileScreenshot, setProfileScreenshot] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isImageVerified, setIsImageVerified] = useState(false);
   
   // Pattern selection
   const [selectedLevel, setSelectedLevel] = useState(60);
@@ -186,7 +186,7 @@ export default function SpecialIdPage() {
     return rows;
   };
 
-  const handleProfileScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileScreenshotChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 100 * 1024 * 1024) {
@@ -195,6 +195,84 @@ export default function SpecialIdPage() {
       }
       setProfileScreenshot(file);
       setPreviewImage(URL.createObjectURL(file));
+      setIsImageVerified(false);
+      setVerifiedLevel(null);
+      setAllLevels([]);
+      setUserLevel("");
+      
+      // Auto-verify the image immediately
+      await verifyProfileImage(file);
+    }
+  };
+  
+  const verifyProfileImage = async (file: File) => {
+    setIsVerifying(true);
+    const loadingToast = toast.loading("جاري التحقق من الصورة...");
+
+    try {
+      const base64Image = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-special-id-level`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            imageBase64: base64Image,
+            claimedLevel: 0,
+            claimedUserId: galaUserId.trim(),
+          }),
+        }
+      );
+
+      const result = await response.json();
+      toast.dismiss(loadingToast);
+
+      if (!result.is_valid) {
+        toast.error(result.error || "الصورة غير صالحة");
+        setProfileScreenshot(null);
+        setPreviewImage(null);
+        setIsVerifying(false);
+        return;
+      }
+
+      // Successfully verified - set the levels
+      const maxLvl = result.max_level || 0;
+      const levels = result.all_levels || [];
+      
+      setVerifiedLevel(maxLvl);
+      setAllLevels(levels);
+      setUserLevel(String(maxLvl));
+      setIsImageVerified(true);
+      
+      // Auto-fill Gala ID if extracted
+      if (result.user_id && !galaUserId) {
+        setGalaUserId(result.user_id);
+      }
+      
+      // Auto-fill username if extracted
+      if (result.username && !galaUsername) {
+        setGalaUsername(result.username);
+      }
+
+      toast.success(`✅ تم التحقق! المستوى الأعلى: ${maxLvl} (اللفلات: ${levels.join(', ')})`);
+      
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      console.error("Error verifying image:", error);
+      toast.error("حدث خطأ أثناء التحقق من الصورة");
+      setProfileScreenshot(null);
+      setPreviewImage(null);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -205,21 +283,21 @@ export default function SpecialIdPage() {
 
   const canProceedToPatterns = () => {
     const level = parseInt(userLevel) || 0;
-    return level >= 30 && galaUserId.trim().length > 0 && profileScreenshot !== null;
+    return level >= 30 && galaUserId.trim().length > 0 && profileScreenshot !== null && isImageVerified;
   };
 
   const handleProceedToPatterns = async () => {
     if (!canProceedToPatterns()) {
-      if (!userLevel || parseInt(userLevel) < 30) {
-        toast.error("يجب أن يكون مستواك 30 أو أعلى");
+      if (!isImageVerified) {
+        toast.error("يرجى رفع صورة من صفحة Me في غلا لايف والانتظار حتى يتم التحقق");
         return;
       }
       if (!galaUserId.trim()) {
         toast.error("يرجى إدخال ايدي حسابك");
         return;
       }
-      if (!profileScreenshot) {
-        toast.error("يرجى رفع صورة من حسابك");
+      if (!userLevel || parseInt(userLevel) < 30) {
+        toast.error("يجب أن يكون مستواك 30 أو أعلى");
         return;
       }
       return;
@@ -241,68 +319,11 @@ export default function SpecialIdPage() {
       return;
     }
 
-    setIsVerifying(true);
-    const loadingToast = toast.loading("جاري التحقق من المستوى من الصورة...");
-
-    try {
-      const base64Image = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(profileScreenshot!);
-      });
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-special-id-level`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            imageBase64: base64Image,
-            claimedLevel: parseInt(userLevel),
-            claimedUserId: galaUserId.trim(),
-          }),
-        }
-      );
-
-      const result = await response.json();
-      toast.dismiss(loadingToast);
-
-      if (!result.is_valid) {
-        toast.error(result.error || "الصورة غير صالحة - يرجى رفع صورة واضحة من حسابك");
-        setIsVerifying(false);
-        return;
-      }
-
-      // Check if level matches
-      const extractedLevel = result.max_level || 0;
-      const enteredLevel = parseInt(userLevel);
-      
-      if (enteredLevel > extractedLevel) {
-        toast.error(
-          `❌ المستوى المدخل (${enteredLevel}) أعلى من المستوى في الصورة (${extractedLevel})`
-        );
-        setIsVerifying(false);
-        return;
-      }
-
-      toast.success(`✅ تم التحقق! المستوى: ${extractedLevel}`);
-      
-      const level = enteredLevel;
-      const highestEligible = levelTabs.filter(l => level >= l).pop() || 30;
-      setSelectedLevel(highestEligible);
-      setViewMode("patterns");
-      
-    } catch (error) {
-      toast.dismiss(loadingToast);
-      console.error("Error verifying level:", error);
-      toast.error("حدث خطأ أثناء التحقق من الصورة");
-    } finally {
-      setIsVerifying(false);
-    }
+    // Already verified - proceed to patterns
+    const level = parseInt(userLevel);
+    const highestEligible = levelTabs.filter(l => level >= l).pop() || 30;
+    setSelectedLevel(highestEligible);
+    setViewMode("patterns");
   };
 
   const handleSubmit = async () => {
@@ -420,8 +441,11 @@ export default function SpecialIdPage() {
     setGalaUserId("");
     setGalaUsername("");
     setUserLevel("");
+    setVerifiedLevel(null);
+    setAllLevels([]);
     setProfileScreenshot(null);
     setPreviewImage(null);
+    setIsImageVerified(false);
     setSelectedPattern(null);
     setSelectedDigitLength(null);
     setPreferredExactId("");
@@ -770,112 +794,118 @@ export default function SpecialIdPage() {
               <h2 className="font-semibold">طلب ايدي مميز</h2>
             </div>
 
-            {/* Gala User ID */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1">
-                <Hash className="w-4 h-4" />
-                ايدي حسابك في غلا لايف
-              </Label>
-              <Input
-                type="text"
-                placeholder="مثال: 123456789"
-                value={galaUserId}
-                onChange={(e) => setGalaUserId(e.target.value.replace(/\D/g, ""))}
-                className="text-center text-lg font-mono"
-              />
-            </div>
-
-            {/* Gala Username (Optional) */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-muted-foreground">
-                اسم المستخدم (اختياري)
-              </Label>
-              <Input
-                type="text"
-                placeholder="اسمك في غلا لايف"
-                value={galaUsername}
-                onChange={(e) => setGalaUsername(e.target.value)}
-                className="text-center"
-              />
-            </div>
-
-            {/* User Level */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1">
-                <Star className="w-4 h-4" />
-                مستوى حسابك
-              </Label>
-              <Input
-                type="number"
-                placeholder="مثال: 50"
-                value={userLevel}
-                onChange={(e) => setUserLevel(e.target.value)}
-                className="text-center text-lg font-bold"
-                min={30}
-              />
-              {userLevel && parseInt(userLevel) < 30 && (
-                <p className="text-xs text-destructive text-center">
-                  يجب أن يكون مستواك 30 أو أعلى
-                </p>
-              )}
-              {userLevel && parseInt(userLevel) >= 30 && (
-                <p className="text-xs text-green-500 text-center flex items-center justify-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  مؤهل للحصول على ايدي مميز
-                </p>
-              )}
-            </div>
-
-            {/* Profile Screenshot Upload */}
+            {/* Step 1: Profile Screenshot Upload - FIRST */}
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <Upload className="w-4 h-4" />
-                صورة من حسابك في غلا لايف
+                صورة من صفحة Me في غلا لايف
               </Label>
+              <p className="text-xs text-muted-foreground">
+                ارفع صورة من صفحة الحساب الشخصي (تبويب Me) لنتحقق من مستواك
+              </p>
               <label className="block cursor-pointer">
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleProfileScreenshotChange}
                   className="hidden"
+                  disabled={isVerifying}
                 />
-                {previewImage ? (
+                {isVerifying ? (
+                  <div className="border-2 border-primary rounded-xl p-8 text-center bg-primary/5">
+                    <Loader2 className="w-8 h-8 mx-auto mb-2 text-primary animate-spin" />
+                    <p className="text-sm text-primary">جاري التحقق من الصورة...</p>
+                  </div>
+                ) : previewImage ? (
                   <div className="relative rounded-xl overflow-hidden border-2 border-primary">
                     <img src={previewImage} alt="Preview" className="w-full h-48 object-cover" />
-                    <div className="absolute bottom-2 right-2 bg-primary/90 text-primary-foreground px-3 py-1 rounded-full text-xs flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      تم اختيار الصورة
-                    </div>
+                    {isImageVerified ? (
+                      <div className="absolute bottom-2 right-2 bg-green-500/90 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        تم التحقق ✓
+                      </div>
+                    ) : (
+                      <div className="absolute bottom-2 right-2 bg-destructive/90 text-white px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        فشل التحقق
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-colors">
                     <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">اضغط لرفع صورة</p>
-                    <p className="text-xs text-muted-foreground">الحد الأقصى: 100MB</p>
+                    <p className="text-sm text-muted-foreground">اضغط لرفع صورة من صفحة Me</p>
+                    <p className="text-xs text-muted-foreground mt-1">الحد الأقصى: 100MB</p>
                   </div>
                 )}
               </label>
             </div>
 
-            {/* Proceed Button */}
-            <Button
-              onClick={handleProceedToPatterns}
-              disabled={!canProceedToPatterns() || isVerifying}
-              className="w-full"
-            >
-              {isVerifying ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                  جاري التحقق من المستوى...
-                </>
-              ) : (
-                <>
+            {/* Step 2: Level Display - Only shown after verification */}
+            {isImageVerified && verifiedLevel !== null && (
+              <div className="space-y-2 p-3 bg-primary/10 rounded-xl border border-primary/30">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-1 text-primary">
+                    <Star className="w-4 h-4" />
+                    مستواك (تم التحقق)
+                  </Label>
+                  <span className="text-2xl font-bold text-primary">{verifiedLevel}</span>
+                </div>
+                {allLevels.length > 1 && (
+                  <p className="text-xs text-muted-foreground">
+                    جميع اللفلات: {allLevels.join(' - ')}
+                  </p>
+                )}
+                <p className="text-xs text-green-500 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  مؤهل للحصول على ايدي مميز
+                </p>
+              </div>
+            )}
+
+            {/* Step 3: Gala User ID - Only shown after verification */}
+            {isImageVerified && (
+              <>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <Hash className="w-4 h-4" />
+                    ايدي حسابك في غلا لايف
+                  </Label>
+                  <Input
+                    type="text"
+                    placeholder="مثال: 123456789"
+                    value={galaUserId}
+                    onChange={(e) => setGalaUserId(e.target.value.replace(/\D/g, ""))}
+                    className="text-center text-lg font-mono"
+                  />
+                </div>
+
+                {/* Gala Username (Optional) */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1 text-muted-foreground">
+                    اسم المستخدم (اختياري)
+                  </Label>
+                  <Input
+                    type="text"
+                    placeholder="اسمك في غلا لايف"
+                    value={galaUsername}
+                    onChange={(e) => setGalaUsername(e.target.value)}
+                    className="text-center"
+                  />
+                </div>
+
+                {/* Proceed Button */}
+                <Button
+                  onClick={handleProceedToPatterns}
+                  disabled={!canProceedToPatterns()}
+                  className="w-full"
+                >
                   <Sparkles className="w-4 h-4 ml-2" />
                   اختيار نمط الايدي
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                </>
-              )}
-            </Button>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -27,7 +27,6 @@ serve(async (req) => {
       );
     }
 
-    // Use Lovable AI for image analysis
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -42,30 +41,42 @@ serve(async (req) => {
       ? imageBase64.split(',')[1] 
       : imageBase64;
 
-    const prompt = `Analyze this Gala Live app profile screenshot.
+    // Updated prompt to specifically identify Gala Live "Me" page
+    const prompt = `Analyze this Gala Live app screenshot and determine if it's from the "Me" (profile) page.
 
-Extract and return ONLY these values in JSON format:
-1. user_id: The numeric user ID shown
-2. username: The username if visible
-3. recharge_level: Recharge level number (الشحن)
-4. charm_level: Charm level number (السحر)  
-5. support_level: Support level number (الدعم)
-6. is_valid_profile: true if this is a valid Gala Live profile screenshot
+CRITICAL: This MUST be a screenshot from the Gala Live app's "Me" page which shows:
+1. A bottom navigation bar with tabs: "Room", "Moment", "Message", "Me" - where "Me" should be highlighted/selected
+2. A profile section at the top with username, ID, and avatar
+3. Menu items like "Family", "Level", "Agency", "Salary Withdrawal", "Badges", "My Bag"
+4. Small colored level badges/icons near the profile (these are the user's levels)
+
+EXTRACT THE FOLLOWING:
+1. user_id: The numeric ID shown (e.g., "ID: 1000" means user_id is "1000")
+2. username: The username shown
+3. level_badges: Look for small colored circular badges with numbers - these show the user's levels (e.g., green badge "39", gold badge "11", orange badge "35")
+4. is_me_page: true ONLY if:
+   - The bottom "Me" tab is visible and highlighted/selected
+   - The page shows profile menu items (Family, Level, Agency, Badges, etc.)
+   - This is clearly the user's own profile page
 
 Return ONLY valid JSON:
 {
-  "user_id": "123456789",
+  "user_id": "1000",
   "username": "name",
-  "recharge_level": 50,
-  "charm_level": 30,
-  "support_level": 40,
-  "is_valid_profile": true
+  "level_badge_1": 39,
+  "level_badge_2": 11,
+  "level_badge_3": 35,
+  "is_me_page": true,
+  "detected_elements": ["username", "id", "level_badges", "me_tab", "menu_items"]
 }
 
-If you cannot extract the data or it's not a valid profile screenshot, return:
-{"is_valid_profile": false, "error": "reason"}`;
+If this is NOT a valid Gala Live "Me" page screenshot, return:
+{
+  "is_me_page": false,
+  "error": "هذه ليست صورة من صفحة Me في غلا لايف. يرجى رفع صورة من صفحة الحساب الشخصي (Me)"
+}`;
 
-    const response = await fetch('https://api.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -85,7 +96,7 @@ If you cannot extract the data or it's not a valid profile screenshot, return:
             ],
           },
         ],
-        max_tokens: 500,
+        max_tokens: 800,
         temperature: 0.1,
       }),
     });
@@ -114,32 +125,55 @@ If you cannot extract the data or it's not a valid profile screenshot, return:
 
     const extracted = JSON.parse(jsonMatch[0]);
 
-    if (!extracted.is_valid_profile) {
+    // CRITICAL: Verify this is a "Me" page screenshot
+    if (!extracted.is_me_page) {
       return new Response(
         JSON.stringify({ 
           is_valid: false, 
-          error: extracted.error || 'الصورة غير صالحة - يرجى رفع صورة من صفحة الملف الشخصي في غلا لايف' 
+          error: extracted.error || 'هذه ليست صورة من صفحة Me في غلا لايف. يرجى رفع صورة من صفحة الحساب الشخصي (تبويب Me في الأسفل)' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Calculate max level
-    const rechargeLevel = parseInt(extracted.recharge_level) || 0;
-    const charmLevel = parseInt(extracted.charm_level) || 0;
-    const supportLevel = parseInt(extracted.support_level) || 0;
-    const maxLevel = Math.max(rechargeLevel, charmLevel, supportLevel);
+    // Extract all level badges and find the maximum
+    const levelBadge1 = parseInt(extracted.level_badge_1) || 0;
+    const levelBadge2 = parseInt(extracted.level_badge_2) || 0;
+    const levelBadge3 = parseInt(extracted.level_badge_3) || 0;
+    
+    // Get all non-zero levels
+    const allLevels = [levelBadge1, levelBadge2, levelBadge3].filter(l => l > 0);
+    const maxLevel = Math.max(...allLevels, 0);
 
-    // Return the verification result
+    console.log('Extracted levels:', { levelBadge1, levelBadge2, levelBadge3, maxLevel });
+
+    // Check if at least one level is >= 30
+    const isEligible = maxLevel >= 30;
+
+    if (!isEligible) {
+      return new Response(
+        JSON.stringify({ 
+          is_valid: false, 
+          error: `❌ مستواك (${maxLevel}) أقل من 30. يجب أن يكون أحد مستوياتك 30 أو أعلى للتأهل`,
+          max_level: maxLevel,
+          all_levels: allLevels
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Return the verification result with all level information
     return new Response(
       JSON.stringify({
         is_valid: true,
         user_id: extracted.user_id,
         username: extracted.username,
-        recharge_level: rechargeLevel,
-        charm_level: charmLevel,
-        support_level: supportLevel,
+        level_badge_1: levelBadge1,
+        level_badge_2: levelBadge2,
+        level_badge_3: levelBadge3,
         max_level: maxLevel,
+        all_levels: allLevels,
+        is_me_page: true,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
