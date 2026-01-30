@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign, Settings, Zap, BookOpen } from 'lucide-react';
+import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign, Settings, Zap, BookOpen, Clock } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
@@ -9,8 +9,15 @@ import { FlyingMoney } from '@/components/FlyingMoney';
 import { PayoutDisabledDialog } from '@/components/PayoutDisabledDialog';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import { VideoStoryCircle } from '@/components/VideoStoryCircle';
+import InstantPayoutCountdown from '@/components/InstantPayoutCountdown';
 
 const INSTANT_INTRO_DISMISSED_KEY = 'instant_intro_dismissed';
+
+// Check if instant payout service is available (after Feb 7, 2026)
+const isInstantServiceAvailable = () => {
+  const targetDate = new Date('2026-02-07T00:00:00');
+  return new Date() >= targetDate;
+};
 
 const Index = () => {
   const navigate = useNavigate();
@@ -92,6 +99,9 @@ const Index = () => {
         </p>
       </div>
 
+      {/* Instant Payout Countdown Banner */}
+      {!isInstantServiceAvailable() && <InstantPayoutCountdown />}
+
       {/* Two Main Buttons Side by Side */}
       <div className="flex gap-3 z-10 w-full max-w-sm px-4">
         {/* Monthly Payout Button */}
@@ -112,17 +122,22 @@ const Index = () => {
         {/* Instant Payout Button */}
         <button 
           onClick={() => {
-            const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
-            if (isDismissed) {
+            if (!isInstantServiceAvailable()) {
+              // Service not available yet, just show intro page with info
               navigate('/instant');
             } else {
-              setInstantInfoOpen(true);
+              const isDismissed = localStorage.getItem(INSTANT_INTRO_DISMISSED_KEY) === 'true';
+              if (isDismissed) {
+                navigate('/instant');
+              } else {
+                setInstantInfoOpen(true);
+              }
             }
           }}
           className="flex-1 p-3 rounded-xl bg-warning text-warning-foreground flex flex-col items-center gap-1.5 transition-all active:scale-[0.98] shadow-lg hover:shadow-xl relative overflow-hidden"
         >
           <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-white/20 rounded-full">
-            <span className="text-[8px] font-bold">جديد ⚡</span>
+            <span className="text-[8px] font-bold">{isInstantServiceAvailable() ? 'جديد ⚡' : 'قريباً ⏰'}</span>
           </div>
           <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
             <Zap className="w-4 h-4" />
