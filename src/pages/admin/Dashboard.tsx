@@ -414,125 +414,167 @@ const AdminDashboard = () => {
     }
   };
 
-  // Compact Request Card - Crypto Style (View Only for non-super_admin)
+  // Premium Crypto-Style Request Card
   const RequestCard = ({ request }: { request: PayoutRequest }) => {
     return (
-      <div className="dark-card p-4 space-y-3">
-        {/* Header Row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${
-              request.status === 'paid' ? 'bg-primary' :
-              request.status === 'rejected' ? 'bg-destructive' :
-              request.status === 'review' ? 'bg-warning' :
-              request.status === 'reserved' ? 'bg-orange-500' : 'bg-muted-foreground'
-            }`} />
-            <span className="text-sm font-medium">{request.recipient_full_name}</span>
+      <div className="group relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.01]"
+        style={{
+          background: 'linear-gradient(145deg, hsl(150 35% 10%), hsl(150 35% 6%))',
+          border: '1px solid hsla(142, 70%, 45%, 0.15)',
+          boxShadow: '0 4px 20px -5px hsla(150, 50%, 3%, 0.6), inset 0 1px 0 hsla(142, 70%, 50%, 0.08)',
+        }}
+      >
+        {/* Subtle glow effect on hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 50% 0%, hsla(142, 76%, 50%, 0.08), transparent 70%)' }} 
+        />
+        
+        <div className="relative p-4 space-y-3">
+          {/* Header Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-2.5 h-2.5 rounded-full shadow-lg ${
+                request.status === 'paid' ? 'bg-primary shadow-primary/50' :
+                request.status === 'rejected' ? 'bg-destructive shadow-destructive/50' :
+                request.status === 'review' ? 'bg-warning shadow-warning/50' :
+                request.status === 'reserved' ? 'bg-orange-500 shadow-orange-500/50' : 'bg-muted-foreground'
+              }`} />
+              <span className="text-sm font-medium text-foreground">{request.recipient_full_name}</span>
+            </div>
+            <span className={`text-[10px] px-2.5 py-1 rounded-lg font-medium ${
+              request.status === 'paid' ? 'bg-primary/15 text-primary border border-primary/30' :
+              request.status === 'rejected' ? 'bg-destructive/15 text-destructive border border-destructive/30' :
+              request.status === 'review' ? 'bg-warning/15 text-warning border border-warning/30' :
+              request.status === 'reserved' ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30' : 
+              'bg-muted text-muted-foreground border border-border'
+            }`}>
+              {statusLabels[request.status]}
+            </span>
           </div>
-          <span className={`text-xs px-2 py-1 rounded-lg border ${getStatusBg(request.status)} ${getStatusColor(request.status)}`}>
-            {statusLabels[request.status]}
-          </span>
-        </div>
 
-        {/* Amount - Large Display */}
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">{request.country} · {request.payout_method}</p>
-            <p className="text-2xl font-bold text-primary">${request.amount.toLocaleString()}</p>
+          {/* Amount - Large Crypto Display */}
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-[11px] text-muted-foreground mb-1">{request.country} · {request.payout_method}</p>
+              <p className="text-2xl font-bold text-primary drop-shadow-[0_0_10px_hsla(142,76%,50%,0.3)]">
+                ${request.amount.toLocaleString()}
+              </p>
+            </div>
+            <div className="text-left space-y-0.5">
+              <p className="text-[10px] text-primary/70 font-mono" dir="ltr">{request.tracking_code}</p>
+              <p className="text-[10px] text-muted-foreground">{new Date(request.created_at).toLocaleDateString('ar-EG')}</p>
+            </div>
           </div>
-          <div className="text-left">
-            <p className="text-[10px] text-muted-foreground" dir="ltr">{request.tracking_code}</p>
-            <p className="text-xs text-muted-foreground">{new Date(request.created_at).toLocaleDateString('ar-EG')}</p>
-          </div>
-        </div>
 
-        {/* Actions - View Details only */}
-        <div className="flex gap-2 pt-1">
-          <button
-            onClick={() => setSelectedRequest(request.id)}
-            className="flex-1 py-2.5 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80"
-          >
-            <Eye className="w-4 h-4" />
-            التفاصيل
-          </button>
-          {isSuperAdmin && (
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
             <button
-              onClick={() => handleDeleteRequest(request.id)}
-              className="p-2.5 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition-colors"
+              onClick={() => setSelectedRequest(request.id)}
+              className="flex-1 py-2.5 text-sm font-medium rounded-xl transition-all flex items-center justify-center gap-2 
+                bg-gradient-to-r from-primary/20 to-primary/10 text-primary border border-primary/30
+                hover:from-primary/30 hover:to-primary/20 hover:border-primary/50 hover:shadow-[0_0_20px_hsla(142,76%,50%,0.2)]"
             >
-              <Trash2 className="w-4 h-4" />
+              <Eye className="w-4 h-4" />
+              التفاصيل
             </button>
-          )}
+            {isSuperAdmin && (
+              <button
+                onClick={() => handleDeleteRequest(request.id)}
+                className="p-2.5 bg-destructive/10 text-destructive rounded-xl border border-destructive/20
+                  hover:bg-destructive/20 hover:border-destructive/40 transition-all"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
-  // Home Tab - Dashboard Overview
+  // Home Tab - Premium Dashboard Overview
   const renderHomeTab = () => (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold">{currentUserName || 'مدير'}</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-xl font-bold text-foreground">{currentUserName || 'مدير'}</h2>
+          <p className="text-sm text-primary/80">
             {isSuperAdmin ? 'مسؤول النظام' : 'مدير'}
           </p>
         </div>
         <button
           onClick={handleLogout}
-          className="p-3 bg-secondary rounded-xl hover:bg-secondary/80 transition-colors"
+          className="p-3 rounded-xl transition-all border border-border/50 hover:border-primary/30 hover:bg-primary/5"
+          style={{ background: 'linear-gradient(145deg, hsl(150 35% 10%), hsl(150 35% 7%))' }}
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-5 h-5 text-muted-foreground" />
         </button>
       </div>
 
-      {/* Stats Cards - Grid */}
+      {/* Premium Stats Cards Grid */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="dark-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-warning" />
-            <span className="text-xs text-muted-foreground">طلبات جديدة</span>
+        {[
+          { icon: Clock, label: 'طلبات جديدة', value: pendingRequests.length, color: 'warning' },
+          { icon: Wallet, label: 'طلباتي', value: myRequests.length, color: 'primary' },
+          { icon: CheckCircle, label: 'تم قبولها', value: myStats.paidRequests, subValue: `$${myStats.totalPaidAmount.toLocaleString()}`, color: 'primary' },
+          { icon: XCircle, label: 'مرفوضة', value: myStats.rejectedRequests, color: 'destructive' },
+        ].map((stat, i) => (
+          <div 
+            key={i}
+            className="relative overflow-hidden rounded-2xl p-4 transition-all hover:scale-[1.02]"
+            style={{
+              background: 'linear-gradient(145deg, hsl(150 35% 10%), hsl(150 35% 6%))',
+              border: '1px solid hsla(142, 70%, 45%, 0.15)',
+              boxShadow: '0 4px 20px -5px hsla(150, 50%, 3%, 0.6), inset 0 1px 0 hsla(142, 70%, 50%, 0.08)',
+            }}
+          >
+            {/* Decorative glow */}
+            <div className="absolute top-0 right-0 w-20 h-20 opacity-30 pointer-events-none"
+              style={{ background: `radial-gradient(circle at 100% 0%, hsl(var(--${stat.color}) / 0.15), transparent 70%)` }} 
+            />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-2">
+                <stat.icon className={`w-4 h-4 text-${stat.color}`} />
+                <span className="text-[11px] text-muted-foreground">{stat.label}</span>
+              </div>
+              <p className={`text-2xl font-bold ${stat.color === 'primary' ? 'text-primary' : stat.color === 'destructive' ? 'text-destructive' : 'text-foreground'}`}>
+                {stat.value}
+              </p>
+              {stat.subValue && (
+                <p className="text-[11px] text-muted-foreground mt-1">{stat.subValue}</p>
+              )}
+            </div>
           </div>
-          <p className="text-2xl font-bold">{pendingRequests.length}</p>
-        </div>
-        <div className="dark-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Wallet className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground">طلباتي</span>
-          </div>
-          <p className="text-2xl font-bold">{myRequests.length}</p>
-        </div>
-        <div className="dark-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground">تم قبولها</span>
-          </div>
-          <p className="text-2xl font-bold text-primary">{myStats.paidRequests}</p>
-          <p className="text-xs text-muted-foreground mt-1">${myStats.totalPaidAmount.toLocaleString()}</p>
-        </div>
-        <div className="dark-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <XCircle className="w-4 h-4 text-destructive" />
-            <span className="text-xs text-muted-foreground">مرفوضة</span>
-          </div>
-          <p className="text-2xl font-bold">{myStats.rejectedRequests}</p>
-        </div>
+        ))}
       </div>
 
       {/* Payout Toggle for Super Admin */}
       {isSuperAdmin && (
-        <div className="dark-card p-4">
+        <div 
+          className="rounded-2xl p-4"
+          style={{
+            background: 'linear-gradient(145deg, hsl(150 35% 10%), hsl(150 35% 6%))',
+            border: `1px solid ${payoutEnabled ? 'hsla(142, 70%, 45%, 0.25)' : 'hsla(0, 80%, 55%, 0.25)'}`,
+            boxShadow: payoutEnabled 
+              ? '0 4px 20px -5px hsla(142, 76%, 50%, 0.15), inset 0 1px 0 hsla(142, 70%, 50%, 0.1)' 
+              : '0 4px 20px -5px hsla(0, 80%, 55%, 0.15)',
+          }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {payoutEnabled ? (
-                <Power className="w-5 h-5 text-primary" />
+                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                  <Power className="w-5 h-5 text-primary" />
+                </div>
               ) : (
-                <PowerOff className="w-5 h-5 text-destructive" />
+                <div className="w-10 h-10 rounded-xl bg-destructive/15 flex items-center justify-center">
+                  <PowerOff className="w-5 h-5 text-destructive" />
+                </div>
               )}
               <div>
-                <p className="font-medium text-sm">رفع الراتب</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="font-medium text-sm text-foreground">رفع الراتب</p>
+                <p className={`text-xs ${payoutEnabled ? 'text-primary' : 'text-destructive'}`}>
                   {payoutEnabled ? 'مفعّل' : 'معطّل'}
                 </p>
               </div>
@@ -546,14 +588,14 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Recent Requests */}
+      {/* Recent Requests Section */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">طلبات جديدة</h3>
+          <h3 className="font-semibold text-foreground">طلبات جديدة</h3>
           {pendingRequests.length > 0 && (
             <button 
               onClick={() => setActiveTab('pending')}
-              className="text-xs text-primary"
+              className="text-xs text-primary hover:text-primary/80 transition-colors"
             >
               عرض الكل ({pendingRequests.length})
             </button>
@@ -563,9 +605,15 @@ const AdminDashboard = () => {
           <RequestCard key={request.id} request={request} />
         ))}
         {pendingRequests.length === 0 && (
-          <div className="dark-card p-8 text-center text-muted-foreground">
-            <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p>لا توجد طلبات جديدة</p>
+          <div 
+            className="rounded-2xl p-10 text-center"
+            style={{
+              background: 'linear-gradient(145deg, hsl(150 35% 9%), hsl(150 35% 5%))',
+              border: '1px solid hsla(142, 70%, 45%, 0.1)',
+            }}
+          >
+            <Clock className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+            <p className="text-muted-foreground text-sm">لا توجد طلبات جديدة</p>
           </div>
         )}
       </div>
@@ -823,18 +871,43 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3">
+    <div 
+      className="min-h-screen pb-24"
+      style={{
+        background: 'linear-gradient(180deg, hsl(150 40% 4%) 0%, hsl(150 35% 6%) 50%, hsl(150 40% 4%) 100%)',
+      }}
+    >
+      {/* Premium Header */}
+      <header 
+        className="sticky top-0 z-20 px-4 py-3"
+        style={{
+          background: 'linear-gradient(180deg, hsla(150, 40%, 5%, 0.98) 0%, hsla(150, 40%, 5%, 0.95) 100%)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid hsla(142, 70%, 45%, 0.12)',
+        }}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <div 
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, hsla(142, 76%, 50%, 0.2), hsla(142, 76%, 50%, 0.1))',
+                border: '1px solid hsla(142, 70%, 45%, 0.3)',
+                boxShadow: '0 0 20px hsla(142, 76%, 50%, 0.15)',
+              }}
+            >
               <Wallet className="w-4 h-4 text-primary" />
             </div>
-            <h1 className="text-lg font-bold">غلا لايف</h1>
+            <h1 className="text-lg font-bold text-foreground">غلا لايف</h1>
           </div>
           {isSuperAdmin && (
-            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-lg">
+            <span 
+              className="text-[11px] px-3 py-1.5 rounded-lg font-medium text-primary"
+              style={{
+                background: 'linear-gradient(135deg, hsla(142, 76%, 50%, 0.15), hsla(142, 76%, 50%, 0.08))',
+                border: '1px solid hsla(142, 70%, 45%, 0.25)',
+              }}
+            >
               مسؤول
             </span>
           )}
@@ -842,7 +915,7 @@ const AdminDashboard = () => {
       </header>
 
       {/* Main Content with Tab Transitions */}
-      <main className="px-4 py-4">
+      <main className="px-4 py-5">
         <div key={activeTab} className="animate-fade-in">
           {activeTab === 'home' && renderHomeTab()}
           {activeTab === 'pending' && renderPendingTab()}
@@ -854,8 +927,15 @@ const AdminDashboard = () => {
         </div>
       </main>
 
-      {/* Bottom Navigation with Enhanced Transitions */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-xl border-t border-border px-2 py-2 safe-area-pb">
+      {/* Premium Bottom Navigation */}
+      <nav 
+        className="fixed bottom-0 left-0 right-0 z-30 px-3 py-2.5 safe-area-pb"
+        style={{
+          background: 'linear-gradient(180deg, hsla(150, 35%, 7%, 0.98) 0%, hsla(150, 40%, 5%, 0.99) 100%)',
+          backdropFilter: 'blur(20px)',
+          borderTop: '1px solid hsla(142, 70%, 45%, 0.12)',
+        }}
+      >
         <div className="flex items-center justify-around">
           {navItems.map((item) => (
             <button
@@ -863,14 +943,29 @@ const AdminDashboard = () => {
               onClick={() => setActiveTab(item.id)}
               className={`relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ease-out transform ${
                 activeTab === item.id 
-                  ? 'bg-primary text-primary-foreground scale-105 shadow-lg shadow-primary/30' 
+                  ? 'scale-105' 
                   : 'text-muted-foreground hover:text-foreground hover:scale-105'
               }`}
+              style={activeTab === item.id ? {
+                background: 'linear-gradient(135deg, hsl(142 76% 50%), hsl(150 70% 45%))',
+                boxShadow: '0 4px 20px hsla(142, 76%, 50%, 0.4), inset 0 1px 0 hsla(255, 255%, 255%, 0.2)',
+              } : undefined}
             >
-              <item.icon className={`w-5 h-5 transition-transform duration-300 ${activeTab === item.id ? 'scale-110' : ''}`} />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <item.icon className={`w-5 h-5 transition-transform duration-300 ${
+                activeTab === item.id ? 'scale-110 text-primary-foreground' : ''
+              }`} />
+              <span className={`text-[10px] font-medium ${activeTab === item.id ? 'text-primary-foreground' : ''}`}>
+                {item.label}
+              </span>
               {item.badge && item.badge > 0 && activeTab !== item.id && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                <span 
+                  className="absolute -top-1 -right-1 w-5 h-5 text-[10px] font-bold rounded-full flex items-center justify-center"
+                  style={{
+                    background: 'linear-gradient(135deg, hsl(142 76% 50%), hsl(150 70% 45%))',
+                    color: 'hsl(150 40% 4%)',
+                    boxShadow: '0 2px 10px hsla(142, 76%, 50%, 0.5)',
+                  }}
+                >
                   {item.badge > 9 ? '9+' : item.badge}
                 </span>
               )}
