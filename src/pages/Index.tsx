@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign, Settings } from 'lucide-react';
+import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, DollarSign, Settings, Zap } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
 import { useSavedRequests } from '@/hooks/use-saved-requests';
@@ -8,6 +8,7 @@ import { FlyingMoney } from '@/components/FlyingMoney';
 import { PayoutDisabledDialog } from '@/components/PayoutDisabledDialog';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import { VideoStoryCircle } from '@/components/VideoStoryCircle';
+
 const Index = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -113,9 +114,9 @@ const Index = () => {
               </h2>
             </div>
 
-            {/* Two Main Options - Large Cards */}
+            {/* Main Options */}
             <div className="space-y-4">
-              {/* Option 1: New Request */}
+              {/* Option 1: New Monthly Request */}
               <button
                 onClick={handleProceed}
                 className="w-full p-5 rounded-2xl bg-primary text-primary-foreground flex items-center gap-4 transition-all active:scale-[0.98] shadow-lg"
@@ -124,12 +125,32 @@ const Index = () => {
                   <Wallet className="w-7 h-7" />
                 </div>
                 <div className="text-right flex-1">
-                  <p className="text-lg font-bold mb-1">رفع طلب صرف جديد</p>
+                  <p className="text-lg font-bold mb-1">رفع طلب صرف شهري</p>
                   <p className="text-sm opacity-80">حولت المبلغ ولدي إيصال التحويل</p>
                 </div>
               </button>
 
-              {/* Option 2: Track Existing */}
+              {/* Option 2: Instant Payout - NEW */}
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate('/instant');
+                }}
+                className="w-full p-5 rounded-2xl bg-warning text-warning-foreground flex items-center gap-4 transition-all active:scale-[0.98] shadow-lg relative overflow-hidden"
+              >
+                <div className="absolute top-2 left-2 px-2 py-0.5 bg-white/20 rounded-full">
+                  <span className="text-xs font-bold">جديد ⚡</span>
+                </div>
+                <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Zap className="w-7 h-7" />
+                </div>
+                <div className="text-right flex-1">
+                  <p className="text-lg font-bold mb-1">سحب الراتب الفوري</p>
+                  <p className="text-sm opacity-90">بيع راتبك لداعم واستلم فلوسك فوراً!</p>
+                </div>
+              </button>
+
+              {/* Option 3: Track Existing */}
               <button
                 onClick={handleTrack}
                 className="w-full p-5 rounded-2xl bg-muted border-2 border-border flex items-center gap-4 transition-all active:scale-[0.98] hover:border-primary/50"

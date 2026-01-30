@@ -10,6 +10,8 @@ import Success from "./pages/Success";
 import Track from "./pages/Track";
 import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
+import InstantPayoutIntro from "./pages/instant/InstantPayoutIntro";
+import InstantPayoutBanks from "./pages/instant/InstantPayoutBanks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,8 @@ const App = () => (
           <Route path="/request" element={<PayoutRequest />} />
           <Route path="/success" element={<Success />} />
           <Route path="/track" element={<Track />} />
+          <Route path="/instant" element={<InstantPayoutIntro />} />
+          <Route path="/instant/banks" element={<InstantPayoutBanks />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
