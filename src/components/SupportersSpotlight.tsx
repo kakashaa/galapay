@@ -32,6 +32,9 @@ const SupportersSpotlight = () => {
     },
   });
 
+  // Timer key to reset interval on user interaction
+  const [timerKey, setTimerKey] = useState(0);
+
   useEffect(() => {
     if (isPaused || supporters.length === 0) return;
     
@@ -40,7 +43,7 @@ const SupportersSpotlight = () => {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isPaused, supporters.length]);
+  }, [isPaused, supporters.length, timerKey]);
 
   // Reset index if supporters change
   useEffect(() => {
@@ -49,12 +52,19 @@ const SupportersSpotlight = () => {
     }
   }, [supporters.length, currentIndex]);
 
+  // Reset timer when navigating manually
+  const resetTimer = () => {
+    setTimerKey((prev) => prev + 1);
+  };
+
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + supporters.length) % supporters.length);
+    resetTimer();
   };
 
   const goToNext = () => {
     setCurrentIndex((prev) => (prev + 1) % supporters.length);
+    resetTimer();
   };
 
   // Generate initials for placeholder avatar
@@ -73,9 +83,16 @@ const SupportersSpotlight = () => {
     );
   }
 
-  // No supporters
+  // No supporters - show placeholder
   if (supporters.length === 0) {
-    return null;
+    return (
+      <div className="w-full max-w-xs">
+        <div className="neon-card p-4 flex flex-col items-center justify-center h-[140px] text-center">
+          <Heart className="w-6 h-6 text-primary/40 mb-2" />
+          <p className="text-xs text-muted-foreground">قريباً سيتم عرض الداعمين هنا</p>
+        </div>
+      </div>
+    );
   }
 
   const currentSupporter = supporters[currentIndex];
@@ -90,8 +107,8 @@ const SupportersSpotlight = () => {
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setTimeout(() => setIsPaused(false), 2000)}
     >
-      {/* Main Card */}
-      <div className="neon-card p-4 relative overflow-hidden">
+      {/* Main Card - fixed height to prevent layout shift */}
+      <div className="neon-card p-4 relative overflow-hidden min-h-[140px]">
         {/* Heart decoration */}
         <motion.div 
           className="absolute top-2 left-2"
@@ -104,10 +121,10 @@ const SupportersSpotlight = () => {
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSupporter.id}
-            initial={{ opacity: 0, x: 30 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
             className="flex flex-col items-center text-center"
           >
             {/* Avatar */}
@@ -131,8 +148,8 @@ const SupportersSpotlight = () => {
             <h4 className="text-sm font-bold text-foreground mb-0.5">{currentSupporter.name}</h4>
             <p className="text-xs text-primary font-medium mb-2">{currentSupporter.handle}</p>
 
-            {/* Thank you message */}
-            <p className="text-[10px] text-muted-foreground leading-relaxed px-2">
+            {/* Thank you message - max 2 lines with ellipsis */}
+            <p className="text-[10px] text-muted-foreground leading-relaxed px-2 line-clamp-2">
               {currentSupporter.thank_you_text}
             </p>
           </motion.div>
