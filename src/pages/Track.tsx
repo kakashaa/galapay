@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Search, Clock, Eye, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { ArrowRight, Search, Clock, Eye, CheckCircle2, XCircle, Loader2, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+
+// Combined status type for both monthly and instant payouts
+type PayoutStatus = 'pending' | 'review' | 'paid' | 'rejected' | 'processing' | 'completed';
 
 interface PayoutRequest {
   id: string;
   tracking_code: string;
-  status: 'pending' | 'review' | 'paid' | 'rejected';
+  status: PayoutStatus;
   country: string;
   payout_method: string;
   amount: number;
@@ -15,9 +18,11 @@ interface PayoutRequest {
   rejection_reason: string | null;
   admin_final_receipt_image_url: string | null;
   created_at: string;
+  isInstant?: boolean;
 }
 
-const statusConfig = {
+// Status config for monthly payouts
+const monthlyStatusConfig = {
   pending: {
     label: 'قيد الانتظار',
     icon: Clock,
@@ -32,6 +37,34 @@ const statusConfig = {
   },
   paid: {
     label: 'تم التحويل',
+    icon: CheckCircle2,
+    className: 'status-paid',
+    description: 'مبروك! تم تحويل المبلغ بنجاح',
+  },
+  rejected: {
+    label: 'مرفوض',
+    icon: XCircle,
+    className: 'status-rejected',
+    description: 'للأسف تم رفض طلبك',
+  },
+};
+
+// Status config for instant payouts (different statuses)
+const instantStatusConfig = {
+  pending: {
+    label: 'قيد الانتظار',
+    icon: Clock,
+    className: 'status-pending',
+    description: 'طلبك قيد المراجعة',
+  },
+  processing: {
+    label: 'قيد المعالجة',
+    icon: Eye,
+    className: 'status-review',
+    description: 'يتم معالجة طلبك حالياً',
+  },
+  completed: {
+    label: 'مكتمل',
     icon: CheckCircle2,
     className: 'status-paid',
     description: 'مبروك! تم تحويل المبلغ بنجاح',
@@ -72,20 +105,52 @@ const Track = () => {
     setNotFound(false);
     setRequest(null);
 
+    const code = trackingCode.trim().toUpperCase();
+
     try {
-      const { data, error } = await supabase
+      // First try to find in monthly payout_requests
+      const { data: monthlyData, error: monthlyError } = await supabase
         .from('payout_requests')
         .select('id, tracking_code, status, country, payout_method, amount, currency, rejection_reason, admin_final_receipt_image_url, created_at')
-        .eq('tracking_code', trackingCode.trim().toUpperCase())
+        .eq('tracking_code', code)
         .maybeSingle();
 
-      if (error) throw error;
+      if (monthlyError) throw monthlyError;
 
-      if (data) {
-        setRequest(data as PayoutRequest);
-      } else {
-        setNotFound(true);
+      if (monthlyData) {
+        setRequest({ ...monthlyData, isInstant: false } as PayoutRequest);
+        return;
       }
+
+      // If not found, try instant_payout_requests
+      const { data: instantData, error: instantError } = await supabase
+        .from('instant_payout_requests')
+        .select('id, tracking_code, status, host_country, host_payout_method, host_payout_amount, host_currency, rejection_reason, admin_final_receipt_url, created_at')
+        .eq('tracking_code', code)
+        .maybeSingle();
+
+      if (instantError) throw instantError;
+
+      if (instantData) {
+        // Map instant payout fields to the common interface
+        setRequest({
+          id: instantData.id,
+          tracking_code: instantData.tracking_code,
+          status: instantData.status as any, // instant uses pending/processing/completed/rejected
+          country: instantData.host_country,
+          payout_method: instantData.host_payout_method,
+          amount: instantData.host_payout_amount,
+          currency: instantData.host_currency,
+          rejection_reason: instantData.rejection_reason,
+          admin_final_receipt_image_url: instantData.admin_final_receipt_url,
+          created_at: instantData.created_at,
+          isInstant: true,
+        });
+        return;
+      }
+
+      // Not found in either table
+      setNotFound(true);
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -98,7 +163,23 @@ const Track = () => {
     }
   };
 
-  const StatusIcon = request ? statusConfig[request.status].icon : Clock;
+  // Get the correct status config based on request type
+  const getStatusConfig = () => {
+    if (!request) return monthlyStatusConfig.pending;
+    
+    if (request.isInstant) {
+      // Map instant statuses
+      const status = request.status as 'pending' | 'processing' | 'completed' | 'rejected';
+      return instantStatusConfig[status] || instantStatusConfig.pending;
+    } else {
+      // Monthly statuses
+      const status = request.status as 'pending' | 'review' | 'paid' | 'rejected';
+      return monthlyStatusConfig[status] || monthlyStatusConfig.pending;
+    }
+  };
+
+  const currentStatusConfig = getStatusConfig();
+  const StatusIcon = currentStatusConfig.icon;
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -163,26 +244,34 @@ const Track = () => {
         {/* Request Found */}
         {request && (
           <div className="space-y-4 animate-fade-in">
+            {/* Instant Payout Badge */}
+            {request.isInstant && (
+              <div className="bg-warning/10 border border-warning/30 rounded-xl p-3 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-warning" />
+                <span className="text-warning font-medium text-sm">طلب سحب فوري</span>
+              </div>
+            )}
+
             {/* Status Card */}
             <div className="glass-card p-6">
               <div className="flex items-center gap-4 mb-4">
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
-                  request.status === 'paid' ? 'bg-success/10' :
+                  (request.status === 'paid' || request.status === 'completed') ? 'bg-success/10' :
                   request.status === 'rejected' ? 'bg-destructive/10' :
-                  request.status === 'review' ? 'bg-primary/10' : 'bg-warning/10'
+                  (request.status === 'review' || request.status === 'processing') ? 'bg-primary/10' : 'bg-warning/10'
                 }`}>
                   <StatusIcon className={`w-7 h-7 ${
-                    request.status === 'paid' ? 'text-success' :
+                    (request.status === 'paid' || request.status === 'completed') ? 'text-success' :
                     request.status === 'rejected' ? 'text-destructive' :
-                    request.status === 'review' ? 'text-primary' : 'text-warning'
+                    (request.status === 'review' || request.status === 'processing') ? 'text-primary' : 'text-warning'
                   }`} />
                 </div>
                 <div>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${statusConfig[request.status].className}`}>
-                    {statusConfig[request.status].label}
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${currentStatusConfig.className}`}>
+                    {currentStatusConfig.label}
                   </span>
                   <p className="text-muted-foreground text-sm mt-1">
-                    {statusConfig[request.status].description}
+                    {currentStatusConfig.description}
                   </p>
                 </div>
               </div>
@@ -197,7 +286,7 @@ const Track = () => {
               )}
 
               {/* Success Receipt */}
-              {request.status === 'paid' && request.admin_final_receipt_image_url && (
+              {(request.status === 'paid' || request.status === 'completed') && request.admin_final_receipt_image_url && (
                 <div className="mt-4">
                   <p className="text-sm font-medium text-foreground mb-2">إيصال التحويل:</p>
                   <img
@@ -213,6 +302,12 @@ const Track = () => {
             <div className="glass-card p-4">
               <h3 className="font-semibold text-foreground mb-3">تفاصيل الطلب</h3>
               <div className="space-y-2 text-sm">
+                {request.isInstant && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">نوع الطلب</span>
+                    <span className="text-warning font-medium">سحب فوري ⚡</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">البلد</span>
                   <span className="text-foreground">{request.country}</span>

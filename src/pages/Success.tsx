@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
-import { CheckCircle2, Copy, AlertTriangle, Search, Camera, Download, Check } from 'lucide-react';
+import { CheckCircle2, Copy, AlertTriangle, Search, Camera, Download, Check, Clock, Zap } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useSavedRequests } from '@/hooks/use-saved-requests';
 
@@ -9,6 +9,7 @@ const Success = () => {
   const navigate = useNavigate();
   const { saveTrackingCode } = useSavedRequests();
   const trackingCode = location.state?.trackingCode;
+  const isInstant = location.state?.isInstant || false;
   const [saved, setSaved] = useState(false);
   const codeCardRef = useRef<HTMLDivElement>(null);
 
@@ -134,17 +135,36 @@ const Success = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
       {/* Success Icon */}
-      <div className="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center mb-6 animate-scale-in">
-        <CheckCircle2 className="w-12 h-12 text-success" />
+      <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 animate-scale-in ${isInstant ? 'bg-warning/10' : 'bg-success/10'}`}>
+        {isInstant ? (
+          <Zap className="w-12 h-12 text-warning" />
+        ) : (
+          <CheckCircle2 className="w-12 h-12 text-success" />
+        )}
       </div>
 
       {/* Success Message */}
       <h1 className="text-2xl font-bold text-foreground mb-2 text-center">
-        تم استلام طلبك بنجاح!
+        {isInstant ? 'تم استلام طلب السحب الفوري!' : 'تم استلام طلبك بنجاح!'}
       </h1>
-      <p className="text-muted-foreground text-center mb-8">
-        سيتم التحويل خلال 1-2 يوم عمل
+      <p className="text-muted-foreground text-center mb-4">
+        {isInstant ? 'سيتم معالجة طلبك خلال دقائق' : 'سيتم التحويل خلال 1-2 يوم عمل'}
       </p>
+
+      {/* Instant Payout Time Warning */}
+      {isInstant && (
+        <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 w-full max-w-sm mb-6 flex gap-3 animate-fade-in">
+          <Clock className="w-6 h-6 text-warning shrink-0" />
+          <div>
+            <p className="text-warning font-bold text-sm mb-1">
+              ⏰ الوقت المحدد للتحويل
+            </p>
+            <p className="text-warning/80 text-sm">
+              يجب استلام حوالتك خلال <span className="font-bold">1 إلى 10 دقائق</span> من الآن. تأكد من متابعة طلبك.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Saved Confirmation Badge */}
       {saved && (
