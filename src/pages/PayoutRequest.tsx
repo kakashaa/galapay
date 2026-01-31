@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info } from 'lucide-react';
+import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info, FileText, CalendarX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PayoutPolicyDialog } from '@/components/PayoutPolicyDialog';
 
 interface Country {
   id: string;
@@ -39,6 +40,21 @@ interface RequiredField {
   required?: boolean;
 }
 
+// Check if today is the last day of the month
+const isLastDayOfMonth = (): boolean => {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.getDate() === 1;
+};
+
+// Get next last day of month
+const getNextLastDay = (): string => {
+  const today = new Date();
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  return lastDay.toLocaleDateString('ar-SA', { day: 'numeric', month: 'long' });
+};
+
 const PayoutRequest = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,10 +68,11 @@ const PayoutRequest = () => {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [dailyLimitError, setDailyLimitError] = useState<string | null>(null);
-  const [hasPreviousPaidRequest, setHasPreviousPaidRequest] = useState(false);
-  const [checkingPreviousPayouts, setCheckingPreviousPayouts] = useState(false);
   const [extractingData, setExtractingData] = useState(false);
   const [referenceExtractedByAI, setReferenceExtractedByAI] = useState(false);
+  const [policyDialogOpen, setPolicyDialogOpen] = useState(false);
+  const [isNotLastDay, setIsNotLastDay] = useState(false);
+  const [alreadySubmittedThisMonth, setAlreadySubmittedThisMonth] = useState(false);
 
   const [formData, setFormData] = useState({
     zalalLifeAccountId: '',
@@ -294,35 +311,36 @@ const PayoutRequest = () => {
     return !data; // Return true if no request found today
   };
 
-  // Check if user already has a paid (successful) payout - block repeat payouts
-  const checkPreviousPaidPayouts = async (accountId: string): Promise<{ hasPaid: boolean; message: string }> => {
-    setCheckingPreviousPayouts(true);
+  // Check if user already submitted this month (any status) - block repeat submissions in same month
+  const checkMonthlySubmission = async (accountId: string): Promise<{ hasSubmitted: boolean; message: string }> => {
+    // Get start of current month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
     const { data, error } = await supabase
       .from('payout_requests')
-      .select('id, created_at')
+      .select('id, created_at, status')
       .eq('zalal_life_account_id', accountId.trim())
-      .eq('status', 'paid')
+      .gte('created_at', startOfMonth.toISOString())
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
     
-    setCheckingPreviousPayouts(false);
-    
     if (error) {
-      console.error('Error checking previous payouts:', error);
-      return { hasPaid: false, message: '' };
+      console.error('Error checking monthly submission:', error);
+      return { hasSubmitted: false, message: '' };
     }
     
     if (data) {
-      setHasPreviousPaidRequest(true);
+      setAlreadySubmittedThisMonth(true);
       return { 
-        hasPaid: true, 
-        message: 'لقد تم تحويل طلب سابق لك بنجاح. لا يمكنك رفع طلب جديد حتى الشهر القادم.'
+        hasSubmitted: true, 
+        message: 'لقد قمت برفع راتبك هذا الشهر مسبقاً. لا يمكنك رفع طلب جديد حتى الشهر القادم.'
       };
     }
     
-    return { hasPaid: false, message: '' };
+    return { hasSubmitted: false, message: '' };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -375,12 +393,23 @@ const PayoutRequest = () => {
       return;
     }
 
-    // Check if user already has a successful paid payout
-    const previousPayoutCheck = await checkPreviousPaidPayouts(formData.zalalLifeAccountId);
-    if (previousPayoutCheck.hasPaid) {
+    // Check if today is the last day of the month
+    if (!isLastDayOfMonth() && !isPreviewMode) {
       toast({
-        title: '❌ تم الوصول للحد الأقصى',
-        description: previousPayoutCheck.message,
+        title: '⏰ ليس وقت السحب',
+        description: `السحب الشهري متاح فقط في آخر يوم من الشهر (${getNextLastDay()})`,
+        variant: 'destructive',
+      });
+      setIsNotLastDay(true);
+      return;
+    }
+
+    // Check if user already submitted this month
+    const monthlyCheck = await checkMonthlySubmission(formData.zalalLifeAccountId);
+    if (monthlyCheck.hasSubmitted) {
+      toast({
+        title: '❌ تم رفع الراتب مسبقاً',
+        description: monthlyCheck.message,
         variant: 'destructive',
       });
       return;
@@ -531,8 +560,61 @@ const PayoutRequest = () => {
   const isStep2Complete = formData.zalalLifeAccountId && formData.recipientFullName;
   const isStep3Complete = selectedCountry && selectedMethod && formData.phoneNumber;
 
+  // Check if user should be blocked from submitting
+  const shouldBlockUser = !isLastDayOfMonth() && !isPreviewMode;
+
   return (
     <div className="min-h-screen premium-bg pb-8">
+      {/* Policy Dialog */}
+      <PayoutPolicyDialog open={policyDialogOpen} onOpenChange={setPolicyDialogOpen} />
+
+      {/* Not Last Day Block Screen */}
+      {shouldBlockUser && (
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center p-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-sm w-full text-center space-y-6"
+          >
+            <div className="w-20 h-20 rounded-full bg-warning/20 flex items-center justify-center mx-auto">
+              <CalendarX className="w-10 h-10 text-warning" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-foreground">⏰ ليس وقت السحب</h2>
+              <p className="text-muted-foreground">
+                السحب الشهري متاح فقط في <span className="font-bold text-warning">آخر يوم من الشهر</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                (30 أو 31 حسب الشهر)
+              </p>
+            </div>
+
+            <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+              <p className="text-sm font-medium text-foreground">موعد السحب القادم:</p>
+              <p className="text-lg font-bold text-primary">{getNextLastDay()}</p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => setPolicyDialogOpen(true)}
+                className="w-full py-3 rounded-xl bg-primary/10 text-primary font-bold border border-primary/20 flex items-center justify-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                قراءة شروط السحب الشهري
+              </button>
+              
+              <button
+                onClick={() => navigate('/')}
+                className="w-full py-3 rounded-xl bg-muted text-foreground font-bold"
+              >
+                العودة للرئيسية
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Preview Mode Banner */}
       {isPreviewMode && (
         <div className="bg-warning text-warning-foreground py-3 px-4 text-center sticky top-0 z-20">
