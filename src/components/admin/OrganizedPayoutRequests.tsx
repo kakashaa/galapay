@@ -123,6 +123,18 @@ const OrganizedPayoutRequests = ({
     fetchRequests();
   }, []);
 
+  // Close filter on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isFilterOpen) {
+        setIsFilterOpen(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [isFilterOpen]);
+
   const fetchRequests = async () => {
     setLoading(true);
     try {
@@ -394,13 +406,7 @@ const OrganizedPayoutRequests = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs text-muted-foreground">الدولة</label>
-                  <Select 
-                    value={countryFilter} 
-                    onValueChange={(value) => {
-                      setCountryFilter(value);
-                      setTimeout(() => setIsFilterOpen(false), 300);
-                    }}
-                  >
+                  <Select value={countryFilter} onValueChange={setCountryFilter}>
                     <SelectTrigger className="h-9 text-xs">
                       <SelectValue placeholder="اختر الدولة" />
                     </SelectTrigger>
@@ -420,9 +426,6 @@ const OrganizedPayoutRequests = ({
                       placeholder="من"
                       value={minAmount}
                       onChange={(e) => setMinAmount(e.target.value)}
-                      onBlur={() => {
-                        if (minAmount) setTimeout(() => setIsFilterOpen(false), 300);
-                      }}
                       className="h-9 text-xs"
                       dir="ltr"
                     />
@@ -432,9 +435,6 @@ const OrganizedPayoutRequests = ({
                       placeholder="إلى"
                       value={maxAmount}
                       onChange={(e) => setMaxAmount(e.target.value)}
-                      onBlur={() => {
-                        if (maxAmount) setTimeout(() => setIsFilterOpen(false), 300);
-                      }}
                       className="h-9 text-xs"
                       dir="ltr"
                     />
