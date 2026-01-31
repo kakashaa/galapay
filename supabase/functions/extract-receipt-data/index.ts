@@ -24,10 +24,11 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { imageUrl, imageBase64: providedBase64 } = body;
+    const { imageUrl, imageBase64: providedBase64, zoomedImageBase64 } = body;
     
     console.log('Request type:', providedBase64 ? 'base64' : imageUrl ? 'URL' : 'none');
     console.log('Base64 length:', providedBase64?.length || 0);
+    console.log('Zoomed image provided:', !!zoomedImageBase64);
     
     if (!imageUrl && !providedBase64) {
       console.log('Error: No image provided');
@@ -47,21 +48,23 @@ serve(async (req) => {
       );
     }
 
+    // Helper function to prepare base64 image
+    const prepareBase64 = (base64: string): string => {
+      if (!base64.startsWith('data:image/')) {
+        if (base64.startsWith('/9j/')) {
+          return `data:image/jpeg;base64,${base64}`;
+        } else if (base64.startsWith('iVBOR')) {
+          return `data:image/png;base64,${base64}`;
+        }
+      }
+      return base64;
+    };
+
     // Use provided base64 or fetch from URL
     let imageBase64: string;
     
     if (providedBase64) {
-      imageBase64 = providedBase64;
-      // Validate base64 format
-      if (!imageBase64.startsWith('data:image/')) {
-        console.log('Warning: base64 does not have proper data URL prefix');
-        // Try to detect and fix format
-        if (imageBase64.startsWith('/9j/')) {
-          imageBase64 = `data:image/jpeg;base64,${imageBase64}`;
-        } else if (imageBase64.startsWith('iVBOR')) {
-          imageBase64 = `data:image/png;base64,${imageBase64}`;
-        }
-      }
+      imageBase64 = prepareBase64(providedBase64);
       console.log('Using provided base64 image, prefix:', imageBase64.substring(0, 30));
     } else if (imageUrl) {
       try {
@@ -99,6 +102,13 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Prepare zoomed image if provided
+    let zoomedBase64: string | null = null;
+    if (zoomedImageBase64) {
+      zoomedBase64 = prepareBase64(zoomedImageBase64);
+      console.log('Zoomed image prepared, size:', Math.round(zoomedBase64.length / 1024), 'KB');
+    }
     
     console.log('Proceeding with AI extraction...');
 
@@ -135,6 +145,29 @@ serve(async (req) => {
 - إذا وجدت رقماً بجانب كلمة Reference أو رقم المرجع، فهذا هو الرقم المرجعي
 - أجب بـ JSON فقط بدون أي نص إضافي`;
 
+    // Build user message content with images
+    const userContent: any[] = [
+      {
+        type: 'text',
+        text: zoomedBase64 
+          ? 'استخرج جميع البيانات من هذه الإيصالات. الصورة الأولى هي الإيصال كامل، والصورة الثانية هي تكبير للرقم المرجعي. ركز على الصورة المكبرة للحصول على الرقم المرجعي بدقة.'
+          : 'استخرج جميع البيانات من هذا الإيصال. ركز بشكل خاص على الرقم المرجعي (Reference Number).'
+      },
+      {
+        type: 'image_url',
+        image_url: { url: imageBase64 }
+      }
+    ];
+
+    // Add zoomed image if provided
+    if (zoomedBase64) {
+      userContent.push({
+        type: 'image_url',
+        image_url: { url: zoomedBase64 }
+      });
+      console.log('Including zoomed image in AI request');
+    }
+
     // Try with primary model first
     let response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -151,20 +184,11 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'استخرج جميع البيانات من هذا الإيصال. ركز بشكل خاص على الرقم المرجعي (Reference Number).'
-              },
-              {
-                type: 'image_url',
-                image_url: { url: imageBase64 }
-              }
-            ]
+            content: userContent
           }
         ],
         max_tokens: 500,
-        temperature: 0.1, // Lower temperature for more consistent extraction
+        temperature: 0.1,
       }),
     });
 
@@ -186,16 +210,7 @@ serve(async (req) => {
             },
             {
               role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'استخرج جميع البيانات من هذا الإيصال. ركز بشكل خاص على الرقم المرجعي (Reference Number).'
-                },
-                {
-                  type: 'image_url',
-                  image_url: { url: imageBase64 }
-                }
-              ]
+              content: userContent
             }
           ],
           max_tokens: 500,

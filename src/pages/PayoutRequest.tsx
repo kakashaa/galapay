@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info, FileText, CalendarX, RefreshCw } from 'lucide-react';
+import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info, FileText, CalendarX, RefreshCw, ZoomIn } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -67,6 +67,9 @@ const PayoutRequest = () => {
   const [selectedMethod, setSelectedMethod] = useState<PayoutMethod | null>(null);
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [zoomedReceiptImage, setZoomedReceiptImage] = useState<File | null>(null);
+  const [zoomedReceiptPreview, setZoomedReceiptPreview] = useState<string | null>(null);
+  const [showZoomedOption, setShowZoomedOption] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [dailyLimitError, setDailyLimitError] = useState<string | null>(null);
   const [extractingData, setExtractingData] = useState(false);
@@ -155,7 +158,7 @@ const PayoutRequest = () => {
     })) || []);
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, isZoomed: boolean = false) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
@@ -166,29 +169,51 @@ const PayoutRequest = () => {
         });
         return;
       }
-      setReceiptImage(file);
-      setReceiptPreview(URL.createObjectURL(file));
       
-      // Auto-extract data from receipt
-      await extractReceiptData(file);
+      if (isZoomed) {
+        setZoomedReceiptImage(file);
+        setZoomedReceiptPreview(URL.createObjectURL(file));
+        // Re-extract with zoomed image
+        if (receiptImage) {
+          await extractReceiptData(receiptImage, file);
+        }
+      } else {
+        setReceiptImage(file);
+        setReceiptPreview(URL.createObjectURL(file));
+        setZoomedReceiptImage(null);
+        setZoomedReceiptPreview(null);
+        setShowZoomedOption(false);
+        
+        // Auto-extract data from receipt
+        await extractReceiptData(file, null);
+      }
     }
   };
 
-  const extractReceiptData = async (file: File) => {
+  const extractReceiptData = async (mainFile: File, zoomedFile: File | null) => {
     setExtractingData(true);
     setExtractionFailed(false);
+    setShowZoomedOption(false);
     
     try {
-      // Normalize image across devices (HEIC/HEIF/WEBP/huge images) for consistent extraction.
-      const { normalizedFile, dataUrl: base64, wasConverted } = await normalizeReceiptImage(file);
+      // Normalize main image
+      const { normalizedFile, dataUrl: base64, wasConverted } = await normalizeReceiptImage(mainFile);
       console.log(
-        'Sending image for extraction, size:',
+        'Sending main image for extraction, size:',
         Math.round(base64.length / 1024),
         'KB, mime:',
         normalizedFile.type,
         'converted:',
         wasConverted,
       );
+
+      // Normalize zoomed image if provided
+      let zoomedBase64: string | undefined;
+      if (zoomedFile) {
+        const { dataUrl } = await normalizeReceiptImage(zoomedFile);
+        zoomedBase64 = dataUrl;
+        console.log('Zoomed image size:', Math.round(dataUrl.length / 1024), 'KB');
+      }
 
       // Also upload to storage for later use
       const fileExt = normalizedFile.name.split('.').pop();
@@ -205,9 +230,12 @@ const PayoutRequest = () => {
         setUploadedReceiptUrl(urlData.publicUrl);
       }
 
-      // Call AI to extract data - send base64 directly
+      // Call AI to extract data - send both images
       const { data: extractResult, error: extractError } = await supabase.functions.invoke('extract-receipt-data', {
-        body: { imageBase64: base64 }
+        body: { 
+          imageBase64: base64,
+          zoomedImageBase64: zoomedBase64,
+        }
       });
 
       console.log('Extraction result:', extractResult);
@@ -216,14 +244,15 @@ const PayoutRequest = () => {
         console.error('Extraction error:', extractError);
         setReferenceExtractedByAI(false);
         setExtractionFailed(true);
+        setShowZoomedOption(true);
         toast({
           title: '⚠️ خطأ في الاستخراج',
           description: (() => {
             const status = (extractError as any)?.status;
-            if (status === 413) return 'حجم الصورة كبير جداً بعد المعالجة. حاول رفع لقطة أوضح أو قص الإيصال، وسيتم ضغطه تلقائياً.';
+            if (status === 413) return 'حجم الصورة كبير جداً. حاول رفع صورة مكبرة للرقم المرجعي فقط.';
             if (status === 429) return 'تم تجاوز حد الطلبات مؤقتاً، حاول بعد دقيقة.';
             if (status === 402) return 'خدمة الذكاء الاصطناعي تحتاج رصيد. حاول لاحقاً أو تواصل مع الإدارة.';
-            return 'حدث خطأ أثناء معالجة الصورة، يرجى المحاولة مرة أخرى';
+            return 'حدث خطأ أثناء معالجة الصورة، يرجى رفع صورة مكبرة للرقم المرجعي';
           })(),
           variant: 'destructive',
         });
@@ -236,6 +265,7 @@ const PayoutRequest = () => {
         setFormData(prev => ({ ...prev, referenceNumber: extractResult.referenceNumber }));
         setReferenceExtractedByAI(true);
         setExtractionFailed(false);
+        setShowZoomedOption(false);
         // Check if reference is already used
         checkReferenceNumber(extractResult.referenceNumber);
         toast({
@@ -247,10 +277,11 @@ const PayoutRequest = () => {
           setFormData(prev => ({ ...prev, amount: extractResult.amount.toString() }));
         }
       } else {
-        // No reference found - require new receipt upload
+        // No reference found - show zoomed image option
         setReferenceExtractedByAI(false);
         setExtractionFailed(true);
-        const errorNote = extractResult?.notes || 'يرجى رفع إيصال آخر أوضح أو التأكد من جودة الصورة';
+        setShowZoomedOption(true);
+        const errorNote = extractResult?.notes || 'يرجى رفع صورة مكبرة للرقم المرجعي أو إيصال آخر أوضح';
         toast({
           title: '⚠️ لم يتم استخراج الرقم المرجعي',
           description: errorNote,
@@ -266,9 +297,10 @@ const PayoutRequest = () => {
       console.error('Error extracting data:', error);
       setReferenceExtractedByAI(false);
       setExtractionFailed(true);
+      setShowZoomedOption(true);
       toast({
         title: '⚠️ خطأ',
-        description: 'فشل في معالجة الصورة، يرجى المحاولة مرة أخرى',
+        description: 'فشل في معالجة الصورة، يرجى رفع صورة مكبرة للرقم المرجعي',
         variant: 'destructive',
       });
     } finally {
@@ -294,18 +326,26 @@ const PayoutRequest = () => {
 
     // Wait 3 seconds then retry
     await new Promise(resolve => setTimeout(resolve, 3000));
-    await extractReceiptData(receiptImage);
+    await extractReceiptData(receiptImage, zoomedReceiptImage);
   };
 
   const removeImage = () => {
     setReceiptImage(null);
     setReceiptPreview(null);
+    setZoomedReceiptImage(null);
+    setZoomedReceiptPreview(null);
+    setShowZoomedOption(false);
     setFormData(prev => ({ ...prev, referenceNumber: '', amount: '' }));
     
     setReferenceError(null);
     setReferenceExtractedByAI(false);
     setExtractionFailed(false);
     setRetryCountdown(0);
+  };
+
+  const removeZoomedImage = () => {
+    setZoomedReceiptImage(null);
+    setZoomedReceiptPreview(null);
   };
 
   const handleCountryChange = (countryId: string) => {
@@ -1070,18 +1110,70 @@ const PayoutRequest = () => {
                 )}
                 
                 {!referenceExtractedByAI && !extractingData && receiptPreview && extractionFailed && (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm text-amber-400 font-medium">لم يتم استخراج الرقم المرجعي</p>
-                        <p className="text-xs text-muted-foreground">يرجى رفع إيصال آخر أوضح أو التأكد من جودة الصورة</p>
+                  <div className="space-y-3">
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-amber-400 font-medium">لم يتم استخراج الرقم المرجعي</p>
+                          <p className="text-xs text-muted-foreground">ارفع صورة مكبرة للرقم المرجعي لتحسين دقة القراءة</p>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Zoomed Reference Image Upload */}
+                    {showZoomedOption && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 bg-gradient-to-r from-amber-500/5 to-amber-600/5 border border-amber-500/20 rounded-xl"
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <ZoomIn className="w-5 h-5 text-amber-400" />
+                          <span className="text-sm font-medium text-amber-400">صورة مكبرة للرقم المرجعي</span>
+                        </div>
+
+                        {zoomedReceiptPreview ? (
+                          <div className="relative rounded-lg overflow-hidden border border-amber-500/30">
+                            <img
+                              src={zoomedReceiptPreview}
+                              alt="Zoomed reference"
+                              className="w-full h-32 object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={removeZoomedImage}
+                              className="absolute top-2 left-2 p-1.5 bg-destructive text-white rounded-full shadow-lg hover:bg-destructive/90 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                            <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 bg-amber-500/30 rounded-full">
+                              <ZoomIn className="w-3 h-3 text-amber-300" />
+                              <span className="text-xs text-amber-200 font-medium">صورة مكبرة</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-amber-500/30 rounded-lg cursor-pointer hover:border-amber-500/50 hover:bg-amber-500/5 transition-all">
+                            <div className="flex items-center gap-2 text-amber-400">
+                              <ZoomIn className="w-5 h-5" />
+                              <span className="text-sm font-medium">اضغط لرفع صورة مكبرة</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground mt-1">كبّر منطقة الرقم المرجعي فقط</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleImageChange(e, true)}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
+                      </motion.div>
+                    )}
+
                     <button
                       type="button"
                       onClick={handleRetryExtraction}
-                      disabled={retryCountdown > 0}
+                      disabled={retryCountdown > 0 || extractingData}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-amber-400 font-medium text-sm transition-colors disabled:opacity-50"
                     >
                       {retryCountdown > 0 ? (
@@ -1092,7 +1184,7 @@ const PayoutRequest = () => {
                       ) : (
                         <>
                           <RefreshCw className="w-4 h-4" />
-                          إعادة المحاولة
+                          {zoomedReceiptPreview ? 'إعادة المحاولة بالصورتين' : 'إعادة المحاولة'}
                         </>
                       )}
                     </button>
