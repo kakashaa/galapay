@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, Loader2, CheckCircle2, XCircle, Eye, Edit3, Lock } from 'lucide-react';
+import { X, Upload, Loader2, CheckCircle2, XCircle, Eye, Edit3, Lock, AlertTriangle, Coins } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -38,6 +38,8 @@ interface PayoutRequest {
   claimed_at: string | null;
   processed_by: string | null;
   processed_at: string | null;
+  is_duplicate_flagged: boolean | null;
+  duplicate_flag_reason: string | null;
 }
 
 const RequestDetailsModal = ({ 
@@ -477,6 +479,25 @@ const RequestDetailsModal = ({
             <div className="glass-card p-4">
               <p className="text-sm text-muted-foreground">الرقم المرجعي</p>
               <p className="font-mono text-lg font-bold text-primary" dir="ltr">{request.reference_number}</p>
+            </div>
+          )}
+
+          {/* Duplicate Flag Warning */}
+          {request.is_duplicate_flagged && (
+            <div className="p-4 rounded-xl bg-amber-500/20 border border-amber-500/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Coins className="w-5 h-5 text-amber-500" />
+                <p className="font-bold text-amber-500 flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  ⚠️ كوينز فقط - ليس راتب!
+                </p>
+              </div>
+              {request.duplicate_flag_reason && (
+                <p className="text-sm text-amber-400/90 leading-relaxed">{request.duplicate_flag_reason}</p>
+              )}
+              <p className="text-xs text-amber-400/70 mt-2">
+                هذا الطلب تم تقديمه باستخدام إيصال/رقم مرجعي سبق استخدامه هذا الشهر. يجب تحويله كـ "كوينز" وليس راتب.
+              </p>
             </div>
           )}
 

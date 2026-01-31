@@ -71,8 +71,8 @@ const PayoutRequest = () => {
   const [extractingData, setExtractingData] = useState(false);
   const [referenceExtractedByAI, setReferenceExtractedByAI] = useState(false);
   const [policyDialogOpen, setPolicyDialogOpen] = useState(false);
-  const [isNotLastDay, setIsNotLastDay] = useState(false);
-  const [alreadySubmittedThisMonth, setAlreadySubmittedThisMonth] = useState(false);
+  const [_isNotLastDay, setIsNotLastDay] = useState(false);
+  const [_alreadySubmittedThisMonth, setAlreadySubmittedThisMonth] = useState(false);
   const [checkingAccountId, setCheckingAccountId] = useState(false);
   const [accountIdError, setAccountIdError] = useState<string | null>(null);
 
@@ -345,6 +345,39 @@ const PayoutRequest = () => {
     return { hasSubmitted: false, message: '' };
   };
 
+  // Check if reference number was used this month by anyone - for flagging duplicates
+  const checkReferenceThisMonth = async (refNumber: string): Promise<{ isDuplicate: boolean; reason: string }> => {
+    if (!refNumber || refNumber.trim().length < 3) {
+      return { isDuplicate: false, reason: '' };
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const { data, error } = await supabase
+      .from('payout_requests')
+      .select('id, zalal_life_account_id, created_at')
+      .eq('reference_number', refNumber.trim())
+      .gte('created_at', startOfMonth.toISOString())
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error checking reference this month:', error);
+      return { isDuplicate: false, reason: '' };
+    }
+    
+    if (data) {
+      return { 
+        isDuplicate: true, 
+        reason: `الرقم المرجعي مستخدم مسبقاً هذا الشهر من الأيدي: ${data.zalal_life_account_id}. هذا الطلب سيتم استلامه كـ "كوينز" فقط وليس راتب.`
+      };
+    }
+    
+    return { isDuplicate: false, reason: '' };
+  };
+
   // Auto-check Account ID when user types
   const checkAccountIdOnChange = async (accountId: string) => {
     if (!accountId || accountId.trim().length < 3) {
@@ -450,14 +483,18 @@ const PayoutRequest = () => {
       return;
     }
 
-    // Double-check reference number before submission
+    // Check if reference number was used this month by anyone (for flagging as coins-only)
+    const duplicateCheck = await checkReferenceThisMonth(formData.referenceNumber);
+    
+    // Double-check reference number before submission - block if used in previous months
     const { data: existingRef } = await supabase
       .from('payout_requests')
       .select('id')
       .eq('reference_number', formData.referenceNumber.trim())
       .maybeSingle();
 
-    if (existingRef) {
+    if (existingRef && !duplicateCheck.isDuplicate) {
+      // Reference exists from previous months - completely block
       toast({
         title: 'خطأ',
         description: 'هذا الرقم المرجعي مستخدم مسبقاً. لا يمكن استخدام نفس الإيصال مرتين.',
@@ -526,6 +563,8 @@ const PayoutRequest = () => {
           ai_notes: aiResult?.notes || null,
           status: 'pending',
           agency_code: formData.agencyCode.trim() || null,
+          is_duplicate_flagged: duplicateCheck.isDuplicate,
+          duplicate_flag_reason: duplicateCheck.isDuplicate ? duplicateCheck.reason : null,
         });
 
       if (requestError) throw requestError;
