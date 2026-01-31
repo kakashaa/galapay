@@ -33,11 +33,7 @@ interface MyRequestsFilterProps {
 const statusOptions = [
   { value: 'all', label: 'جميع الحالات' },
   { value: 'pending', label: 'قيد الانتظار' },
-  { value: 'review', label: 'قيد المراجعة' },
-  { value: 'processing', label: 'قيد المعالجة' },
   { value: 'paid', label: 'تم التحويل' },
-  { value: 'completed', label: 'مكتمل' },
-  { value: 'approved', label: 'تمت الموافقة' },
   { value: 'rejected', label: 'مرفوض' },
   { value: 'reserved', label: 'محجوز' },
 ];
