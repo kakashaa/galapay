@@ -13,14 +13,11 @@ import {
   Loader2,
   BarChart3,
   Home,
-  Users,
   Wallet,
   CheckCircle,
   XCircle,
-  Video,
-  Shield,
-  Heart,
 } from 'lucide-react';
+import MoreOptionsSheet from '@/components/admin/MoreOptionsSheet';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import RequestDetailsModal from '@/components/admin/RequestDetailsModal';
@@ -876,22 +873,15 @@ const AdminDashboard = () => {
     />
   );
 
-  // Navigation Items - ordered as: Home, Organized, New, My Requests, Scan, Analytics, Video, Supporters, Admins
-  const navItems = [
+  // Navigation Items - Main 4 items only (More options in sheet)
+  const mainNavItems = [
     { id: 'home', icon: Home, label: 'الرئيسية' },
     ...(isSuperAdmin ? [
       { id: 'organized', icon: Wallet, label: 'الطلبات', badge: pendingRequests.length },
     ] : [
       { id: 'pending', icon: Clock, label: 'جديدة', badge: pendingRequests.length },
     ]),
-    ...(isSuperAdmin ? [
-      { id: 'my-requests', icon: Clock, label: 'طلباتي' },
-      { id: 'scan', icon: Shield, label: 'الفحص' },
-      { id: 'analytics', icon: BarChart3, label: 'التحليلات' },
-      { id: 'videos', icon: Video, label: 'الفيديو' },
-      { id: 'supporters', icon: Heart, label: 'الداعمين' },
-      { id: 'settings', icon: Users, label: 'المديرين' },
-    ] : []),
+    { id: 'analytics', icon: BarChart3, label: 'التحليلات' },
   ];
 
   return (
@@ -963,7 +953,7 @@ const AdminDashboard = () => {
         }}
       >
         <div className="flex items-center justify-around">
-          {navItems.map((item) => (
+          {mainNavItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
@@ -997,6 +987,14 @@ const AdminDashboard = () => {
               )}
             </button>
           ))}
+          
+          {/* More Options Button - Only for Super Admin */}
+          {isSuperAdmin && (
+            <MoreOptionsSheet 
+              activeTab={activeTab} 
+              onSelectTab={(tabId) => setActiveTab(tabId)} 
+            />
+          )}
         </div>
       </nav>
 
