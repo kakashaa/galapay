@@ -387,10 +387,7 @@ const PayoutRequest = () => {
       setAccountIdError(null);
       setAlreadySubmittedThisMonth(false);
       // Check if reference is flagged when clearing account ID
-      if (flaggedReferenceNumber && formData.referenceNumber === flaggedReferenceNumber) {
-        setReferenceBlockedError('هذا الإيصال/الرقم المرجعي محجوز لأن صاحبه رفع راتب سابقاً هذا الشهر. يمكنك استلام كوينزات فقط وليس راتب.');
-        setPolicyDialogOpen(true);
-      }
+      checkFlaggedReference();
       return;
     }
 
@@ -410,12 +407,49 @@ const PayoutRequest = () => {
       setAccountIdError(null);
       setAlreadySubmittedThisMonth(false);
       // Check if this reference was flagged and the new ID hasn't submitted before
-      if (flaggedReferenceNumber && formData.referenceNumber === flaggedReferenceNumber) {
-        setReferenceBlockedError('هذا الإيصال/الرقم المرجعي محجوز لأن صاحبه الأصلي رفع راتب سابقاً هذا الشهر. يمكنك استلام كوينزات فقط وليس راتب.');
-        setPolicyDialogOpen(true);
-      } else {
-        setReferenceBlockedError(null);
+      checkFlaggedReference();
+    }
+  };
+
+  // Check if current reference number is flagged - called on blur and when switching IDs
+  const checkFlaggedReference = () => {
+    if (flaggedReferenceNumber && formData.referenceNumber && 
+        formData.referenceNumber.trim() === flaggedReferenceNumber) {
+      setReferenceBlockedError('هذا الإيصال/الرقم المرجعي محجوز لأن صاحبه الأصلي رفع راتب سابقاً هذا الشهر. يمكنك استلام كوينزات فقط وليس راتب.');
+      setPolicyDialogOpen(true);
+    } else {
+      setReferenceBlockedError(null);
+    }
+  };
+
+  // Handle account ID field blur - do full validation
+  const handleAccountIdBlur = async () => {
+    const accountId = formData.zalalLifeAccountId.trim();
+    
+    if (!accountId || accountId.length < 3) {
+      // Just check if reference is flagged
+      checkFlaggedReference();
+      return;
+    }
+
+    // Re-check the account ID on blur to ensure we have the latest state
+    setCheckingAccountId(true);
+    const result = await checkMonthlySubmission(accountId);
+    setCheckingAccountId(false);
+
+    if (result.hasSubmitted) {
+      setAccountIdError(result.message);
+      // Flag the current reference number
+      if (formData.referenceNumber && formData.referenceNumber.trim().length >= 3) {
+        setFlaggedReferenceNumber(formData.referenceNumber.trim());
       }
+      setReferenceBlockedError(null);
+      setPolicyDialogOpen(true);
+    } else {
+      setAccountIdError(null);
+      setAlreadySubmittedThisMonth(false);
+      // Check if the reference is flagged for this new valid account
+      checkFlaggedReference();
     }
   };
 
@@ -1070,6 +1104,7 @@ const PayoutRequest = () => {
                     // Auto-check for monthly duplicates
                     checkAccountIdOnChange(value);
                   }}
+                  onBlur={handleAccountIdBlur}
                   className={`w-full px-4 py-3.5 text-base rounded-xl border-2 ${
                     accountIdError 
                       ? 'border-destructive bg-destructive/5' 
