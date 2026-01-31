@@ -156,6 +156,23 @@ const CoinsDashboard = () => {
 
       if (error) throw error;
 
+      // Send Telegram notification
+      try {
+        await supabase.functions.invoke('send-coins-status-notification', {
+          body: {
+            tracking_code: selectedRequest.tracking_code,
+            gala_account_id: selectedRequest.gala_account_id,
+            gala_username: selectedRequest.gala_username,
+            amount_usd: selectedRequest.amount_usd,
+            coins_amount: selectedRequest.coins_amount,
+            status,
+            admin_notes: adminNotes,
+          },
+        });
+      } catch (notifError) {
+        console.error('Failed to send Telegram notification:', notifError);
+      }
+
       toast({
         title: status === 'completed' ? 'تم القبول' : 'تم الرفض',
         description: status === 'completed' 
