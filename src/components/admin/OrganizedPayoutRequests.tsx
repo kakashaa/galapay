@@ -117,6 +117,7 @@ const OrganizedPayoutRequests = ({
   const [countryFilter, setCountryFilter] = useState('all');
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -360,7 +361,7 @@ const OrganizedPayoutRequests = ({
         </div>
 
         {/* Advanced Filters */}
-        <Collapsible>
+        <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <div className="flex items-center justify-between">
             <CollapsibleTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 text-xs">
