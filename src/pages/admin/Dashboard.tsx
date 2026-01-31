@@ -33,6 +33,7 @@ import DuplicateDetection from '@/components/admin/DuplicateDetection';
 import SupportersManagement from '@/components/admin/SupportersManagement';
 import OrganizedPayoutRequests from '@/components/admin/OrganizedPayoutRequests';
 import ExportPrintDialog from '@/components/admin/ExportPrintDialog';
+import BulkIdSearch from '@/components/admin/BulkIdSearch';
 import { exportToExcel } from '@/lib/excel-export';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import {
@@ -112,6 +113,7 @@ const AdminDashboard = () => {
     minAmount: '',
     maxAmount: '',
   });
+  const [bulkSearchIds, setBulkSearchIds] = useState<string[]>([]);
   const { payoutEnabled, updateSettings } = usePayoutSettings();
   const [updatingPayoutStatus, setUpdatingPayoutStatus] = useState(false);
   const [resendingTelegram, setResendingTelegram] = useState(false);
@@ -129,7 +131,7 @@ const AdminDashboard = () => {
       fetchCountries();
       fetchAdminProfiles();
     }
-  }, [filters, currentUserId, activeTab]);
+  }, [filters, currentUserId, activeTab, bulkSearchIds]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -251,7 +253,16 @@ const AdminDashboard = () => {
         }
 
         const { data } = await query;
-        setAllRequests((data as PayoutRequest[]) || []);
+        let filteredData = (data as PayoutRequest[]) || [];
+        
+        // Filter by bulk IDs if loaded
+        if (bulkSearchIds.length > 0) {
+          filteredData = filteredData.filter(r => 
+            bulkSearchIds.includes(r.zalal_life_account_id)
+          );
+        }
+        
+        setAllRequests(filteredData);
       }
 
     } catch (error) {
@@ -804,6 +815,14 @@ const AdminDashboard = () => {
           </SelectContent>
         </Select>
 
+        {/* Bulk ID Search */}
+        <BulkIdSearch
+          onIdsLoaded={(ids) => setBulkSearchIds(ids)}
+          matchedCount={allRequests.length}
+          isActive={bulkSearchIds.length > 0}
+          onClear={() => setBulkSearchIds([])}
+        />
+
         <button
           onClick={handleExportExcel}
           className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-medium text-sm"
@@ -815,7 +834,7 @@ const AdminDashboard = () => {
 
       {/* Results */}
       <p className="text-xs text-muted-foreground text-center">
-        {allRequests.length} طلب
+        {allRequests.length} طلب{bulkSearchIds.length > 0 ? ` (من ${bulkSearchIds.length} ID)` : ''}
       </p>
       {allRequests.map(request => (
         <RequestCard key={request.id} request={request} />
