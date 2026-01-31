@@ -116,6 +116,7 @@ const OrganizedPayoutRequests = ({
   const [activeTab, setActiveTab] = useState('pending');
   const [countryFilter, setCountryFilter] = useState('all');
   const [minAmount, setMinAmount] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [maxAmount, setMaxAmount] = useState('');
 
   useEffect(() => {
@@ -369,7 +370,7 @@ const OrganizedPayoutRequests = ({
         </div>
 
         {/* Advanced Filters */}
-        <Collapsible>
+        <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <div className="flex items-center justify-between">
             <CollapsibleTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 text-xs">
@@ -378,7 +379,7 @@ const OrganizedPayoutRequests = ({
                 {hasActiveFilters && (
                   <span className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full">!</span>
                 )}
-                <ChevronDown className="w-3.5 h-3.5" />
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
               </Button>
             </CollapsibleTrigger>
             {hasActiveFilters && (
@@ -393,7 +394,13 @@ const OrganizedPayoutRequests = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs text-muted-foreground">الدولة</label>
-                  <Select value={countryFilter} onValueChange={setCountryFilter}>
+                  <Select 
+                    value={countryFilter} 
+                    onValueChange={(value) => {
+                      setCountryFilter(value);
+                      setTimeout(() => setIsFilterOpen(false), 300);
+                    }}
+                  >
                     <SelectTrigger className="h-9 text-xs">
                       <SelectValue placeholder="اختر الدولة" />
                     </SelectTrigger>
@@ -413,6 +420,9 @@ const OrganizedPayoutRequests = ({
                       placeholder="من"
                       value={minAmount}
                       onChange={(e) => setMinAmount(e.target.value)}
+                      onBlur={() => {
+                        if (minAmount) setTimeout(() => setIsFilterOpen(false), 300);
+                      }}
                       className="h-9 text-xs"
                       dir="ltr"
                     />
@@ -422,6 +432,9 @@ const OrganizedPayoutRequests = ({
                       placeholder="إلى"
                       value={maxAmount}
                       onChange={(e) => setMaxAmount(e.target.value)}
+                      onBlur={() => {
+                        if (maxAmount) setTimeout(() => setIsFilterOpen(false), 300);
+                      }}
                       className="h-9 text-xs"
                       dir="ltr"
                     />
