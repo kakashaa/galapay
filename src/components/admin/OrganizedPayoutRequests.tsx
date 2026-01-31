@@ -12,11 +12,27 @@ import {
   DollarSign,
   FileText,
   Ban,
+  Filter,
+  X,
+  ChevronDown,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface PayoutRequest {
   id: string;
@@ -82,6 +98,13 @@ const statusConfig = {
   },
 };
 
+// Filter options
+const countryOptions = [
+  'اليمن', 'السعودية', 'مصر', 'العراق', 'الأردن', 'فلسطين', 
+  'سوريا', 'لبنان', 'الجزائر', 'المغرب', 'تونس', 'ليبيا',
+  'السودان', 'عمان', 'الكويت', 'الإمارات', 'قطر', 'البحرين'
+];
+
 const OrganizedPayoutRequests = ({ 
   onViewRequest, 
   onDeleteRequest, 
@@ -91,6 +114,9 @@ const OrganizedPayoutRequests = ({
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
+  const [countryFilter, setCountryFilter] = useState('all');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
 
   useEffect(() => {
     fetchRequests();
@@ -140,20 +166,52 @@ const OrganizedPayoutRequests = ({
         r.phone_number.includes(query)
       );
     }
+
+    // Filter by country
+    if (countryFilter !== 'all') {
+      filtered = filtered.filter(r => r.country === countryFilter);
+    }
+
+    // Filter by amount range
+    if (minAmount) {
+      filtered = filtered.filter(r => r.amount >= parseFloat(minAmount));
+    }
+    if (maxAmount) {
+      filtered = filtered.filter(r => r.amount <= parseFloat(maxAmount));
+    }
     
     return filtered;
   };
 
-  // Get counts for each tab
-  const getCounts = () => {
-    const pendingCount = requests.filter(r => r.status === 'pending' || r.status === 'review').length;
-    const paidCount = requests.filter(r => r.status === 'paid').length;
-    const rejectedCount = requests.filter(r => r.status === 'rejected').length;
-    const reservedCount = requests.filter(r => r.status === 'reserved').length;
-    return { pendingCount, paidCount, rejectedCount, reservedCount };
+  // Get counts and totals for each tab
+  const getCountsAndTotals = () => {
+    const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'review');
+    const paidRequests = requests.filter(r => r.status === 'paid');
+    const rejectedRequests = requests.filter(r => r.status === 'rejected');
+    const reservedRequests = requests.filter(r => r.status === 'reserved');
+    
+    return {
+      pendingCount: pendingRequests.length,
+      pendingTotal: pendingRequests.reduce((sum, r) => sum + r.amount, 0),
+      paidCount: paidRequests.length,
+      paidTotal: paidRequests.reduce((sum, r) => sum + r.amount, 0),
+      rejectedCount: rejectedRequests.length,
+      rejectedTotal: rejectedRequests.reduce((sum, r) => sum + r.amount, 0),
+      reservedCount: reservedRequests.length,
+      reservedTotal: reservedRequests.reduce((sum, r) => sum + r.amount, 0),
+    };
   };
 
-  const counts = getCounts();
+  const stats = getCountsAndTotals();
+
+  const clearFilters = () => {
+    setCountryFilter('all');
+    setMinAmount('');
+    setMaxAmount('');
+    setSearchQuery('');
+  };
+
+  const hasActiveFilters = countryFilter !== 'all' || minAmount !== '' || maxAmount !== '' || searchQuery !== '';
 
   // Request Card Component
   const RequestCard = ({ request }: { request: PayoutRequest }) => {
@@ -289,67 +347,145 @@ const OrganizedPayoutRequests = ({
     <div className="space-y-4">
       <h2 className="text-xl font-bold">إدارة طلبات السحب الشهري</h2>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="بحث بالايدي، الاسم، كود التتبع، أو الرقم المرجعي..."
-          className="pr-10 bg-background/50"
-        />
+      {/* Search & Filter */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="بحث بالايدي، الاسم، كود التتبع، أو الرقم المرجعي..."
+            className="pr-10 bg-background/50"
+          />
+        </div>
+
+        {/* Advanced Filters */}
+        <Collapsible>
+          <div className="flex items-center justify-between">
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 text-xs">
+                <Filter className="w-3.5 h-3.5" />
+                فلترة متقدمة
+                {hasActiveFilters && (
+                  <span className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full">!</span>
+                )}
+                <ChevronDown className="w-3.5 h-3.5" />
+              </Button>
+            </CollapsibleTrigger>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-xs text-muted-foreground hover:text-destructive">
+                <X className="w-3 h-3" />
+                مسح الفلاتر
+              </Button>
+            )}
+          </div>
+          <CollapsibleContent className="mt-3">
+            <div className="glass-card p-3 space-y-3 rounded-xl border border-border/50">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">الدولة</label>
+                  <Select value={countryFilter} onValueChange={setCountryFilter}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="اختر الدولة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">جميع الدول</SelectItem>
+                      {countryOptions.map((country) => (
+                        <SelectItem key={country} value={country} className="text-xs">{country}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">نطاق المبلغ ($)</label>
+                  <div className="flex gap-1.5 items-center">
+                    <Input
+                      type="number"
+                      placeholder="من"
+                      value={minAmount}
+                      onChange={(e) => setMinAmount(e.target.value)}
+                      className="h-9 text-xs"
+                      dir="ltr"
+                    />
+                    <span className="text-muted-foreground text-xs">-</span>
+                    <Input
+                      type="number"
+                      placeholder="إلى"
+                      value={maxAmount}
+                      onChange={(e) => setMaxAmount(e.target.value)}
+                      className="h-9 text-xs"
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs with Stats */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 h-auto p-1 bg-muted/30">
+        <TabsList className="w-full grid grid-cols-4 h-auto p-1.5 bg-muted/30 rounded-xl">
           <TabsTrigger 
             value="pending" 
-            className="flex items-center gap-1 text-xs py-2 data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-500"
+            className="flex flex-col items-center gap-0.5 text-[10px] py-2 px-1 rounded-lg data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-500"
           >
-            <Clock className="w-3 h-3" />
-            جديدة
-            {counts.pendingCount > 0 && (
-              <span className="bg-yellow-500/20 text-yellow-500 text-[10px] px-1.5 rounded-full">
-                {counts.pendingCount}
-              </span>
-            )}
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              <span>انتظار</span>
+              {stats.pendingCount > 0 && (
+                <span className="bg-yellow-500/20 text-yellow-500 text-[9px] px-1 rounded-full">
+                  {stats.pendingCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[9px] font-bold opacity-80">${stats.pendingTotal.toLocaleString()}</span>
           </TabsTrigger>
           <TabsTrigger 
             value="paid" 
-            className="flex items-center gap-1 text-xs py-2 data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+            className="flex flex-col items-center gap-0.5 text-[10px] py-2 px-1 rounded-lg data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
           >
-            <CheckCircle className="w-3 h-3" />
-            تم التحويل
-            {counts.paidCount > 0 && (
-              <span className="bg-primary/20 text-primary text-[10px] px-1.5 rounded-full">
-                {counts.paidCount}
-              </span>
-            )}
+            <div className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              <span>تحويل</span>
+              {stats.paidCount > 0 && (
+                <span className="bg-primary/20 text-primary text-[9px] px-1 rounded-full">
+                  {stats.paidCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[9px] font-bold opacity-80">${stats.paidTotal.toLocaleString()}</span>
           </TabsTrigger>
           <TabsTrigger 
             value="rejected" 
-            className="flex items-center gap-1 text-xs py-2 data-[state=active]:bg-destructive/20 data-[state=active]:text-destructive"
+            className="flex flex-col items-center gap-0.5 text-[10px] py-2 px-1 rounded-lg data-[state=active]:bg-destructive/20 data-[state=active]:text-destructive"
           >
-            <XCircle className="w-3 h-3" />
-            مرفوض
-            {counts.rejectedCount > 0 && (
-              <span className="bg-destructive/20 text-destructive text-[10px] px-1.5 rounded-full">
-                {counts.rejectedCount}
-              </span>
-            )}
+            <div className="flex items-center gap-1">
+              <XCircle className="w-3 h-3" />
+              <span>مرفوض</span>
+              {stats.rejectedCount > 0 && (
+                <span className="bg-destructive/20 text-destructive text-[9px] px-1 rounded-full">
+                  {stats.rejectedCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[9px] font-bold opacity-80">${stats.rejectedTotal.toLocaleString()}</span>
           </TabsTrigger>
           <TabsTrigger 
             value="reserved" 
-            className="flex items-center gap-1 text-xs py-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400"
+            className="flex flex-col items-center gap-0.5 text-[10px] py-2 px-1 rounded-lg data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400"
           >
-            <Ban className="w-3 h-3" />
-            محجوز
-            {counts.reservedCount > 0 && (
-              <span className="bg-orange-500/20 text-orange-400 text-[10px] px-1.5 rounded-full">
-                {counts.reservedCount}
-              </span>
-            )}
+            <div className="flex items-center gap-1">
+              <Ban className="w-3 h-3" />
+              <span>محجوز</span>
+              {stats.reservedCount > 0 && (
+                <span className="bg-orange-500/20 text-orange-400 text-[9px] px-1 rounded-full">
+                  {stats.reservedCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[9px] font-bold opacity-80">${stats.reservedTotal.toLocaleString()}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -359,7 +495,7 @@ const OrganizedPayoutRequests = ({
               <RequestCard key={request.id} request={request} />
             ))
           ) : (
-            <EmptyState message="لا توجد طلبات جديدة" />
+            <EmptyState message="لا توجد طلبات في الانتظار" />
           )}
         </TabsContent>
 
