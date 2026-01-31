@@ -297,8 +297,9 @@ const ExportPrintDialog = ({
       const imageData = await generateImageExport();
       if (!imageData) throw new Error('Failed to generate image');
 
-      let file: File;
+      let blob: Blob;
       let fileName: string;
+      let mimeType: string;
 
       if (exportFormat === 'pdf') {
         // Generate PDF for sharing
@@ -312,46 +313,82 @@ const ExportPrintDialog = ({
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
         pdf.addImage(imageData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         
-        const pdfBlob = pdf.output('blob');
-        fileName = 'تقرير_غلا_لايف.pdf';
-        file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        blob = pdf.output('blob');
+        fileName = 'gala_report.pdf';
+        mimeType = 'application/pdf';
       } else {
         // Convert base64 to blob for images
         const response = await fetch(imageData);
-        const blob = await response.blob();
-        fileName = `تقرير_غلا_لايف.${exportFormat === 'png' ? 'png' : 'jpg'}`;
-        file = new File([blob], fileName, {
-          type: exportFormat === 'png' ? 'image/png' : 'image/jpeg',
-        });
+        blob = await response.blob();
+        mimeType = exportFormat === 'png' ? 'image/png' : 'image/jpeg';
+        fileName = `gala_report.${exportFormat === 'png' ? 'png' : 'jpg'}`;
       }
 
-      if (navigator.share && navigator.canShare({ files: [file] })) {
+      // Create file with simple ASCII filename for better compatibility
+      const file = new File([blob], fileName, { type: mimeType });
+
+      // Check if Web Share API with files is supported
+      const canShareFiles = navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
+      
+      console.log('Share support:', { 
+        hasShare: !!navigator.share, 
+        hasCanShare: !!navigator.canShare,
+        canShareFiles,
+        fileType: mimeType,
+        fileSize: file.size
+      });
+
+      if (canShareFiles) {
         await navigator.share({
           files: [file],
           title: 'تقرير غلا لايف',
-          text: 'تقرير طلبات الصرف',
         });
         toast({ title: 'تمت المشاركة', description: 'تم مشاركة التقرير بنجاح' });
-      } else {
-        // Fallback: download the file
-        const url = URL.createObjectURL(file);
+      } else if (navigator.share) {
+        // Try sharing without files (just text/url) - limited usefulness
+        // Fallback to download since we can't share files
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = fileName;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        toast({ title: 'تم التحميل', description: 'المشاركة غير متاحة على هذا المتصفح، تم تحميل الملف بدلاً من ذلك' });
+        toast({ 
+          title: 'تم التحميل', 
+          description: 'مشاركة الملفات غير مدعومة في هذا المتصفح. تم تحميل الملف بدلاً من ذلك.',
+        });
+      } else {
+        // No share API at all - just download
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast({ 
+          title: 'تم التحميل', 
+          description: 'المشاركة غير متاحة. تم تحميل الملف.',
+        });
       }
 
       onOpenChange(false);
       resetForm();
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: 'خطأ',
-        description: 'فشل في مشاركة الملف',
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      console.error('Share error:', error);
+      // User cancelled share is not an error
+      if (error?.name === 'AbortError') {
+        toast({ title: 'تم الإلغاء', description: 'تم إلغاء المشاركة' });
+      } else {
+        toast({
+          title: 'خطأ',
+          description: 'فشل في مشاركة الملف',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
