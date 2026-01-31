@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.generate-thank-you]
 verify_jwt = false
+
+[functions.send-coins-notification]
+verify_jwt = false

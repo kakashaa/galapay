@@ -89,6 +89,23 @@ const CoinsPayoutRequest = () => {
           onConflict: 'reference_number'
         });
 
+      // Send Telegram notification
+      try {
+        await supabase.functions.invoke('send-coins-notification', {
+          body: {
+            trackingCode: requestData.tracking_code,
+            galaAccountId: formData.galaAccountId.trim(),
+            galaUsername: formData.galaUsername.trim() || undefined,
+            amountUsd: parseFloat(formData.amountUsd),
+            coinsAmount: coinsAmount,
+            referenceNumber: formData.referenceNumber.trim(),
+            receiptImageUrl: receiptImageUrl,
+          }
+        });
+      } catch (notifyError) {
+        console.error('Error sending Telegram notification:', notifyError);
+      }
+
       toast({
         title: '✅ تم إرسال طلب الكوينزات بنجاح',
         description: `رقم التتبع: ${requestData.tracking_code}`,
