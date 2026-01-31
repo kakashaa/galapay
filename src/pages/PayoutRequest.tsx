@@ -223,11 +223,12 @@ const PayoutRequest = () => {
           setFormData(prev => ({ ...prev, amount: extractResult.amount.toString() }));
         }
       } else {
-        // No reference found - allow manual entry (no error, just info)
+        // No reference found - require new receipt upload
         setReferenceExtractedByAI(false);
         toast({
-          title: 'لم يتم استخراج الرقم المرجعي',
-          description: 'يرجى إدخال الرقم المرجعي يدوياً من الإيصال',
+          title: '⚠️ لم يتم استخراج الرقم المرجعي',
+          description: 'يرجى رفع إيصال آخر أوضح أو التأكد من جودة الصورة',
+          variant: 'destructive',
         });
         
         // Still extract amount if available
@@ -1015,11 +1016,11 @@ const PayoutRequest = () => {
                 )}
                 
                 {!referenceExtractedByAI && !extractingData && receiptPreview && (
-                  <div className="flex items-center gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                    <Info className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                  <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-blue-400 font-medium">أدخل الرقم المرجعي يدوياً</p>
-                      <p className="text-xs text-muted-foreground">انسخ الرقم المرجعي من الإيصال أعلاه</p>
+                      <p className="text-sm text-amber-400 font-medium">لم يتم استخراج الرقم المرجعي</p>
+                      <p className="text-xs text-muted-foreground">يرجى رفع إيصال آخر أوضح أو التأكد من جودة الصورة</p>
                     </div>
                   </div>
                 )}
@@ -1029,29 +1030,16 @@ const PayoutRequest = () => {
                     type="text"
                     required
                     value={formData.referenceNumber}
-                    onChange={(e) => {
-                      // Only allow editing if NOT extracted by AI
-                      if (referenceExtractedByAI) return;
-                      const value = e.target.value;
-                      setFormData(prev => ({ ...prev, referenceNumber: value }));
-                      if (value.trim().length >= 3) {
-                        checkReferenceNumber(value.trim());
-                      } else {
-                        setReferenceError(null);
-                      }
-                    }}
+                    readOnly
                     disabled={extractingData}
-                    readOnly={referenceExtractedByAI}
                     className={`w-full px-4 py-3.5 text-lg rounded-xl border-2 ${
                       referenceError 
                         ? 'border-destructive bg-destructive/5' 
                         : formData.referenceNumber && !referenceError 
                           ? 'border-primary bg-primary/5' 
                           : 'border-border bg-background/50'
-                    } focus:ring-0 transition-colors text-center font-mono tracking-wider disabled:opacity-50 ${
-                      referenceExtractedByAI ? 'cursor-not-allowed bg-muted/30' : ''
-                    }`}
-                    placeholder={extractingData ? 'جاري الاستخراج...' : 'أدخل الرقم المرجعي'}
+                    } focus:ring-0 transition-colors text-center font-mono tracking-wider disabled:opacity-50 cursor-not-allowed bg-muted/30`}
+                    placeholder={extractingData ? 'جاري الاستخراج...' : 'سيتم استخراجه تلقائياً'}
                     dir="ltr"
                   />
                   {checkingReference && (
