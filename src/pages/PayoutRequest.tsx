@@ -75,6 +75,9 @@ const PayoutRequest = () => {
   const [_alreadySubmittedThisMonth, setAlreadySubmittedThisMonth] = useState(false);
   const [checkingAccountId, setCheckingAccountId] = useState(false);
   const [accountIdError, setAccountIdError] = useState<string | null>(null);
+  // Track flagged reference number when account ID has previous submission
+  const [flaggedReferenceNumber, setFlaggedReferenceNumber] = useState<string | null>(null);
+  const [referenceBlockedError, setReferenceBlockedError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     zalalLifeAccountId: '',
@@ -383,6 +386,11 @@ const PayoutRequest = () => {
     if (!accountId || accountId.trim().length < 3) {
       setAccountIdError(null);
       setAlreadySubmittedThisMonth(false);
+      // Check if reference is flagged when clearing account ID
+      if (flaggedReferenceNumber && formData.referenceNumber === flaggedReferenceNumber) {
+        setReferenceBlockedError('هذا الإيصال/الرقم المرجعي محجوز لأن صاحبه رفع راتب سابقاً هذا الشهر. يمكنك استلام كوينزات فقط وليس راتب.');
+        setPolicyDialogOpen(true);
+      }
       return;
     }
 
@@ -392,10 +400,22 @@ const PayoutRequest = () => {
 
     if (result.hasSubmitted) {
       setAccountIdError(result.message);
+      // Flag the current reference number when account ID has previous submission
+      if (formData.referenceNumber && formData.referenceNumber.trim().length >= 3) {
+        setFlaggedReferenceNumber(formData.referenceNumber.trim());
+      }
+      setReferenceBlockedError(null); // Clear reference error when showing account error
       setPolicyDialogOpen(true); // Show policy dialog automatically
     } else {
       setAccountIdError(null);
       setAlreadySubmittedThisMonth(false);
+      // Check if this reference was flagged and the new ID hasn't submitted before
+      if (flaggedReferenceNumber && formData.referenceNumber === flaggedReferenceNumber) {
+        setReferenceBlockedError('هذا الإيصال/الرقم المرجعي محجوز لأن صاحبه الأصلي رفع راتب سابقاً هذا الشهر. يمكنك استلام كوينزات فقط وليس راتب.');
+        setPolicyDialogOpen(true);
+      } else {
+        setReferenceBlockedError(null);
+      }
     }
   };
 
@@ -563,8 +583,11 @@ const PayoutRequest = () => {
           ai_notes: aiResult?.notes || null,
           status: 'pending',
           agency_code: formData.agencyCode.trim() || null,
-          is_duplicate_flagged: duplicateCheck.isDuplicate,
-          duplicate_flag_reason: duplicateCheck.isDuplicate ? duplicateCheck.reason : null,
+          // Flag as duplicate if: 1) reference was used this month OR 2) reference was flagged because original owner already submitted
+          is_duplicate_flagged: duplicateCheck.isDuplicate || !!referenceBlockedError,
+          duplicate_flag_reason: referenceBlockedError 
+            ? referenceBlockedError 
+            : (duplicateCheck.isDuplicate ? duplicateCheck.reason : null),
         });
 
       if (requestError) throw requestError;
@@ -619,6 +642,7 @@ const PayoutRequest = () => {
   ];
 
   const isStep1Complete = receiptImage && formData.referenceNumber && formData.referenceNumber.trim().length >= 3 && !referenceError && formData.amount && parseFloat(formData.amount) > 0;
+  // Allow step 2 completion even with referenceBlockedError (will be flagged as coins-only)
   const isStep2Complete = formData.zalalLifeAccountId && formData.recipientFullName && !accountIdError && !checkingAccountId;
   const isStep3Complete = selectedCountry && selectedMethod && formData.phoneNumber;
 
@@ -1082,7 +1106,28 @@ const PayoutRequest = () => {
                 </div>
               )}
               
-              {!accountIdError && (
+              {/* Reference blocked error (when changing to different ID) */}
+              {referenceBlockedError && !accountIdError && (
+                <div className="p-4 bg-warning/10 border border-warning/30 rounded-xl space-y-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-warning font-bold">🪙 هذا الإيصال محجوز - كوينزات فقط</p>
+                      <p className="text-xs text-warning/80 mt-1">{referenceBlockedError}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPolicyDialogOpen(true)}
+                    className="w-full py-2.5 rounded-lg bg-warning/20 text-warning font-medium text-sm flex items-center justify-center gap-2 hover:bg-warning/30 transition-colors"
+                  >
+                    <FileText className="w-4 h-4" />
+                    اقرأ سياسة السحب الشهري
+                  </button>
+                </div>
+              )}
+              
+              {!accountIdError && !referenceBlockedError && (
                 <p className="text-xs text-muted-foreground bg-warning/10 p-2 rounded-lg border border-warning/20">
                   ⚠️ يُسمح برفع طلب واحد فقط شهرياً لكل حساب
                 </p>
