@@ -4,6 +4,7 @@ import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, MapPin, CreditCard
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { normalizeReceiptImage } from '@/lib/receipt-image';
 import {
   Select,
   SelectContent,
@@ -175,23 +176,24 @@ const PayoutRequest = () => {
     setExtractingData(true);
     
     try {
-      // Convert file to base64 directly (bypasses URL fetch issues)
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      console.log('Sending image for extraction, size:', Math.round(base64.length / 1024), 'KB');
+      // Normalize image across devices (HEIC/HEIF/WEBP/huge images) for consistent extraction.
+      const { normalizedFile, dataUrl: base64, wasConverted } = await normalizeReceiptImage(file);
+      console.log(
+        'Sending image for extraction, size:',
+        Math.round(base64.length / 1024),
+        'KB, mime:',
+        normalizedFile.type,
+        'converted:',
+        wasConverted,
+      );
 
       // Also upload to storage for later use
-      const fileExt = file.name.split('.').pop();
+      const fileExt = normalizedFile.name.split('.').pop();
       const fileName = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('receipts')
-        .upload(`temp-extractions/${fileName}`, file);
+        .upload(`temp-extractions/${fileName}`, normalizedFile);
 
       if (!uploadError) {
         const { data: urlData } = supabase.storage
