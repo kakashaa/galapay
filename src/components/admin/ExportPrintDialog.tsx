@@ -297,12 +297,33 @@ const ExportPrintDialog = ({
       const imageData = await generateImageExport();
       if (!imageData) throw new Error('Failed to generate image');
 
-      // Convert base64 to blob
-      const response = await fetch(imageData);
-      const blob = await response.blob();
-      const file = new File([blob], `تقرير_غلا_لايف.${exportFormat === 'png' ? 'png' : 'jpg'}`, {
-        type: exportFormat === 'png' ? 'image/png' : 'image/jpeg',
-      });
+      let file: File;
+      let fileName: string;
+
+      if (exportFormat === 'pdf') {
+        // Generate PDF for sharing
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+        });
+        const imgProps = pdf.getImageProperties(imageData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        pdf.addImage(imageData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        
+        const pdfBlob = pdf.output('blob');
+        fileName = 'تقرير_غلا_لايف.pdf';
+        file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+      } else {
+        // Convert base64 to blob for images
+        const response = await fetch(imageData);
+        const blob = await response.blob();
+        fileName = `تقرير_غلا_لايف.${exportFormat === 'png' ? 'png' : 'jpg'}`;
+        file = new File([blob], fileName, {
+          type: exportFormat === 'png' ? 'image/png' : 'image/jpeg',
+        });
+      }
 
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
@@ -313,11 +334,13 @@ const ExportPrintDialog = ({
         toast({ title: 'تمت المشاركة', description: 'تم مشاركة التقرير بنجاح' });
       } else {
         // Fallback: download the file
+        const url = URL.createObjectURL(file);
         const link = document.createElement('a');
-        link.href = imageData;
-        link.download = `تقرير_غلا_لايف.${exportFormat === 'png' ? 'png' : 'jpg'}`;
+        link.href = url;
+        link.download = fileName;
         link.click();
-        toast({ title: 'تم التحميل', description: 'المشاركة غير متاحة، تم تحميل الملف بدلاً من ذلك' });
+        URL.revokeObjectURL(url);
+        toast({ title: 'تم التحميل', description: 'المشاركة غير متاحة على هذا المتصفح، تم تحميل الملف بدلاً من ذلك' });
       }
 
       onOpenChange(false);
@@ -712,7 +735,7 @@ const ExportPrintDialog = ({
                 )}
                 تحميل
               </Button>
-              {['png', 'jpeg'].includes(exportFormat) && (
+              {['png', 'jpeg', 'pdf'].includes(exportFormat) && (
                 <Button
                   onClick={handleShare}
                   disabled={loading || requests.length === 0}
