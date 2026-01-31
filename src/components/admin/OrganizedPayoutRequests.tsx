@@ -117,7 +117,6 @@ const OrganizedPayoutRequests = ({
   const [countryFilter, setCountryFilter] = useState('all');
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -145,9 +144,9 @@ const OrganizedPayoutRequests = ({
     }
   };
 
-  // Filter requests by status and search query
+  // Filter requests by status (uses base filtered requests)
   const filterRequests = (status: string) => {
-    let filtered = requests;
+    let filtered = getBaseFilteredRequests();
     
     // Filter by status(es)
     if (status === 'pending') {
@@ -155,6 +154,13 @@ const OrganizedPayoutRequests = ({
     } else if (status !== 'all') {
       filtered = filtered.filter(r => r.status === status);
     }
+    
+    return filtered;
+  };
+
+  // Apply base filters (search, country, amount) to all requests
+  const getBaseFilteredRequests = () => {
+    let filtered = requests;
     
     // Filter by search query
     if (searchQuery.trim()) {
@@ -184,12 +190,14 @@ const OrganizedPayoutRequests = ({
     return filtered;
   };
 
-  // Get counts and totals for each tab
+  // Get counts and totals for each tab based on filtered data
   const getCountsAndTotals = () => {
-    const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'review');
-    const paidRequests = requests.filter(r => r.status === 'paid');
-    const rejectedRequests = requests.filter(r => r.status === 'rejected');
-    const reservedRequests = requests.filter(r => r.status === 'reserved');
+    const baseFiltered = getBaseFilteredRequests();
+    
+    const pendingRequests = baseFiltered.filter(r => r.status === 'pending' || r.status === 'review');
+    const paidRequests = baseFiltered.filter(r => r.status === 'paid');
+    const rejectedRequests = baseFiltered.filter(r => r.status === 'rejected');
+    const reservedRequests = baseFiltered.filter(r => r.status === 'reserved');
     
     return {
       pendingCount: pendingRequests.length,
@@ -361,7 +369,7 @@ const OrganizedPayoutRequests = ({
         </div>
 
         {/* Advanced Filters */}
-        <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+        <Collapsible>
           <div className="flex items-center justify-between">
             <CollapsibleTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 text-xs">
