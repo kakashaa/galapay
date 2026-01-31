@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
   Clock, 
-  Eye, 
   CheckCircle2, 
   XCircle, 
   Trash2,
@@ -30,6 +29,16 @@ interface RequestStatus {
   type: RequestType;
 }
 
+// Map internal statuses to unified display statuses
+const getUnifiedStatus = (status: string): string => {
+  const pendingStatuses = ['pending', 'review', 'processing'];
+  const paidStatuses = ['paid', 'completed', 'approved'];
+  
+  if (pendingStatuses.includes(status)) return 'pending';
+  if (paidStatuses.includes(status)) return 'paid';
+  return status; // rejected, reserved stay as-is
+};
+
 const statusConfig = {
   pending: {
     label: 'قيد الانتظار',
@@ -37,32 +46,8 @@ const statusConfig = {
     bgClass: 'bg-warning/10',
     textClass: 'text-warning',
   },
-  review: {
-    label: 'قيد المراجعة',
-    icon: Eye,
-    bgClass: 'bg-primary/10',
-    textClass: 'text-primary',
-  },
-  processing: {
-    label: 'قيد المعالجة',
-    icon: Eye,
-    bgClass: 'bg-primary/10',
-    textClass: 'text-primary',
-  },
   paid: {
     label: 'تم التحويل',
-    icon: CheckCircle2,
-    bgClass: 'bg-success/10',
-    textClass: 'text-success',
-  },
-  completed: {
-    label: 'مكتمل',
-    icon: CheckCircle2,
-    bgClass: 'bg-success/10',
-    textClass: 'text-success',
-  },
-  approved: {
-    label: 'تمت الموافقة',
     icon: CheckCircle2,
     bgClass: 'bg-success/10',
     textClass: 'text-success',
@@ -338,7 +323,8 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
             ) : (
               filteredRequests.map((saved) => {
                 const status = getStatusInfo(saved.trackingCode);
-                const statusConfigItem = status?.status ? statusConfig[status.status as keyof typeof statusConfig] : null;
+                const unifiedStatus = status?.status ? getUnifiedStatus(status.status) : null;
+                const statusConfigItem = unifiedStatus ? statusConfig[unifiedStatus as keyof typeof statusConfig] : null;
                 const typeItem = typeConfig[saved.type];
                 const StatusIcon = statusConfigItem?.icon || Clock;
                 const TypeIcon = typeItem?.icon || FileText;
