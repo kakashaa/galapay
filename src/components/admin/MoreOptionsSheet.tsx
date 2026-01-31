@@ -8,6 +8,7 @@ import {
   MoreHorizontal,
   X,
   ChevronRight,
+  Trash2,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
@@ -47,6 +48,12 @@ const moreOptions: MoreOption[] = [
     icon: Shield, 
     label: 'الفحص',
     description: 'فحص الطلبات المشبوهة'
+  },
+  { 
+    id: 'trash', 
+    icon: Trash2, 
+    label: 'المحذوفات',
+    description: 'عرض واستعادة العناصر المحذوفة'
   },
   { 
     id: 'settings', 

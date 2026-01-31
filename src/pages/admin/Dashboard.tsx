@@ -19,6 +19,7 @@ import {
   Send,
 } from 'lucide-react';
 import FloatingDock from '@/components/admin/FloatingDock';
+import TrashBin from '@/components/admin/TrashBin';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import RequestDetailsModal from '@/components/admin/RequestDetailsModal';
@@ -193,6 +194,7 @@ const AdminDashboard = () => {
         .select('*')
         .in('status', ['pending', 'review'])
         .is('claimed_by', null)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       setPendingRequests((pending as PayoutRequest[]) || []);
@@ -201,6 +203,7 @@ const AdminDashboard = () => {
         .from('payout_requests')
         .select('*')
         .or(`processed_by.eq.${currentUserId},claimed_by.eq.${currentUserId}`)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       setMyRequests((mine as PayoutRequest[]) || []);
@@ -225,6 +228,7 @@ const AdminDashboard = () => {
         let query = supabase
           .from('payout_requests')
           .select('*')
+          .is('deleted_at', null)
           .order('created_at', { ascending: false });
 
         if (filters.status && filters.status !== 'all') {
@@ -284,21 +288,25 @@ const AdminDashboard = () => {
       return;
     }
 
-    if (!confirm('هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.')) {
+    if (!confirm('هل أنت متأكد من نقل هذا الطلب إلى سلة المحذوفات؟')) {
       return;
     }
 
     try {
+      // Soft delete - move to trash
       const { error } = await supabase
         .from('payout_requests')
-        .delete()
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          deleted_by: currentUserId 
+        })
         .eq('id', requestId);
 
       if (error) throw error;
 
       toast({
-        title: 'تم الحذف',
-        description: 'تم حذف الطلب بنجاح',
+        title: 'تم النقل للمحذوفات',
+        description: 'تم نقل الطلب إلى سلة المحذوفات',
       });
 
       fetchData();
@@ -867,6 +875,11 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // Trash Tab (Super Admin)
+  const renderTrashTab = () => (
+    <TrashBin />
+  );
+
   // Organized Requests Tab (Super Admin)
   const renderOrganizedRequestsTab = () => (
     <OrganizedPayoutRequests
@@ -939,6 +952,7 @@ const AdminDashboard = () => {
           {activeTab === 'pending' && renderPendingTab()}
           {activeTab === 'my-requests' && renderMyRequestsTab()}
           {activeTab === 'scan' && isSuperAdmin && renderScanTab()}
+          {activeTab === 'trash' && isSuperAdmin && renderTrashTab()}
           {activeTab === 'analytics' && isSuperAdmin && renderAnalyticsTab()}
           {activeTab === 'videos' && isSuperAdmin && renderVideosTab()}
           {activeTab === 'supporters' && isSuperAdmin && renderSupportersTab()}
