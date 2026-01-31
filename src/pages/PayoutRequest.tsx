@@ -175,7 +175,17 @@ const PayoutRequest = () => {
     setExtractingData(true);
     
     try {
-      // Upload temporarily to get URL for AI
+      // Convert file to base64 directly (bypasses URL fetch issues)
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      console.log('Sending image for extraction, size:', Math.round(base64.length / 1024), 'KB');
+
+      // Also upload to storage for later use
       const fileExt = file.name.split('.').pop();
       const fileName = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       
@@ -183,27 +193,28 @@ const PayoutRequest = () => {
         .from('receipts')
         .upload(`temp-extractions/${fileName}`, file);
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        setExtractingData(false);
-        return;
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage
+          .from('receipts')
+          .getPublicUrl(`temp-extractions/${fileName}`);
+        setUploadedReceiptUrl(urlData.publicUrl);
       }
 
-      const { data: urlData } = supabase.storage
-        .from('receipts')
-        .getPublicUrl(`temp-extractions/${fileName}`);
-
-      // Save the uploaded URL for passing to coins page
-      setUploadedReceiptUrl(urlData.publicUrl);
-
-      // Call AI to extract data
+      // Call AI to extract data - send base64 directly
       const { data: extractResult, error: extractError } = await supabase.functions.invoke('extract-receipt-data', {
-        body: { imageUrl: urlData.publicUrl }
+        body: { imageBase64: base64 }
       });
+
+      console.log('Extraction result:', extractResult);
 
       if (extractError) {
         console.error('Extraction error:', extractError);
         setReferenceExtractedByAI(false);
+        toast({
+          title: '⚠️ خطأ في الاستخراج',
+          description: 'حدث خطأ أثناء معالجة الصورة، يرجى المحاولة مرة أخرى',
+          variant: 'destructive',
+        });
         setExtractingData(false);
         return;
       }
@@ -225,9 +236,10 @@ const PayoutRequest = () => {
       } else {
         // No reference found - require new receipt upload
         setReferenceExtractedByAI(false);
+        const errorNote = extractResult?.notes || 'يرجى رفع إيصال آخر أوضح أو التأكد من جودة الصورة';
         toast({
           title: '⚠️ لم يتم استخراج الرقم المرجعي',
-          description: 'يرجى رفع إيصال آخر أوضح أو التأكد من جودة الصورة',
+          description: errorNote,
           variant: 'destructive',
         });
         
@@ -238,8 +250,12 @@ const PayoutRequest = () => {
       }
     } catch (error) {
       console.error('Error extracting data:', error);
-      // On error, just allow manual entry
       setReferenceExtractedByAI(false);
+      toast({
+        title: '⚠️ خطأ',
+        description: 'فشل في معالجة الصورة، يرجى المحاولة مرة أخرى',
+        variant: 'destructive',
+      });
     } finally {
       setExtractingData(false);
     }
