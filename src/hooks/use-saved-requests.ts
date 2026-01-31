@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEY = 'ghala_life_tracking_codes';
 
-export type RequestType = 'payout' | 'instant' | 'ban_report' | 'special_id';
+export type RequestType = 'payout' | 'instant' | 'ban_report' | 'special_id' | 'coins';
 
 interface SavedRequest {
   trackingCode: string;
