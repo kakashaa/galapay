@@ -162,6 +162,8 @@ export type Database = {
           admin_notes: string | null
           ban_type: Database["public"]["Enums"]["ban_type"]
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           evidence_type: string
           evidence_url: string
@@ -181,6 +183,8 @@ export type Database = {
           admin_notes?: string | null
           ban_type: Database["public"]["Enums"]["ban_type"]
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           evidence_type?: string
           evidence_url: string
@@ -200,6 +204,8 @@ export type Database = {
           admin_notes?: string | null
           ban_type?: Database["public"]["Enums"]["ban_type"]
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           evidence_type?: string
           evidence_url?: string
@@ -363,6 +369,8 @@ export type Database = {
           ai_notes: string | null
           ai_supporter_receipt_status: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           host_account_id: string
           host_coins_amount: number
           host_country: string
@@ -398,6 +406,8 @@ export type Database = {
           ai_notes?: string | null
           ai_supporter_receipt_status?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           host_account_id: string
           host_coins_amount: number
           host_country: string
@@ -433,6 +443,8 @@ export type Database = {
           ai_notes?: string | null
           ai_supporter_receipt_status?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           host_account_id?: string
           host_coins_amount?: number
           host_country?: string
@@ -485,6 +497,8 @@ export type Database = {
           country_dial_code: string
           created_at: string
           currency: string
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           method_fields: Json | null
           payout_method: string
@@ -515,6 +529,8 @@ export type Database = {
           country_dial_code: string
           created_at?: string
           currency?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           method_fields?: Json | null
           payout_method: string
@@ -545,6 +561,8 @@ export type Database = {
           country_dial_code?: string
           created_at?: string
           currency?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           method_fields?: Json | null
           payout_method?: string
@@ -572,6 +590,8 @@ export type Database = {
           ai_verified_level: number | null
           ban_expires_at: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           digit_length: number
           gala_user_id: string
           gala_username: string | null
@@ -593,6 +613,8 @@ export type Database = {
           ai_verified_level?: number | null
           ban_expires_at?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           digit_length: number
           gala_user_id: string
           gala_username?: string | null
@@ -614,6 +636,8 @@ export type Database = {
           ai_verified_level?: number | null
           ban_expires_at?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           digit_length?: number
           gala_user_id?: string
           gala_username?: string | null
