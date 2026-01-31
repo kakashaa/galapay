@@ -17,7 +17,7 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
-import MoreOptionsSheet from '@/components/admin/MoreOptionsSheet';
+import FloatingDock from '@/components/admin/FloatingDock';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import RequestDetailsModal from '@/components/admin/RequestDetailsModal';
@@ -943,60 +943,13 @@ const AdminDashboard = () => {
         </div>
       </main>
 
-      {/* Premium Bottom Navigation */}
-      <nav 
-        className="fixed bottom-0 left-0 right-0 z-30 px-3 py-2.5 safe-area-pb"
-        style={{
-          background: 'linear-gradient(180deg, hsla(150, 35%, 7%, 0.98) 0%, hsla(150, 40%, 5%, 0.99) 100%)',
-          backdropFilter: 'blur(20px)',
-          borderTop: '1px solid hsla(142, 70%, 45%, 0.12)',
-        }}
-      >
-        <div className="flex items-center justify-around">
-          {mainNavItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ease-out transform ${
-                activeTab === item.id 
-                  ? 'scale-105' 
-                  : 'text-muted-foreground hover:text-foreground hover:scale-105'
-              }`}
-              style={activeTab === item.id ? {
-                background: 'linear-gradient(135deg, hsl(142 76% 50%), hsl(150 70% 45%))',
-                boxShadow: '0 4px 20px hsla(142, 76%, 50%, 0.4), inset 0 1px 0 hsla(255, 255%, 255%, 0.2)',
-              } : undefined}
-            >
-              <item.icon className={`w-5 h-5 transition-transform duration-300 ${
-                activeTab === item.id ? 'scale-110 text-primary-foreground' : ''
-              }`} />
-              <span className={`text-[10px] font-medium ${activeTab === item.id ? 'text-primary-foreground' : ''}`}>
-                {item.label}
-              </span>
-              {item.badge && item.badge > 0 && activeTab !== item.id && (
-                <span 
-                  className="absolute -top-1 -right-1 w-5 h-5 text-[10px] font-bold rounded-full flex items-center justify-center"
-                  style={{
-                    background: 'linear-gradient(135deg, hsl(142 76% 50%), hsl(150 70% 45%))',
-                    color: 'hsl(150 40% 4%)',
-                    boxShadow: '0 2px 10px hsla(142, 76%, 50%, 0.5)',
-                  }}
-                >
-                  {item.badge > 9 ? '9+' : item.badge}
-                </span>
-              )}
-            </button>
-          ))}
-          
-          {/* More Options Button - Only for Super Admin */}
-          {isSuperAdmin && (
-            <MoreOptionsSheet 
-              activeTab={activeTab} 
-              onSelectTab={(tabId) => setActiveTab(tabId)} 
-            />
-          )}
-        </div>
-      </nav>
+      {/* Floating MacBook-Style Dock */}
+      <FloatingDock 
+        items={mainNavItems}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        isSuperAdmin={isSuperAdmin}
+      />
 
       {/* Request Details Modal */}
       {selectedRequest && (

@@ -70,22 +70,43 @@ const MoreOptionsSheet = ({ activeTab, onSelectTab }: MoreOptionsSheetProps) => 
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <button
-          className={`relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ease-out transform ${
+          className={`relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-300 ease-out ${
             isMoreActive 
-              ? 'scale-105' 
-              : 'text-muted-foreground hover:text-foreground hover:scale-105'
+              ? 'animate-mac-bounce' 
+              : 'text-muted-foreground hover:text-foreground hover:scale-110 hover:-translate-y-1'
           }`}
           style={isMoreActive ? {
             background: 'linear-gradient(135deg, hsl(142 76% 50%), hsl(150 70% 45%))',
-            boxShadow: '0 4px 20px hsla(142, 76%, 50%, 0.4), inset 0 1px 0 hsla(255, 255%, 255%, 0.2)',
+            boxShadow: `
+              0 4px 20px hsla(142, 76%, 50%, 0.5),
+              0 0 30px hsla(142, 76%, 50%, 0.3),
+              inset 0 1px 0 hsla(255, 255%, 255%, 0.3)
+            `,
           } : undefined}
         >
-          <MoreHorizontal className={`w-5 h-5 transition-transform duration-300 ${
+          {isMoreActive && (
+            <div 
+              className="absolute inset-0 rounded-2xl animate-pulse"
+              style={{
+                background: 'radial-gradient(circle at center, hsla(142, 76%, 50%, 0.4) 0%, transparent 70%)',
+              }}
+            />
+          )}
+          <MoreHorizontal className={`w-5 h-5 relative z-10 transition-all duration-300 ${
             isMoreActive ? 'scale-110 text-primary-foreground' : ''
           }`} />
-          <span className={`text-[10px] font-medium ${isMoreActive ? 'text-primary-foreground' : ''}`}>
+          <span className={`text-[9px] font-medium mt-0.5 relative z-10 ${isMoreActive ? 'text-primary-foreground' : ''}`}>
             المزيد
           </span>
+          {isMoreActive && (
+            <div 
+              className="absolute -bottom-1 w-1 h-1 rounded-full"
+              style={{
+                background: 'hsl(142 76% 50%)',
+                boxShadow: '0 0 8px hsl(142 76% 50%)',
+              }}
+            />
+          )}
         </button>
       </SheetTrigger>
       <SheetContent side="bottom" className="h-auto max-h-[70vh] rounded-t-3xl border-t border-primary/20 bg-card">
