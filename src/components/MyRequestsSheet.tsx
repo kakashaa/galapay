@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
@@ -18,12 +18,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useSavedRequests, RequestType } from '@/hooks/use-saved-requests';
+import { MyRequestsFilter, FilterOptions } from './MyRequestsFilter';
 
 interface RequestStatus {
   tracking_code: string;
   status: string;
   amount?: number;
   currency?: string;
+  country?: string;
   created_at: string;
   type: RequestType;
 }
@@ -107,11 +109,20 @@ interface MyRequestsSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const initialFilters: FilterOptions = {
+  country: 'all',
+  status: 'all',
+  minAmount: '',
+  maxAmount: '',
+  type: 'all',
+};
+
 export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) => {
   const navigate = useNavigate();
   const { savedRequests, removeTrackingCode } = useSavedRequests();
   const [requestStatuses, setRequestStatuses] = useState<RequestStatus[]>([]);
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>(initialFilters);
 
   // Fetch statuses when sheet opens
   useEffect(() => {
@@ -130,7 +141,7 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
       if (payoutCodes.length > 0) {
         const { data: payoutData } = await supabase
           .from('payout_requests')
-          .select('tracking_code, status, amount, currency, created_at')
+          .select('tracking_code, status, amount, currency, country, created_at')
           .in('tracking_code', payoutCodes);
         if (payoutData) {
           results.push(...payoutData.map(d => ({ ...d, type: 'payout' as RequestType })));
@@ -142,7 +153,7 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
       if (instantCodes.length > 0) {
         const { data: instantData } = await supabase
           .from('instant_payout_requests')
-          .select('tracking_code, status, host_payout_amount, host_currency, created_at')
+          .select('tracking_code, status, host_payout_amount, host_currency, host_country, created_at')
           .in('tracking_code', instantCodes);
         if (instantData) {
           results.push(...instantData.map(d => ({ 
@@ -150,6 +161,7 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
             status: d.status,
             amount: d.host_payout_amount,
             currency: d.host_currency,
+            country: d.host_country,
             created_at: d.created_at,
             type: 'instant' as RequestType 
           })));
@@ -198,6 +210,50 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
     }
   };
 
+  // Get unique countries from requests
+  const availableCountries = useMemo(() => {
+    const countries = requestStatuses
+      .map(r => r.country)
+      .filter((c): c is string => !!c);
+    return [...new Set(countries)];
+  }, [requestStatuses]);
+
+  // Filter requests based on filters
+  const filteredRequests = useMemo(() => {
+    return savedRequests.filter((saved) => {
+      const status = requestStatuses.find(r => r.tracking_code === saved.trackingCode);
+      
+      // Type filter
+      if (filters.type !== 'all' && saved.type !== filters.type) {
+        return false;
+      }
+
+      // Country filter
+      if (filters.country !== 'all' && status?.country !== filters.country) {
+        return false;
+      }
+
+      // Status filter
+      if (filters.status !== 'all' && status?.status !== filters.status) {
+        return false;
+      }
+
+      // Amount range filter
+      if (status?.amount) {
+        const minAmount = filters.minAmount ? parseFloat(filters.minAmount) : 0;
+        const maxAmount = filters.maxAmount ? parseFloat(filters.maxAmount) : Infinity;
+        if (status.amount < minAmount || status.amount > maxAmount) {
+          return false;
+        }
+      } else if (filters.minAmount || filters.maxAmount) {
+        // If there's an amount filter but request has no amount, exclude it
+        return false;
+      }
+
+      return true;
+    });
+  }, [savedRequests, requestStatuses, filters]);
+
   const handleViewRequest = (trackingCode: string, type: RequestType) => {
     onOpenChange(false);
     if (type === 'ban_report') {
@@ -219,9 +275,13 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
     return requestStatuses.find((r) => r.tracking_code === trackingCode);
   };
 
+  const handleClearFilters = () => {
+    setFilters(initialFilters);
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="bottom-sheet h-[70vh] p-0">
+      <SheetContent side="bottom" className="bottom-sheet h-[85vh] p-0">
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-10 h-1 rounded-full bg-muted" />
@@ -233,8 +293,25 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
           </SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="h-[calc(70vh-100px)]">
+        <ScrollArea className="h-[calc(85vh-100px)]">
           <div className="p-5 space-y-3">
+            {/* Filter Section */}
+            {savedRequests.length > 0 && !loading && (
+              <MyRequestsFilter
+                filters={filters}
+                onFiltersChange={setFilters}
+                countries={availableCountries}
+                onClearFilters={handleClearFilters}
+              />
+            )}
+
+            {/* Results count */}
+            {savedRequests.length > 0 && !loading && (
+              <div className="text-xs text-muted-foreground text-center">
+                عرض {filteredRequests.length} من {savedRequests.length} طلب
+              </div>
+            )}
+
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -244,8 +321,13 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">لا توجد طلبات سابقة</p>
               </div>
+            ) : filteredRequests.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">لا توجد نتائج تطابق الفلتر</p>
+              </div>
             ) : (
-              savedRequests.map((saved) => {
+              filteredRequests.map((saved) => {
                 const status = getStatusInfo(saved.trackingCode);
                 const statusConfigItem = status?.status ? statusConfig[status.status as keyof typeof statusConfig] : null;
                 const typeItem = typeConfig[saved.type];
@@ -267,6 +349,11 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-xs font-bold ${typeItem?.color}`}>{typeItem?.label}</span>
+                        {status?.country && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {status.country}
+                          </span>
+                        )}
                       </div>
                       <p className="font-mono text-xs text-muted-foreground mb-1" dir="ltr">
                         {saved.trackingCode.length > 12 ? saved.trackingCode.substring(0, 8) + '...' : saved.trackingCode}
