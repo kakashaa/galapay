@@ -62,6 +62,23 @@ const CoinsPayoutRequest = () => {
     setLoading(true);
 
     try {
+      // CRITICAL: Check if reference was already used in coins_payout_requests
+      const { data: existingCoins } = await supabase
+        .from('coins_payout_requests')
+        .select('id, tracking_code')
+        .eq('reference_number', formData.referenceNumber.trim())
+        .maybeSingle();
+
+      if (existingCoins) {
+        toast({
+          title: '🚫 الرقم المرجعي مستخدم',
+          description: `هذا الإيصال تم استخدامه مسبقاً لطلب كوينزات (${existingCoins.tracking_code}). لا يمكن استخدامه مرة أخرى.`,
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
       // Insert coins payout request
       const { data: requestData, error: insertError } = await supabase
         .from('coins_payout_requests')
