@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Search, Clock, Eye, CheckCircle2, XCircle, Loader2, Zap } from 'lucide-react';
+import { ArrowRight, Search, Clock, Eye, CheckCircle2, XCircle, Loader2, Zap, Coins } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -8,20 +8,24 @@ import { FadeIn, AnimatedCard } from '@/components/AnimatedCard';
 import StarField from '@/components/StarField';
 
 type PayoutStatus = 'pending' | 'review' | 'paid' | 'rejected' | 'processing' | 'completed' | 'reserved';
+type RequestType = 'monthly' | 'instant' | 'coins';
 
 interface PayoutRequest {
   id: string;
   tracking_code: string;
   status: PayoutStatus;
-  country: string;
-  payout_method: string;
+  country?: string;
+  payout_method?: string;
   amount: number;
   currency: string;
   rejection_reason: string | null;
   reservation_reason: string | null;
   admin_final_receipt_image_url: string | null;
   created_at: string;
-  isInstant?: boolean;
+  requestType: RequestType;
+  // Coins specific
+  coins_amount?: number;
+  gala_account_id?: string;
 }
 
 const monthlyStatusConfig = {
@@ -93,6 +97,30 @@ const instantStatusConfig = {
   },
 };
 
+const coinsStatusConfig = {
+  pending: {
+    label: 'قيد الانتظار',
+    icon: Clock,
+    className: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
+    glowColor: 'hsla(45, 93%, 47%, 0.3)',
+    description: 'طلب الكوينزات قيد المراجعة',
+  },
+  completed: {
+    label: 'مكتمل',
+    icon: CheckCircle2,
+    className: 'bg-success/10 text-success border-success/30',
+    glowColor: 'hsla(142, 76%, 50%, 0.4)',
+    description: 'مبروك! تم شحن الكوينزات بنجاح',
+  },
+  rejected: {
+    label: 'مرفوض',
+    icon: XCircle,
+    className: 'bg-destructive/10 text-destructive border-destructive/30',
+    glowColor: 'hsla(0, 80%, 55%, 0.3)',
+    description: 'للأسف تم رفض طلبك',
+  },
+};
+
 const Track = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -129,6 +157,7 @@ const Track = () => {
     const code = trackingCode.trim().toUpperCase();
 
     try {
+      // Search in monthly payout requests
       const { data: monthlyData, error: monthlyError } = await supabase
         .from('payout_requests')
         .select('id, tracking_code, status, country, payout_method, amount, currency, rejection_reason, reservation_reason, admin_final_receipt_image_url, created_at')
@@ -138,10 +167,11 @@ const Track = () => {
       if (monthlyError) throw monthlyError;
 
       if (monthlyData) {
-        setRequest({ ...monthlyData, isInstant: false } as PayoutRequest);
+        setRequest({ ...monthlyData, requestType: 'monthly' } as PayoutRequest);
         return;
       }
 
+      // Search in instant payout requests
       const { data: instantData, error: instantError } = await supabase
         .from('instant_payout_requests')
         .select('id, tracking_code, status, host_country, host_payout_method, host_payout_amount, host_currency, rejection_reason, admin_final_receipt_url, created_at')
@@ -163,7 +193,34 @@ const Track = () => {
           reservation_reason: null,
           admin_final_receipt_image_url: instantData.admin_final_receipt_url,
           created_at: instantData.created_at,
-          isInstant: true,
+          requestType: 'instant',
+        });
+        return;
+      }
+
+      // Search in coins payout requests
+      const { data: coinsData, error: coinsError } = await supabase
+        .from('coins_payout_requests')
+        .select('id, tracking_code, status, amount_usd, coins_amount, gala_account_id, admin_notes, created_at')
+        .eq('tracking_code', code)
+        .maybeSingle();
+
+      if (coinsError) throw coinsError;
+
+      if (coinsData) {
+        setRequest({
+          id: coinsData.id,
+          tracking_code: coinsData.tracking_code,
+          status: coinsData.status as any,
+          amount: coinsData.amount_usd,
+          currency: 'USD',
+          coins_amount: coinsData.coins_amount,
+          gala_account_id: coinsData.gala_account_id,
+          rejection_reason: coinsData.admin_notes,
+          reservation_reason: null,
+          admin_final_receipt_image_url: null,
+          created_at: coinsData.created_at,
+          requestType: 'coins',
         });
         return;
       }
@@ -184,12 +241,48 @@ const Track = () => {
   const getStatusConfig = () => {
     if (!request) return { ...monthlyStatusConfig.pending, glowColor: 'hsla(38, 92%, 55%, 0.3)' };
     
-    if (request.isInstant) {
+    if (request.requestType === 'instant') {
       const status = request.status as 'pending' | 'processing' | 'completed' | 'rejected';
       return instantStatusConfig[status] || instantStatusConfig.pending;
+    } else if (request.requestType === 'coins') {
+      const status = request.status as 'pending' | 'completed' | 'rejected';
+      return coinsStatusConfig[status] || coinsStatusConfig.pending;
     } else {
       const status = request.status as 'pending' | 'review' | 'paid' | 'rejected' | 'reserved';
       return monthlyStatusConfig[status] || monthlyStatusConfig.pending;
+    }
+  };
+
+  const getRequestTypeBadge = () => {
+    if (!request) return null;
+    
+    switch (request.requestType) {
+      case 'instant':
+        return (
+          <FadeIn delay={0.1}>
+            <motion.div 
+              className="neon-card p-3 flex items-center gap-2 border-warning/30"
+              style={{ boxShadow: '0 0 15px hsla(38, 92%, 55%, 0.2)' }}
+            >
+              <Zap className="w-5 h-5 text-warning" />
+              <span className="text-warning font-medium text-sm">طلب سحب فوري</span>
+            </motion.div>
+          </FadeIn>
+        );
+      case 'coins':
+        return (
+          <FadeIn delay={0.1}>
+            <motion.div 
+              className="neon-card p-3 flex items-center gap-2 border-amber-500/30"
+              style={{ boxShadow: '0 0 15px hsla(45, 93%, 47%, 0.2)' }}
+            >
+              <Coins className="w-5 h-5 text-amber-500" />
+              <span className="text-amber-500 font-medium text-sm">طلب شحن كوينزات</span>
+            </motion.div>
+          </FadeIn>
+        );
+      default:
+        return null;
     }
   };
 
@@ -210,7 +303,7 @@ const Track = () => {
           >
             <ArrowRight className="w-5 h-5 text-muted-foreground" />
           </motion.button>
-          <h1 className="text-xl font-bold text-foreground glow-text">تتبع الحوالة</h1>
+          <h1 className="text-xl font-bold text-foreground glow-text">تتبع الطلبات</h1>
         </div>
       </div>
 
@@ -221,6 +314,9 @@ const Track = () => {
             <label className="block text-sm font-medium text-foreground mb-2">
               أدخل كود التتبع
             </label>
+            <p className="text-xs text-muted-foreground mb-3">
+              يمكنك تتبع طلبات الراتب الشهري، السحب الفوري، أو الكوينزات
+            </p>
             <div className="flex gap-3">
               <input
                 type="text"
@@ -272,18 +368,8 @@ const Track = () => {
         {/* Request Found */}
         {request && (
           <div className="space-y-4">
-            {/* Instant Payout Badge */}
-            {request.isInstant && (
-              <FadeIn delay={0.1}>
-                <motion.div 
-                  className="neon-card p-3 flex items-center gap-2 border-warning/30"
-                  style={{ boxShadow: '0 0 15px hsla(38, 92%, 55%, 0.2)' }}
-                >
-                  <Zap className="w-5 h-5 text-warning" />
-                  <span className="text-warning font-medium text-sm">طلب سحب فوري</span>
-                </motion.div>
-              </FadeIn>
-            )}
+            {/* Request Type Badge */}
+            {getRequestTypeBadge()}
 
             {/* Status Card */}
             <FadeIn delay={0.2}>
@@ -354,26 +440,65 @@ const Track = () => {
               <AnimatedCard className="p-4" variant="neon">
                 <h3 className="font-semibold text-foreground mb-3">تفاصيل الطلب</h3>
                 <div className="space-y-2 text-sm">
-                  {request.isInstant && (
-                    <div className="flex justify-between py-2 border-b border-border/50">
-                      <span className="text-muted-foreground">نوع الطلب</span>
-                      <span className="text-warning font-medium">سحب فوري ⚡</span>
-                    </div>
-                  )}
+                  {/* Request Type */}
                   <div className="flex justify-between py-2 border-b border-border/50">
-                    <span className="text-muted-foreground">البلد</span>
-                    <span className="text-foreground">{request.country}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-border/50">
-                    <span className="text-muted-foreground">طريقة الصرف</span>
-                    <span className="text-foreground">{request.payout_method}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-border/50">
-                    <span className="text-muted-foreground">المبلغ</span>
-                    <span className="text-foreground font-medium text-primary glow-text">
-                      {request.amount.toLocaleString()} {request.currency}
+                    <span className="text-muted-foreground">نوع الطلب</span>
+                    <span className={`font-medium ${
+                      request.requestType === 'instant' ? 'text-warning' :
+                      request.requestType === 'coins' ? 'text-amber-500' :
+                      'text-primary'
+                    }`}>
+                      {request.requestType === 'instant' ? 'سحب فوري ⚡' :
+                       request.requestType === 'coins' ? 'كوينزات 🪙' :
+                       'راتب شهري 💰'}
                     </span>
                   </div>
+
+                  {/* Coins specific: Gala Account ID */}
+                  {request.requestType === 'coins' && request.gala_account_id && (
+                    <div className="flex justify-between py-2 border-b border-border/50">
+                      <span className="text-muted-foreground">أيدي الحساب</span>
+                      <span className="text-foreground font-mono" dir="ltr">{request.gala_account_id}</span>
+                    </div>
+                  )}
+
+                  {/* Coins specific: Coins Amount */}
+                  {request.requestType === 'coins' && request.coins_amount && (
+                    <div className="flex justify-between py-2 border-b border-border/50">
+                      <span className="text-muted-foreground">عدد الكوينزات</span>
+                      <span className="text-amber-500 font-medium">
+                        {request.coins_amount.toLocaleString()} 🪙
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Country - for non-coins */}
+                  {request.country && (
+                    <div className="flex justify-between py-2 border-b border-border/50">
+                      <span className="text-muted-foreground">البلد</span>
+                      <span className="text-foreground">{request.country}</span>
+                    </div>
+                  )}
+
+                  {/* Payout Method - for non-coins */}
+                  {request.payout_method && (
+                    <div className="flex justify-between py-2 border-b border-border/50">
+                      <span className="text-muted-foreground">طريقة الصرف</span>
+                      <span className="text-foreground">{request.payout_method}</span>
+                    </div>
+                  )}
+
+                  {/* Amount */}
+                  <div className="flex justify-between py-2 border-b border-border/50">
+                    <span className="text-muted-foreground">
+                      {request.requestType === 'coins' ? 'قيمة الراتب' : 'المبلغ'}
+                    </span>
+                    <span className="text-foreground font-medium text-primary glow-text">
+                      ${request.amount.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* Date */}
                   <div className="flex justify-between py-2">
                     <span className="text-muted-foreground">تاريخ الطلب</span>
                     <span className="text-foreground" dir="ltr">
