@@ -73,6 +73,8 @@ const PayoutRequest = () => {
   const [policyDialogOpen, setPolicyDialogOpen] = useState(false);
   const [isNotLastDay, setIsNotLastDay] = useState(false);
   const [alreadySubmittedThisMonth, setAlreadySubmittedThisMonth] = useState(false);
+  const [checkingAccountId, setCheckingAccountId] = useState(false);
+  const [accountIdError, setAccountIdError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     zalalLifeAccountId: '',
@@ -343,6 +345,27 @@ const PayoutRequest = () => {
     return { hasSubmitted: false, message: '' };
   };
 
+  // Auto-check Account ID when user types
+  const checkAccountIdOnChange = async (accountId: string) => {
+    if (!accountId || accountId.trim().length < 3) {
+      setAccountIdError(null);
+      setAlreadySubmittedThisMonth(false);
+      return;
+    }
+
+    setCheckingAccountId(true);
+    const result = await checkMonthlySubmission(accountId);
+    setCheckingAccountId(false);
+
+    if (result.hasSubmitted) {
+      setAccountIdError(result.message);
+      setPolicyDialogOpen(true); // Show policy dialog automatically
+    } else {
+      setAccountIdError(null);
+      setAlreadySubmittedThisMonth(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -557,7 +580,7 @@ const PayoutRequest = () => {
   ];
 
   const isStep1Complete = receiptImage && formData.referenceNumber && formData.referenceNumber.trim().length >= 3 && !referenceError && formData.amount && parseFloat(formData.amount) > 0;
-  const isStep2Complete = formData.zalalLifeAccountId && formData.recipientFullName;
+  const isStep2Complete = formData.zalalLifeAccountId && formData.recipientFullName && !accountIdError && !checkingAccountId;
   const isStep3Complete = selectedCountry && selectedMethod && formData.phoneNumber;
 
   // Check if user should be blocked from submitting
@@ -978,19 +1001,53 @@ const PayoutRequest = () => {
                   required
                   value={formData.zalalLifeAccountId}
                   onChange={(e) => {
-                    setFormData(prev => ({ ...prev, zalalLifeAccountId: e.target.value }));
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, zalalLifeAccountId: value }));
                     setDailyLimitError(null);
+                    // Auto-check for monthly duplicates
+                    checkAccountIdOnChange(value);
                   }}
-                  className="w-full px-4 py-3.5 text-base rounded-xl border-2 border-border bg-background/50 focus:border-primary focus:ring-0 transition-colors"
+                  className={`w-full px-4 py-3.5 text-base rounded-xl border-2 ${
+                    accountIdError 
+                      ? 'border-destructive bg-destructive/5' 
+                      : 'border-border bg-background/50'
+                  } focus:border-primary focus:ring-0 transition-colors`}
                   placeholder="أدخل ايدي الحساب"
                 />
-                {formData.zalalLifeAccountId && (
+                {checkingAccountId && (
+                  <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin" />
+                )}
+                {formData.zalalLifeAccountId && !checkingAccountId && !accountIdError && (
                   <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-primary" />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground bg-warning/10 p-2 rounded-lg border border-warning/20">
-                ⚠️ يُسمح برفع طلب واحد فقط يومياً لكل حساب
-              </p>
+              
+              {/* Monthly submission error with policy button */}
+              {accountIdError && (
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl space-y-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-destructive font-bold">❌ تم رفع الراتب مسبقاً</p>
+                      <p className="text-xs text-destructive/80 mt-1">{accountIdError}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPolicyDialogOpen(true)}
+                    className="w-full py-2.5 rounded-lg bg-destructive/20 text-destructive font-medium text-sm flex items-center justify-center gap-2 hover:bg-destructive/30 transition-colors"
+                  >
+                    <FileText className="w-4 h-4" />
+                    اقرأ سياسة السحب الشهري
+                  </button>
+                </div>
+              )}
+              
+              {!accountIdError && (
+                <p className="text-xs text-muted-foreground bg-warning/10 p-2 rounded-lg border border-warning/20">
+                  ⚠️ يُسمح برفع طلب واحد فقط شهرياً لكل حساب
+                </p>
+              )}
             </div>
 
             {/* Username */}
