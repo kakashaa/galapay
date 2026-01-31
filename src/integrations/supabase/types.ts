@@ -247,6 +247,57 @@ export type Database = {
         }
         Relationships: []
       }
+      coins_payout_requests: {
+        Row: {
+          admin_notes: string | null
+          amount_usd: number
+          coins_amount: number
+          created_at: string
+          gala_account_id: string
+          gala_username: string | null
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          receipt_image_url: string
+          reference_number: string
+          status: string
+          tracking_code: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_usd: number
+          coins_amount: number
+          created_at?: string
+          gala_account_id: string
+          gala_username?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          receipt_image_url: string
+          reference_number: string
+          status?: string
+          tracking_code?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_usd?: number
+          coins_amount?: number
+          created_at?: string
+          gala_account_id?: string
+          gala_username?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          receipt_image_url?: string
+          reference_number?: string
+          status?: string
+          tracking_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       countries_methods: {
         Row: {
           country_code: string
@@ -319,6 +370,33 @@ export type Database = {
           name_arabic?: string
           updated_at?: string
           url?: string
+        }
+        Relationships: []
+      }
+      flagged_references: {
+        Row: {
+          created_at: string
+          flagged_at: string
+          id: string
+          original_account_id: string
+          reason: string
+          reference_number: string
+        }
+        Insert: {
+          created_at?: string
+          flagged_at?: string
+          id?: string
+          original_account_id: string
+          reason?: string
+          reference_number: string
+        }
+        Update: {
+          created_at?: string
+          flagged_at?: string
+          id?: string
+          original_account_id?: string
+          reason?: string
+          reference_number?: string
         }
         Relationships: []
       }

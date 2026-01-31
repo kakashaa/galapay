@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
-import { CheckCircle2, Copy, AlertTriangle, Search, Camera, Check, Clock, Zap } from 'lucide-react';
+import { CheckCircle2, Copy, AlertTriangle, Search, Camera, Check, Clock, Zap, Coins } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useSavedRequests } from '@/hooks/use-saved-requests';
 import { motion } from 'framer-motion';
@@ -13,12 +13,15 @@ const Success = () => {
   const { saveTrackingCode } = useSavedRequests();
   const trackingCode = location.state?.trackingCode;
   const isInstant = location.state?.isInstant || false;
+  const isCoins = location.state?.type === 'coins';
+  const coinsAmount = location.state?.coinsAmount;
+  const amountUsd = location.state?.amountUsd;
   const [saved, setSaved] = useState(false);
   const codeCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (trackingCode) {
-      const requestType = isInstant ? 'instant' : 'payout';
+      const requestType = isCoins ? 'coins' : (isInstant ? 'instant' : 'payout');
       saveTrackingCode(trackingCode, requestType);
       setSaved(true);
       toast({
@@ -26,7 +29,7 @@ const Success = () => {
         description: 'يمكنك الوصول لطلباتك السابقة من الصفحة الرئيسية',
       });
     }
-  }, [trackingCode, isInstant, saveTrackingCode]);
+  }, [trackingCode, isInstant, isCoins, saveTrackingCode]);
 
   if (!trackingCode) {
     return <Navigate to="/" replace />;
@@ -130,15 +133,21 @@ const Success = () => {
       {/* Success Icon */}
       <FadeIn delay={0.1}>
         <motion.div 
-          className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${isInstant ? 'bg-warning/10' : 'bg-success/10'}`}
+          className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${
+            isCoins ? 'bg-amber-500/10' : (isInstant ? 'bg-warning/10' : 'bg-success/10')
+          }`}
           animate={{ 
-            boxShadow: isInstant 
+            boxShadow: isCoins 
               ? ['0 0 30px hsla(38, 92%, 55%, 0.3)', '0 0 50px hsla(38, 92%, 55%, 0.5)', '0 0 30px hsla(38, 92%, 55%, 0.3)']
-              : ['0 0 30px hsla(142, 76%, 50%, 0.3)', '0 0 50px hsla(142, 76%, 50%, 0.5)', '0 0 30px hsla(142, 76%, 50%, 0.3)']
+              : (isInstant 
+                ? ['0 0 30px hsla(38, 92%, 55%, 0.3)', '0 0 50px hsla(38, 92%, 55%, 0.5)', '0 0 30px hsla(38, 92%, 55%, 0.3)']
+                : ['0 0 30px hsla(142, 76%, 50%, 0.3)', '0 0 50px hsla(142, 76%, 50%, 0.5)', '0 0 30px hsla(142, 76%, 50%, 0.3)'])
           }}
           transition={{ duration: 2, repeat: Infinity }}
         >
-          {isInstant ? (
+          {isCoins ? (
+            <Coins className="w-12 h-12 text-amber-500" />
+          ) : isInstant ? (
             <Zap className="w-12 h-12 text-warning" />
           ) : (
             <CheckCircle2 className="w-12 h-12 text-success" />
@@ -149,12 +158,33 @@ const Success = () => {
       {/* Success Message */}
       <FadeIn delay={0.2}>
         <h1 className="text-2xl font-bold text-foreground mb-2 text-center glow-text">
-          {isInstant ? 'تم استلام طلب السحب الفوري!' : 'تم استلام طلبك بنجاح!'}
+          {isCoins ? 'تم إرسال طلب الكوينزات!' : (isInstant ? 'تم استلام طلب السحب الفوري!' : 'تم استلام طلبك بنجاح!')}
         </h1>
         <p className="text-muted-foreground text-center mb-4">
-          {isInstant ? 'سيتم معالجة طلبك خلال دقائق' : 'سيتم التحويل خلال 1-2 يوم عمل'}
+          {isCoins ? 'سيتم شحن الكوينزات خلال دقائق' : (isInstant ? 'سيتم معالجة طلبك خلال دقائق' : 'سيتم التحويل خلال 1-2 يوم عمل')}
         </p>
       </FadeIn>
+
+      {/* Coins Amount Display */}
+      {isCoins && coinsAmount && (
+        <FadeIn delay={0.25}>
+          <div className="bg-gradient-to-r from-amber-600/20 to-yellow-500/20 rounded-xl p-4 mb-4 border border-amber-500/30 text-center w-full max-w-sm">
+            <p className="text-amber-300 text-sm mb-1">المبلغ المستلم:</p>
+            <div className="flex items-center justify-center gap-2">
+              <Coins className="w-6 h-6 text-yellow-400" />
+              <span className="text-3xl font-bold text-yellow-400">
+                {Number(coinsAmount).toLocaleString()}
+              </span>
+              <span className="text-amber-300">كوينز</span>
+            </div>
+            {amountUsd && (
+              <p className="text-xs text-muted-foreground mt-2">
+                (${Number(amountUsd).toFixed(2)})
+              </p>
+            )}
+          </div>
+        </FadeIn>
+      )}
 
       {/* Instant Payout Time Warning */}
       {isInstant && (

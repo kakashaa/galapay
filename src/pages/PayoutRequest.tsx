@@ -78,6 +78,10 @@ const PayoutRequest = () => {
   // Track flagged reference number when account ID has previous submission
   const [flaggedReferenceNumber, setFlaggedReferenceNumber] = useState<string | null>(null);
   const [referenceBlockedError, setReferenceBlockedError] = useState<string | null>(null);
+  // Track if reference is flagged in database (persistent)
+  const [isReferenceFlaggedInDB, setIsReferenceFlaggedInDB] = useState(false);
+  // Store receipt URL for passing to coins page
+  const [uploadedReceiptUrl, setUploadedReceiptUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     zalalLifeAccountId: '',
@@ -189,6 +193,9 @@ const PayoutRequest = () => {
         .from('receipts')
         .getPublicUrl(`temp-extractions/${fileName}`);
 
+      // Save the uploaded URL for passing to coins page
+      setUploadedReceiptUrl(urlData.publicUrl);
+
       // Call AI to extract data
       const { data: extractResult, error: extractError } = await supabase.functions.invoke('extract-receipt-data', {
         body: { imageUrl: urlData.publicUrl }
@@ -277,10 +284,27 @@ const PayoutRequest = () => {
   const checkReferenceNumber = async (refNumber: string) => {
     if (!refNumber || refNumber.length < 3) {
       setReferenceError(null);
+      setIsReferenceFlaggedInDB(false);
       return;
     }
     
     setCheckingReference(true);
+    
+    // Check if reference is flagged in database (persistent block)
+    const { data: flaggedData } = await supabase
+      .from('flagged_references')
+      .select('id, original_account_id, reason')
+      .eq('reference_number', refNumber.trim())
+      .maybeSingle();
+    
+    if (flaggedData) {
+      setIsReferenceFlaggedInDB(true);
+      setReferenceBlockedError(`هذا الإيصال/الرقم المرجعي محظور. تم استخدامه مسبقاً من الأيدي: ${flaggedData.original_account_id}. يمكنك استلام كوينزات فقط.`);
+      setCheckingReference(false);
+      return;
+    }
+    
+    // Check if reference was used in payout_requests
     const { data } = await supabase
       .from('payout_requests')
       .select('id')
@@ -293,7 +317,20 @@ const PayoutRequest = () => {
       setReferenceError('هذا الرقم المرجعي مستخدم مسبقاً');
     } else {
       setReferenceError(null);
+      setIsReferenceFlaggedInDB(false);
     }
+  };
+
+  // Navigate to coins payout page
+  const goToCoinsPayoutPage = () => {
+    navigate('/coins-payout', {
+      state: {
+        referenceNumber: formData.referenceNumber.trim(),
+        amount: formData.amount,
+        receiptImageUrl: uploadedReceiptUrl || receiptPreview,
+        flaggedReason: referenceBlockedError || accountIdError,
+      }
+    });
   };
 
   // Check daily limit - only 1 request per day per account ID
@@ -399,7 +436,16 @@ const PayoutRequest = () => {
       setAccountIdError(result.message);
       // Flag the current reference number when account ID has previous submission
       if (formData.referenceNumber && formData.referenceNumber.trim().length >= 3) {
-        setFlaggedReferenceNumber(formData.referenceNumber.trim());
+        const refNum = formData.referenceNumber.trim();
+        setFlaggedReferenceNumber(refNum);
+        // Save to database for persistent blocking
+        await supabase
+          .from('flagged_references')
+          .upsert({
+            reference_number: refNum,
+            original_account_id: accountId,
+            reason: 'duplicate_account_monthly_payout',
+          }, { onConflict: 'reference_number' });
       }
       setReferenceBlockedError(null); // Clear reference error when showing account error
       setPolicyDialogOpen(true); // Show policy dialog automatically
@@ -439,9 +485,18 @@ const PayoutRequest = () => {
 
     if (result.hasSubmitted) {
       setAccountIdError(result.message);
-      // Flag the current reference number
+      // Flag the current reference number and save to database
       if (formData.referenceNumber && formData.referenceNumber.trim().length >= 3) {
-        setFlaggedReferenceNumber(formData.referenceNumber.trim());
+        const refNum = formData.referenceNumber.trim();
+        setFlaggedReferenceNumber(refNum);
+        // Save to database for persistent blocking
+        await supabase
+          .from('flagged_references')
+          .upsert({
+            reference_number: refNum,
+            original_account_id: accountId,
+            reason: 'duplicate_account_monthly_payout',
+          }, { onConflict: 'reference_number' });
       }
       setReferenceBlockedError(null);
       setPolicyDialogOpen(true);
@@ -1130,14 +1185,24 @@ const PayoutRequest = () => {
                       <p className="text-xs text-destructive/80 mt-1">{accountIdError}</p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setPolicyDialogOpen(true)}
-                    className="w-full py-2.5 rounded-lg bg-destructive/20 text-destructive font-medium text-sm flex items-center justify-center gap-2 hover:bg-destructive/30 transition-colors"
-                  >
-                    <FileText className="w-4 h-4" />
-                    اقرأ سياسة السحب الشهري
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={goToCoinsPayoutPage}
+                      className="w-full py-3 rounded-lg bg-amber-600 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-amber-700 transition-colors"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      هل تريد استلام كوينزات بدلاً من ذلك؟
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPolicyDialogOpen(true)}
+                      className="w-full py-2.5 rounded-lg bg-destructive/20 text-destructive font-medium text-sm flex items-center justify-center gap-2 hover:bg-destructive/30 transition-colors"
+                    >
+                      <FileText className="w-4 h-4" />
+                      اقرأ سياسة السحب الشهري
+                    </button>
+                  </div>
                 </div>
               )}
               
@@ -1151,14 +1216,24 @@ const PayoutRequest = () => {
                       <p className="text-xs text-warning/80 mt-1">{referenceBlockedError}</p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setPolicyDialogOpen(true)}
-                    className="w-full py-2.5 rounded-lg bg-warning/20 text-warning font-medium text-sm flex items-center justify-center gap-2 hover:bg-warning/30 transition-colors"
-                  >
-                    <FileText className="w-4 h-4" />
-                    اقرأ سياسة السحب الشهري
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={goToCoinsPayoutPage}
+                      className="w-full py-3 rounded-lg bg-amber-600 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-amber-700 transition-colors"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      استلام كوينزات بدلاً من الراتب
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPolicyDialogOpen(true)}
+                      className="w-full py-2.5 rounded-lg bg-warning/20 text-warning font-medium text-sm flex items-center justify-center gap-2 hover:bg-warning/30 transition-colors"
+                    >
+                      <FileText className="w-4 h-4" />
+                      اقرأ سياسة السحب الشهري
+                    </button>
+                  </div>
                 </div>
               )}
               
