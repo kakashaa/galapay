@@ -108,6 +108,46 @@ const RequestDetailsModal = ({
       return;
     }
 
+    // Check for duplicate payment - warn if this account already received payment this month
+    if (newStatus === 'paid' && request) {
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      
+      const { data: existingPayments } = await supabase
+        .from('payout_requests')
+        .select('id, tracking_code, amount, processed_at')
+        .eq('zalal_life_account_id', request.zalal_life_account_id)
+        .eq('status', 'paid')
+        .neq('id', request.id);
+
+      if (existingPayments && existingPayments.length > 0) {
+        // Check if any payment was made this month
+        const thisMonthPayments = existingPayments.filter(p => {
+          if (p.processed_at) {
+            const paymentDate = new Date(p.processed_at);
+            return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+          }
+          return false;
+        });
+
+        if (thisMonthPayments.length > 0) {
+          const confirmDuplicate = window.confirm(
+            `⚠️ تحذير: هذا الحساب (${request.zalal_life_account_id}) استلم دفعة هذا الشهر!\n\n` +
+            `عدد الدفعات السابقة هذا الشهر: ${thisMonthPayments.length}\n` +
+            `المبلغ: $${thisMonthPayments.reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString()}\n\n` +
+            `هل أنت متأكد من المتابعة؟`
+          );
+          if (!confirmDuplicate) return;
+        } else if (existingPayments.length > 0) {
+          // Has payments in previous months
+          toast({
+            title: 'ملاحظة',
+            description: `هذا الحساب لديه ${existingPayments.length} دفعة سابقة في أشهر ماضية`,
+          });
+        }
+      }
+    }
+
     // Validation for rejected status - require reason
     if (newStatus === 'rejected' && !rejectionReason.trim()) {
       toast({

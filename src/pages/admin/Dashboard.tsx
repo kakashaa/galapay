@@ -32,6 +32,7 @@ import VideoManagement from '@/components/admin/VideoManagement';
 import BlockedAgencyCodesManagement from '@/components/admin/BlockedAgencyCodesManagement';
 import DuplicateDetection from '@/components/admin/DuplicateDetection';
 import SupportersManagement from '@/components/admin/SupportersManagement';
+import OrganizedPayoutRequests from '@/components/admin/OrganizedPayoutRequests';
 import { exportToExcel } from '@/lib/excel-export';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import {
@@ -866,12 +867,25 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Navigation Items - ordered as: Home, New, My Requests, Scan, Analytics, Video, Supporters, Admins
+  // Organized Requests Tab (Super Admin)
+  const renderOrganizedRequestsTab = () => (
+    <OrganizedPayoutRequests
+      onViewRequest={(id) => setSelectedRequest(id)}
+      onDeleteRequest={handleDeleteRequest}
+      isSuperAdmin={isSuperAdmin}
+    />
+  );
+
+  // Navigation Items - ordered as: Home, Organized, New, My Requests, Scan, Analytics, Video, Supporters, Admins
   const navItems = [
     { id: 'home', icon: Home, label: 'الرئيسية' },
-    { id: 'pending', icon: Clock, label: 'جديدة', badge: pendingRequests.length },
     ...(isSuperAdmin ? [
-      { id: 'my-requests', icon: Wallet, label: 'طلباتي' },
+      { id: 'organized', icon: Wallet, label: 'الطلبات', badge: pendingRequests.length },
+    ] : [
+      { id: 'pending', icon: Clock, label: 'جديدة', badge: pendingRequests.length },
+    ]),
+    ...(isSuperAdmin ? [
+      { id: 'my-requests', icon: Clock, label: 'طلباتي' },
       { id: 'scan', icon: Shield, label: 'الفحص' },
       { id: 'analytics', icon: BarChart3, label: 'التحليلات' },
       { id: 'videos', icon: Video, label: 'الفيديو' },
@@ -928,6 +942,7 @@ const AdminDashboard = () => {
       <main className="px-4 py-5">
         <div key={activeTab} className="animate-fade-in">
           {activeTab === 'home' && renderHomeTab()}
+          {activeTab === 'organized' && isSuperAdmin && renderOrganizedRequestsTab()}
           {activeTab === 'pending' && renderPendingTab()}
           {activeTab === 'my-requests' && renderMyRequestsTab()}
           {activeTab === 'scan' && isSuperAdmin && renderScanTab()}
