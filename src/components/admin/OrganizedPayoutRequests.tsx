@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import { 
   Clock, 
   Eye, 
@@ -7,7 +8,7 @@ import {
   XCircle,
   Trash2,
   Loader2,
-  Calendar,
+  Calendar as CalendarIcon,
   User,
   DollarSign,
   FileText,
@@ -33,6 +34,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface PayoutRequest {
   id: string;
@@ -118,6 +126,8 @@ const OrganizedPayoutRequests = ({
   const [minAmount, setMinAmount] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [maxAmount, setMaxAmount] = useState('');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     fetchRequests();
@@ -171,7 +181,7 @@ const OrganizedPayoutRequests = ({
     return filtered;
   };
 
-  // Apply base filters (search, country, amount) to all requests
+  // Apply base filters (search, country, amount, date) to all requests
   const getBaseFilteredRequests = () => {
     let filtered = requests;
     
@@ -198,6 +208,18 @@ const OrganizedPayoutRequests = ({
     }
     if (maxAmount) {
       filtered = filtered.filter(r => r.amount <= parseFloat(maxAmount));
+    }
+
+    // Filter by date range
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(r => new Date(r.created_at) >= start);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(r => new Date(r.created_at) <= end);
     }
     
     return filtered;
@@ -231,9 +253,11 @@ const OrganizedPayoutRequests = ({
     setMinAmount('');
     setMaxAmount('');
     setSearchQuery('');
+    setStartDate(undefined);
+    setEndDate(undefined);
   };
 
-  const hasActiveFilters = countryFilter !== 'all' || minAmount !== '' || maxAmount !== '' || searchQuery !== '';
+  const hasActiveFilters = countryFilter !== 'all' || minAmount !== '' || maxAmount !== '' || searchQuery !== '' || startDate !== undefined || endDate !== undefined;
 
   // Request Card Component
   const RequestCard = ({ request }: { request: PayoutRequest }) => {
@@ -439,6 +463,59 @@ const OrganizedPayoutRequests = ({
                       dir="ltr"
                     />
                   </div>
+                </div>
+              </div>
+              
+              {/* Date Range Filter */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">نطاق التاريخ</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "h-9 text-xs justify-start text-right font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="ml-2 h-3.5 w-3.5" />
+                        {startDate ? format(startDate, "dd/MM/yyyy") : "من تاريخ"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "h-9 text-xs justify-start text-right font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="ml-2 h-3.5 w-3.5" />
+                        {endDate ? format(endDate, "dd/MM/yyyy") : "إلى تاريخ"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>
