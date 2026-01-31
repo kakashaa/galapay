@@ -102,6 +102,28 @@ const initialFilters: FilterOptions = {
   type: 'all',
 };
 
+// Calculate totals by status
+const calculateStatusTotals = (requests: { trackingCode: string; type: RequestType }[], statuses: RequestStatus[]) => {
+  const totals = {
+    pending: 0,
+    paid: 0,
+    rejected: 0,
+    reserved: 0,
+  };
+
+  requests.forEach((saved) => {
+    const status = statuses.find((r) => r.tracking_code === saved.trackingCode);
+    if (status?.amount) {
+      const unifiedStatus = status.status ? getUnifiedStatus(status.status) : null;
+      if (unifiedStatus && unifiedStatus in totals) {
+        totals[unifiedStatus as keyof typeof totals] += status.amount;
+      }
+    }
+  });
+
+  return totals;
+};
+
 export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) => {
   const navigate = useNavigate();
   const { savedRequests, removeTrackingCode } = useSavedRequests();
@@ -248,6 +270,11 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
     });
   }, [savedRequests, requestStatuses, filters]);
 
+  // Calculate totals for filtered requests
+  const statusTotals = useMemo(() => {
+    return calculateStatusTotals(filteredRequests, requestStatuses);
+  }, [filteredRequests, requestStatuses]);
+
   const handleViewRequest = (trackingCode: string, type: RequestType) => {
     onOpenChange(false);
     if (type === 'ban_report') {
@@ -297,6 +324,48 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
                 countries={availableCountries}
                 onClearFilters={handleClearFilters}
               />
+            )}
+
+            {/* Status Totals Summary */}
+            {savedRequests.length > 0 && !loading && (
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                <div className="glass-card p-2 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Clock className="w-3 h-3 text-warning" />
+                    <span className="text-[10px] text-warning font-medium">قيد الانتظار</span>
+                  </div>
+                  <p className="text-xs font-bold text-foreground" dir="ltr">
+                    ${statusTotals.pending.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="glass-card p-2 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <CheckCircle2 className="w-3 h-3 text-success" />
+                    <span className="text-[10px] text-success font-medium">تم التحويل</span>
+                  </div>
+                  <p className="text-xs font-bold text-foreground" dir="ltr">
+                    ${statusTotals.paid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="glass-card p-2 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <XCircle className="w-3 h-3 text-destructive" />
+                    <span className="text-[10px] text-destructive font-medium">مرفوض</span>
+                  </div>
+                  <p className="text-xs font-bold text-foreground" dir="ltr">
+                    ${statusTotals.rejected.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="glass-card p-2 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Clock className="w-3 h-3 text-orange-500" />
+                    <span className="text-[10px] text-orange-500 font-medium">محجوز</span>
+                  </div>
+                  <p className="text-xs font-bold text-foreground" dir="ltr">
+                    ${statusTotals.reserved.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* Results count */}
