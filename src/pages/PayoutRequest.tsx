@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info, FileText, CalendarX } from 'lucide-react';
+import { ArrowRight, Upload, X, Loader2, Wallet, User, Phone, MapPin, CreditCard, CheckCircle2, Hash, AlertCircle, AlertTriangle, Image, Info, FileText, CalendarX, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -71,6 +71,8 @@ const PayoutRequest = () => {
   const [dailyLimitError, setDailyLimitError] = useState<string | null>(null);
   const [extractingData, setExtractingData] = useState(false);
   const [referenceExtractedByAI, setReferenceExtractedByAI] = useState(false);
+  const [extractionFailed, setExtractionFailed] = useState(false);
+  const [retryCountdown, setRetryCountdown] = useState(0);
   const [policyDialogOpen, setPolicyDialogOpen] = useState(false);
   const [_isNotLastDay, setIsNotLastDay] = useState(false);
   const [_alreadySubmittedThisMonth, setAlreadySubmittedThisMonth] = useState(false);
@@ -174,6 +176,7 @@ const PayoutRequest = () => {
 
   const extractReceiptData = async (file: File) => {
     setExtractingData(true);
+    setExtractionFailed(false);
     
     try {
       // Normalize image across devices (HEIC/HEIF/WEBP/huge images) for consistent extraction.
@@ -212,6 +215,7 @@ const PayoutRequest = () => {
       if (extractError) {
         console.error('Extraction error:', extractError);
         setReferenceExtractedByAI(false);
+        setExtractionFailed(true);
         toast({
           title: '⚠️ خطأ في الاستخراج',
           description: (() => {
@@ -231,6 +235,7 @@ const PayoutRequest = () => {
         // Auto-fill extracted reference number
         setFormData(prev => ({ ...prev, referenceNumber: extractResult.referenceNumber }));
         setReferenceExtractedByAI(true);
+        setExtractionFailed(false);
         // Check if reference is already used
         checkReferenceNumber(extractResult.referenceNumber);
         toast({
@@ -244,6 +249,7 @@ const PayoutRequest = () => {
       } else {
         // No reference found - require new receipt upload
         setReferenceExtractedByAI(false);
+        setExtractionFailed(true);
         const errorNote = extractResult?.notes || 'يرجى رفع إيصال آخر أوضح أو التأكد من جودة الصورة';
         toast({
           title: '⚠️ لم يتم استخراج الرقم المرجعي',
@@ -259,6 +265,7 @@ const PayoutRequest = () => {
     } catch (error) {
       console.error('Error extracting data:', error);
       setReferenceExtractedByAI(false);
+      setExtractionFailed(true);
       toast({
         title: '⚠️ خطأ',
         description: 'فشل في معالجة الصورة، يرجى المحاولة مرة أخرى',
@@ -269,6 +276,27 @@ const PayoutRequest = () => {
     }
   };
 
+  // Retry extraction with countdown delay
+  const handleRetryExtraction = async () => {
+    if (!receiptImage || retryCountdown > 0) return;
+    
+    // Start 3 second countdown
+    setRetryCountdown(3);
+    const countdownInterval = setInterval(() => {
+      setRetryCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Wait 3 seconds then retry
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    await extractReceiptData(receiptImage);
+  };
+
   const removeImage = () => {
     setReceiptImage(null);
     setReceiptPreview(null);
@@ -276,6 +304,8 @@ const PayoutRequest = () => {
     
     setReferenceError(null);
     setReferenceExtractedByAI(false);
+    setExtractionFailed(false);
+    setRetryCountdown(0);
   };
 
   const handleCountryChange = (countryId: string) => {
@@ -1039,13 +1069,33 @@ const PayoutRequest = () => {
                   </div>
                 )}
                 
-                {!referenceExtractedByAI && !extractingData && receiptPreview && (
-                  <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                    <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm text-amber-400 font-medium">لم يتم استخراج الرقم المرجعي</p>
-                      <p className="text-xs text-muted-foreground">يرجى رفع إيصال آخر أوضح أو التأكد من جودة الصورة</p>
+                {!referenceExtractedByAI && !extractingData && receiptPreview && extractionFailed && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-amber-400 font-medium">لم يتم استخراج الرقم المرجعي</p>
+                        <p className="text-xs text-muted-foreground">يرجى رفع إيصال آخر أوضح أو التأكد من جودة الصورة</p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleRetryExtraction}
+                      disabled={retryCountdown > 0}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg text-amber-400 font-medium text-sm transition-colors disabled:opacity-50"
+                    >
+                      {retryCountdown > 0 ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          إعادة المحاولة خلال {retryCountdown} ثواني...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4" />
+                          إعادة المحاولة
+                        </>
+                      )}
+                    </button>
                   </div>
                 )}
                 
