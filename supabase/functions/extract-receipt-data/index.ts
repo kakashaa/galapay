@@ -20,11 +20,17 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('=== Extract Receipt Data - Request received ===');
+
   try {
     const body = await req.json();
     const { imageUrl, imageBase64: providedBase64 } = body;
     
+    console.log('Request type:', providedBase64 ? 'base64' : imageUrl ? 'URL' : 'none');
+    console.log('Base64 length:', providedBase64?.length || 0);
+    
     if (!imageUrl && !providedBase64) {
+      console.log('Error: No image provided');
       return new Response(
         JSON.stringify({ success: false, notes: 'لم يتم توفير صورة الإيصال' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -34,7 +40,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
-      console.log('LOVABLE_API_KEY not configured');
+      console.log('Error: LOVABLE_API_KEY not configured');
       return new Response(
         JSON.stringify({ success: false, notes: 'خدمة الاستخراج غير متاحة' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -46,13 +52,23 @@ serve(async (req) => {
     
     if (providedBase64) {
       imageBase64 = providedBase64;
-      console.log('Using provided base64 image');
+      // Validate base64 format
+      if (!imageBase64.startsWith('data:image/')) {
+        console.log('Warning: base64 does not have proper data URL prefix');
+        // Try to detect and fix format
+        if (imageBase64.startsWith('/9j/')) {
+          imageBase64 = `data:image/jpeg;base64,${imageBase64}`;
+        } else if (imageBase64.startsWith('iVBOR')) {
+          imageBase64 = `data:image/png;base64,${imageBase64}`;
+        }
+      }
+      console.log('Using provided base64 image, prefix:', imageBase64.substring(0, 30));
     } else if (imageUrl) {
       try {
         console.log('Fetching image from:', imageUrl);
         const imageResponse = await fetch(imageUrl);
         if (!imageResponse.ok) {
-          console.error('Failed to fetch image:', imageResponse.status);
+          console.error('Failed to fetch image:', imageResponse.status, imageResponse.statusText);
           return new Response(
             JSON.stringify({ success: false, notes: 'فشل في تحميل صورة الإيصال' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -69,7 +85,7 @@ serve(async (req) => {
         
         const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
         imageBase64 = `data:${contentType};base64,${imageBase64}`;
-        console.log('Image converted to base64 successfully');
+        console.log('Image converted to base64 successfully, type:', contentType);
       } catch (fetchError) {
         console.error('Error fetching image:', fetchError);
         return new Response(
@@ -83,6 +99,8 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log('Proceeding with AI extraction...');
 
     // Improved prompt for better extraction
     const systemPrompt = `أنت خبير في قراءة واستخراج البيانات من إيصالات التحويل المالي في تطبيقات الهواتف.
@@ -265,6 +283,7 @@ serve(async (req) => {
       }
     }
 
+    console.log('=== Final extraction result ===', JSON.stringify(extractionResult));
     return new Response(
       JSON.stringify(extractionResult),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
