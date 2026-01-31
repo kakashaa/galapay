@@ -1,11 +1,18 @@
 type NormalizeOptions = {
   maxDimension?: number; // px
   jpegQuality?: number; // 0..1
+  /**
+   * Guardrail to keep request bodies under typical edge limits.
+   * This is the *data URL string length*, not the original file size.
+   */
+  maxDataUrlChars?: number;
 };
 
 const DEFAULTS: Required<NormalizeOptions> = {
   maxDimension: 1600,
   jpegQuality: 0.85,
+  // ~3.2MB in characters. Safer than pushing 5MB binary -> ~6.7MB base64.
+  maxDataUrlChars: 3_200_000,
 };
 
 export async function fileToDataUrl(file: Blob): Promise<string> {
@@ -74,53 +81,74 @@ async function canvasToJpegFile(
   return new File([blob], `${safeName}.jpg`, { type: "image/jpeg" });
 }
 
-export async function normalizeReceiptImage(
-  file: File,
-  opts: NormalizeOptions = {},
-): Promise<{ normalizedFile: File; dataUrl: string; wasConverted: boolean }>
-{
-  const { maxDimension, jpegQuality } = { ...DEFAULTS, ...opts };
-  const shouldConvert = isLikelyUnsupportedMime(file.type) || file.type.toLowerCase() === "image/heic" || file.type.toLowerCase() === "image/heif";
-
-  // Always downscale/convert when mime is unknown/unsupported.
-  if (shouldConvert) {
-    const bitmap = await decodeToBitmap(file);
-    const { w, h } = computeTargetSize(bitmap.width, bitmap.height, maxDimension);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas not supported");
-    ctx.drawImage(bitmap, 0, 0, w, h);
-    bitmap.close();
-
-    const normalizedFile = await canvasToJpegFile(canvas, jpegQuality, file.name);
-    const dataUrl = await fileToDataUrl(normalizedFile);
-    return { normalizedFile, dataUrl, wasConverted: true };
-  }
-
-  // For supported mimes, still downscale large images for stability.
-  const bitmap = await decodeToBitmap(file);
+async function encodeBitmapToJpeg(
+  bitmap: ImageBitmap,
+  {
+    maxDimension,
+    jpegQuality,
+    nameHint,
+  }: { maxDimension: number; jpegQuality: number; nameHint: string },
+) {
   const { w, h } = computeTargetSize(bitmap.width, bitmap.height, maxDimension);
-  const needsResize = w !== bitmap.width || h !== bitmap.height;
-
-  if (!needsResize) {
-    bitmap.close();
-    const dataUrl = await fileToDataUrl(file);
-    return { normalizedFile: file, dataUrl, wasConverted: false };
-  }
-
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas not supported");
   ctx.drawImage(bitmap, 0, 0, w, h);
-  bitmap.close();
-
-  // If original was PNG/WEBP, converting to JPEG is ok for receipts and improves OCR consistency.
-  const normalizedFile = await canvasToJpegFile(canvas, jpegQuality, file.name);
+  const normalizedFile = await canvasToJpegFile(canvas, jpegQuality, nameHint);
   const dataUrl = await fileToDataUrl(normalizedFile);
-  return { normalizedFile, dataUrl, wasConverted: true };
+  return { normalizedFile, dataUrl };
+}
+
+export async function normalizeReceiptImage(
+  file: File,
+  opts: NormalizeOptions = {},
+): Promise<{ normalizedFile: File; dataUrl: string; wasConverted: boolean }>
+{
+  const { maxDimension, jpegQuality } = { ...DEFAULTS, ...opts };
+  const { maxDataUrlChars } = { ...DEFAULTS, ...opts };
+  const shouldConvert = isLikelyUnsupportedMime(file.type) || file.type.toLowerCase() === "image/heic" || file.type.toLowerCase() === "image/heif";
+
+  // Adaptive presets: if the data URL is too large, try more aggressive settings.
+  const presets: Array<{ maxDimension: number; jpegQuality: number }> = [
+    { maxDimension, jpegQuality },
+    { maxDimension: 1400, jpegQuality: 0.82 },
+    { maxDimension: 1200, jpegQuality: 0.78 },
+    { maxDimension: 1100, jpegQuality: 0.74 },
+    { maxDimension: 1000, jpegQuality: 0.7 },
+    { maxDimension: 900, jpegQuality: 0.66 },
+  ];
+
+  // Always downscale/convert when mime is unknown/unsupported.
+  // Decode once, encode many.
+  const bitmap = await decodeToBitmap(file);
+  try {
+    // If already small + supported mime, we can skip conversion.
+    if (!shouldConvert) {
+      const maybeDataUrl = await fileToDataUrl(file);
+      if (maybeDataUrl.length <= maxDataUrlChars) {
+        return { normalizedFile: file, dataUrl: maybeDataUrl, wasConverted: false };
+      }
+      // else fall through to adaptive JPEG encode.
+    }
+
+    for (let i = 0; i < presets.length; i++) {
+      const p = presets[i];
+      const { normalizedFile, dataUrl } = await encodeBitmapToJpeg(bitmap, {
+        maxDimension: p.maxDimension,
+        jpegQuality: p.jpegQuality,
+        nameHint: file.name,
+      });
+      if (dataUrl.length <= maxDataUrlChars || i === presets.length - 1) {
+        return { normalizedFile, dataUrl, wasConverted: true };
+      }
+    }
+
+    // Should never reach.
+    const dataUrl = await fileToDataUrl(file);
+    return { normalizedFile: file, dataUrl, wasConverted: false };
+  } finally {
+    bitmap.close();
+  }
 }

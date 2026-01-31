@@ -214,7 +214,13 @@ const PayoutRequest = () => {
         setReferenceExtractedByAI(false);
         toast({
           title: '⚠️ خطأ في الاستخراج',
-          description: 'حدث خطأ أثناء معالجة الصورة، يرجى المحاولة مرة أخرى',
+          description: (() => {
+            const status = (extractError as any)?.status;
+            if (status === 413) return 'حجم الصورة كبير جداً بعد المعالجة. حاول رفع لقطة أوضح أو قص الإيصال، وسيتم ضغطه تلقائياً.';
+            if (status === 429) return 'تم تجاوز حد الطلبات مؤقتاً، حاول بعد دقيقة.';
+            if (status === 402) return 'خدمة الذكاء الاصطناعي تحتاج رصيد. حاول لاحقاً أو تواصل مع الإدارة.';
+            return 'حدث خطأ أثناء معالجة الصورة، يرجى المحاولة مرة أخرى';
+          })(),
           variant: 'destructive',
         });
         setExtractingData(false);
