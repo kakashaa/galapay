@@ -16,6 +16,7 @@ import {
   Wallet,
   CheckCircle,
   XCircle,
+  Send,
 } from 'lucide-react';
 import FloatingDock from '@/components/admin/FloatingDock';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +31,7 @@ import BlockedAgencyCodesManagement from '@/components/admin/BlockedAgencyCodesM
 import DuplicateDetection from '@/components/admin/DuplicateDetection';
 import SupportersManagement from '@/components/admin/SupportersManagement';
 import OrganizedPayoutRequests from '@/components/admin/OrganizedPayoutRequests';
+import ExportPrintDialog from '@/components/admin/ExportPrintDialog';
 import { exportToExcel } from '@/lib/excel-export';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
 import {
@@ -112,6 +114,7 @@ const AdminDashboard = () => {
   const { payoutEnabled, updateSettings } = usePayoutSettings();
   const [updatingPayoutStatus, setUpdatingPayoutStatus] = useState(false);
   const [resendingTelegram, setResendingTelegram] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const isSuperAdmin = userRole === 'super_admin';
 
@@ -949,6 +952,38 @@ const AdminDashboard = () => {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         isSuperAdmin={isSuperAdmin}
+      />
+
+      {/* Floating Export Button - Only for Super Admin */}
+      {isSuperAdmin && (
+        <button
+          onClick={() => setShowExportDialog(true)}
+          className="fixed bottom-24 left-4 z-30 w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 hover:-translate-y-1 group"
+          style={{
+            background: 'linear-gradient(135deg, hsl(142 76% 50%), hsl(150 70% 45%))',
+            boxShadow: `
+              0 4px 20px hsla(142, 76%, 50%, 0.4),
+              0 0 30px hsla(142, 76%, 50%, 0.2),
+              inset 0 1px 0 hsla(255, 255%, 255%, 0.3)
+            `,
+          }}
+        >
+          <Send className="w-6 h-6 text-primary-foreground group-hover:rotate-12 transition-transform" />
+          <div 
+            className="absolute inset-0 rounded-2xl animate-pulse pointer-events-none"
+            style={{
+              background: 'radial-gradient(circle at center, hsla(142, 76%, 50%, 0.3) 0%, transparent 70%)',
+            }}
+          />
+        </button>
+      )}
+
+      {/* Export Print Dialog */}
+      <ExportPrintDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        countries={countries}
+        adminProfiles={adminProfiles}
       />
 
       {/* Request Details Modal */}
