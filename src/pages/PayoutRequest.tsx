@@ -558,6 +558,16 @@ const PayoutRequest = () => {
       return;
     }
 
+    // Block submission if reference is flagged in database (used in coins payout)
+    if (isReferenceFlaggedInDB || referenceBlockedError) {
+      toast({
+        title: '🚫 الرقم المرجعي محظور',
+        description: referenceBlockedError || 'هذا الرقم المرجعي تم استخدامه سابقاً. يمكنك استلام كوينزات فقط.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Check if today is the last day of the month
     if (!isLastDayOfMonth() && !isPreviewMode) {
       toast({
@@ -594,6 +604,23 @@ const PayoutRequest = () => {
 
     // Check if reference number was used this month by anyone (for flagging as coins-only)
     const duplicateCheck = await checkReferenceThisMonth(formData.referenceNumber);
+    
+    // CRITICAL: Double-check flagged_references before submission (security layer)
+    const { data: flaggedRef } = await supabase
+      .from('flagged_references')
+      .select('id, original_account_id, reason')
+      .eq('reference_number', formData.referenceNumber.trim())
+      .maybeSingle();
+
+    if (flaggedRef) {
+      // Reference is flagged (used in coins payout or blocked) - completely block
+      toast({
+        title: '🚫 الرقم المرجعي محظور',
+        description: `هذا الإيصال/الرقم المرجعي تم استخدامه من قبل (الأيدي: ${flaggedRef.original_account_id}). لا يمكن استخدامه مرة أخرى.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     
     // Double-check reference number before submission - block if used in previous months
     const { data: existingRef } = await supabase
