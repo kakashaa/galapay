@@ -499,7 +499,9 @@ export type Database = {
           currency: string
           deleted_at: string | null
           deleted_by: string | null
+          duplicate_flag_reason: string | null
           id: string
+          is_duplicate_flagged: boolean | null
           method_fields: Json | null
           payout_method: string
           phone_number: string
@@ -531,7 +533,9 @@ export type Database = {
           currency?: string
           deleted_at?: string | null
           deleted_by?: string | null
+          duplicate_flag_reason?: string | null
           id?: string
+          is_duplicate_flagged?: boolean | null
           method_fields?: Json | null
           payout_method: string
           phone_number: string
@@ -563,7 +567,9 @@ export type Database = {
           currency?: string
           deleted_at?: string | null
           deleted_by?: string | null
+          duplicate_flag_reason?: string | null
           id?: string
+          is_duplicate_flagged?: boolean | null
           method_fields?: Json | null
           payout_method?: string
           phone_number?: string

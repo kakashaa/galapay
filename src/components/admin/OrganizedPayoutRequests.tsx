@@ -16,6 +16,8 @@ import {
   Filter,
   X,
   ChevronDown,
+  AlertTriangle,
+  Coins,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -60,6 +62,8 @@ interface PayoutRequest {
   processed_at: string | null;
   rejection_reason: string | null;
   reservation_reason: string | null;
+  is_duplicate_flagged: boolean | null;
+  duplicate_flag_reason: string | null;
 }
 
 interface OrganizedPayoutRequestsProps {
@@ -275,6 +279,22 @@ const OrganizedPayoutRequests = ({
         }}
       >
         <div className="p-4 space-y-3">
+          {/* Duplicate Flag Warning */}
+          {request.is_duplicate_flagged && (
+            <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-start gap-2">
+              <Coins className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-amber-500 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  كوينز فقط - ليس راتب!
+                </p>
+                {request.duplicate_flag_reason && (
+                  <p className="text-[10px] text-amber-400/80 mt-0.5 leading-relaxed">{request.duplicate_flag_reason}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -282,6 +302,11 @@ const OrganizedPayoutRequests = ({
               <span className={`text-xs px-2 py-1 rounded-lg ${config.bgColor} ${config.color} border ${config.borderColor}`}>
                 {config.label}
               </span>
+              {request.is_duplicate_flagged && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                  🪙 كوينز
+                </span>
+              )}
             </div>
             <span className="text-[10px] text-muted-foreground">
               {new Date(request.created_at).toLocaleDateString('ar-EG')}
