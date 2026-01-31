@@ -233,9 +233,18 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
         return false;
       }
 
-      // Status filter
-      if (filters.status !== 'all' && status?.status !== filters.status) {
-        return false;
+      // Status filter - group pending-like statuses together
+      if (filters.status !== 'all') {
+        const pendingStatuses = ['pending', 'review', 'processing'];
+        const paidStatuses = ['paid', 'completed', 'approved'];
+        
+        if (filters.status === 'pending' && !pendingStatuses.includes(status?.status || '')) {
+          return false;
+        } else if (filters.status === 'paid' && !paidStatuses.includes(status?.status || '')) {
+          return false;
+        } else if (filters.status !== 'pending' && filters.status !== 'paid' && status?.status !== filters.status) {
+          return false;
+        }
       }
 
       // Amount range filter
