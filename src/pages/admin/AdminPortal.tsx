@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Zap, ShieldBan, Crown, LogOut, Loader2 } from 'lucide-react';
+import { Wallet, Zap, ShieldBan, Crown, LogOut, Loader2, Coins } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import StarField from '@/components/StarField';
@@ -84,6 +84,15 @@ const AdminPortal = () => {
       gradient: 'from-warning to-warning/80',
       glowColor: 'hsla(38, 92%, 55%, 0.4)',
       badge: '⚡ فوري',
+    },
+    {
+      title: 'طلبات الكوينزات',
+      subtitle: 'إدارة تحويل الرواتب للكوينزات',
+      icon: Coins,
+      path: '/admin/coins',
+      gradient: 'from-amber-500 to-yellow-600',
+      glowColor: 'hsla(45, 93%, 47%, 0.4)',
+      badge: '🪙 كوينز',
     },
     {
       title: 'إدارة البلاغات',
