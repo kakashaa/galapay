@@ -10,6 +10,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Download,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -17,6 +18,7 @@ import { motion } from 'framer-motion';
 import StarField from '@/components/StarField';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { exportCoinsToExcel } from '@/lib/excel-export';
 import {
   Dialog,
   DialogContent,
@@ -221,6 +223,22 @@ const CoinsDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <motion.button
+              onClick={() => {
+                const fileName = `coins-requests-${new Date().toISOString().split('T')[0]}`;
+                exportCoinsToExcel(requests, fileName);
+                toast({
+                  title: 'تم التصدير',
+                  description: `تم تصدير ${requests.length} طلب`,
+                });
+              }}
+              className="p-2.5 neon-card hover:border-amber-500/50 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              title="تصدير Excel"
+            >
+              <Download className="w-5 h-5 text-amber-500" />
+            </motion.button>
             <motion.button
               onClick={() => navigate('/admin')}
               className="p-2.5 neon-card hover:border-primary/50 transition-colors"
