@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.openclaw-webhook]
 verify_jwt = false
+
+[functions.openclaw-admin-commands]
+verify_jwt = false
