@@ -198,6 +198,13 @@ const EditReservedRequest = () => {
         return;
       }
 
+      // Fetch full request data for notification
+      const { data: fullRequestData } = await supabase
+        .from('payout_requests')
+        .select('zalal_life_username, phone_number')
+        .eq('id', request.id)
+        .single();
+
       // Update the request
       const { error: updateError } = await supabase
         .from('payout_requests')
@@ -213,6 +220,33 @@ const EditReservedRequest = () => {
         .eq('status', 'reserved'); // Extra safety check
 
       if (updateError) throw updateError;
+
+      // Send Telegram notification
+      try {
+        const walletNumber = methodFields['walletNumber'] || 
+                            methodFields['wallet_number'] || 
+                            methodFields['رقم_المحفظة'] ||
+                            Object.values(methodFields).find(v => v) || '';
+
+        await supabase.functions.invoke('send-reserved-edit-notification', {
+          body: {
+            trackingCode: request.tracking_code,
+            zalalLifeAccountId: request.zalal_life_account_id,
+            zalalLifeUsername: fullRequestData?.zalal_life_username,
+            recipientName: request.recipient_full_name,
+            amount: request.amount,
+            country: request.country,
+            newPayoutMethod: selectedMethod,
+            previousPayoutMethod: methodChanged ? request.payout_method : undefined,
+            newWalletNumber: walletNumber,
+            phoneNumber: fullRequestData?.phone_number || '',
+            newReceiptImageUrl: receiptChanged ? newReceiptUrl : undefined,
+          },
+        });
+      } catch (notificationError) {
+        console.error('Failed to send notification:', notificationError);
+        // Don't fail the whole operation if notification fails
+      }
 
       toast({
         title: '✅ تم تعديل الطلب بنجاح',
