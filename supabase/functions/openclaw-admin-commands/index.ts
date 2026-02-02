@@ -77,7 +77,60 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    const body: AdminCommand = await req.json()
+    // Check if request has a body
+    const contentType = req.headers.get('content-type')
+    const contentLength = req.headers.get('content-length')
+    
+    // Handle empty body or wrong content type
+    if (!contentType?.includes('application/json')) {
+      console.error('Invalid content-type:', contentType)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'يجب إرسال البيانات بصيغة JSON. تأكد من إضافة header: Content-Type: application/json' 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Try to get request text first
+    const rawBody = await req.text()
+    
+    if (!rawBody || rawBody.trim() === '') {
+      console.error('Empty request body')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'الطلب فارغ. يجب إرسال بيانات JSON مع الأمر المطلوب',
+          expected_format: {
+            action_type: 'admin_command',
+            command: 'approve|reject|reserve|review|note|pending',
+            tracking_code: 'PAY-XXXXXXXX',
+            admin_id: 'telegram_user_id',
+            parameters: { rejection_reason: '...', admin_notes: '...' }
+          }
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Try to parse JSON
+    let body: AdminCommand
+    try {
+      body = JSON.parse(rawBody)
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError, 'Raw body:', rawBody.substring(0, 200))
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'بيانات JSON غير صحيحة. تأكد من صحة التنسيق',
+          received_preview: rawBody.substring(0, 100)
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    console.log('Received admin command:', JSON.stringify(body))
     
     // Validate action type
     if (body.action_type !== 'admin_command') {
