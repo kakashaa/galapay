@@ -583,6 +583,8 @@ export type Database = {
           method_fields: Json | null
           payout_method: string
           phone_number: string
+          previous_payout_method: string | null
+          previous_receipt_image_url: string | null
           processed_at: string | null
           processed_by: string | null
           recipient_full_name: string
@@ -592,6 +594,7 @@ export type Database = {
           status: Database["public"]["Enums"]["request_status"]
           tracking_code: string
           updated_at: string
+          user_edited_at: string | null
           user_receipt_image_url: string
           zalal_life_account_id: string
           zalal_life_username: string | null
@@ -617,6 +620,8 @@ export type Database = {
           method_fields?: Json | null
           payout_method: string
           phone_number: string
+          previous_payout_method?: string | null
+          previous_receipt_image_url?: string | null
           processed_at?: string | null
           processed_by?: string | null
           recipient_full_name: string
@@ -626,6 +631,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["request_status"]
           tracking_code: string
           updated_at?: string
+          user_edited_at?: string | null
           user_receipt_image_url: string
           zalal_life_account_id: string
           zalal_life_username?: string | null
@@ -651,6 +657,8 @@ export type Database = {
           method_fields?: Json | null
           payout_method?: string
           phone_number?: string
+          previous_payout_method?: string | null
+          previous_receipt_image_url?: string | null
           processed_at?: string | null
           processed_by?: string | null
           recipient_full_name?: string
@@ -660,6 +668,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["request_status"]
           tracking_code?: string
           updated_at?: string
+          user_edited_at?: string | null
           user_receipt_image_url?: string
           zalal_life_account_id?: string
           zalal_life_username?: string | null
@@ -853,6 +862,10 @@ export type Database = {
       is_admin_or_staff: { Args: { _user_id: string }; Returns: boolean }
       is_reference_used: { Args: { ref_number: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      user_can_edit_reserved_request: {
+        Args: { request_tracking_code: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "staff" | "user" | "super_admin"

@@ -65,6 +65,7 @@ interface PayoutRequest {
   reservation_reason: string | null;
   is_duplicate_flagged: boolean | null;
   duplicate_flag_reason: string | null;
+  user_edited_at: string | null;
 }
 
 interface OrganizedPayoutRequestsProps {
@@ -373,6 +374,18 @@ const OrganizedPayoutRequests = ({
             {request.status === 'reserved' && request.reservation_reason && (
               <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
                 <p className="text-xs text-orange-400">{request.reservation_reason}</p>
+              </div>
+            )}
+
+            {/* User Edited Indicator for Reserved Requests */}
+            {request.status === 'reserved' && request.user_edited_at && (
+              <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
+                <p className="text-xs text-green-500">
+                  ✏️ تم التعديل من المستخدم ({new Date(request.user_edited_at).toLocaleDateString('ar-EG')})
+                </p>
               </div>
             )}
 
