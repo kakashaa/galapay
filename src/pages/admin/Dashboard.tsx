@@ -112,8 +112,10 @@ const AdminDashboard = () => {
     adminFilter: 'all',
     minAmount: '',
     maxAmount: '',
+    payoutMethod: 'all',
   });
   const [bulkSearchIds, setBulkSearchIds] = useState<string[]>([]);
+  const [availableMethods, setAvailableMethods] = useState<string[]>([]);
   const { payoutEnabled, updateSettings } = usePayoutSettings();
   const [updatingPayoutStatus, setUpdatingPayoutStatus] = useState(false);
   const [resendingTelegram, setResendingTelegram] = useState(false);
@@ -189,6 +191,36 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchMethodsForCountry = async (countryName: string) => {
+    if (countryName === 'all') {
+      setAvailableMethods([]);
+      return;
+    }
+    
+    const { data } = await supabase
+      .from('countries_methods')
+      .select('methods')
+      .eq('country_name_arabic', countryName)
+      .eq('is_active', true)
+      .single();
+    
+    if (data?.methods) {
+      const methods = (data.methods as any[]).map(m => m.name || m.nameArabic).filter(Boolean);
+      setAvailableMethods(methods);
+    } else {
+      setAvailableMethods([]);
+    }
+  };
+
+  // Fetch methods when country changes
+  useEffect(() => {
+    fetchMethodsForCountry(filters.country);
+    // Reset payout method filter when country changes
+    if (filters.payoutMethod !== 'all') {
+      setFilters(prev => ({ ...prev, payoutMethod: 'all' }));
+    }
+  }, [filters.country]);
+
   const fetchData = async () => {
     try {
       const { data: pending } = await supabase
@@ -250,6 +282,9 @@ const AdminDashboard = () => {
         }
         if (filters.maxAmount && !isNaN(Number(filters.maxAmount))) {
           query = query.lte('amount', Number(filters.maxAmount));
+        }
+        if (filters.payoutMethod && filters.payoutMethod !== 'all') {
+          query = query.eq('payout_method', filters.payoutMethod);
         }
 
         const { data } = await query;
@@ -776,6 +811,30 @@ const AdminDashboard = () => {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Payout Method Filter - Shows when country is selected */}
+        {filters.country !== 'all' && availableMethods.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-xs text-muted-foreground flex items-center gap-2">
+              <Wallet className="w-3 h-3" />
+              طريقة الدفع / المحفظة
+            </span>
+            <Select
+              value={filters.payoutMethod}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, payoutMethod: value }))}
+            >
+              <SelectTrigger className="bg-background text-sm">
+                <SelectValue placeholder="اختر المحفظة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل المحافظ</SelectItem>
+                {availableMethods.map(method => (
+                  <SelectItem key={method} value={method}>{method}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Amount Range Filter */}
         <div className="space-y-2">
