@@ -26,6 +26,8 @@ interface PayoutRequest {
   // Coins specific
   coins_amount?: number;
   gala_account_id?: string;
+  // Edit tracking
+  user_edited_at?: string | null;
 }
 
 const monthlyStatusConfig = {
@@ -160,7 +162,7 @@ const Track = () => {
       // Search in monthly payout requests
       const { data: monthlyData, error: monthlyError } = await supabase
         .from('payout_requests')
-        .select('id, tracking_code, status, country, payout_method, amount, currency, rejection_reason, reservation_reason, admin_final_receipt_image_url, created_at')
+        .select('id, tracking_code, status, country, payout_method, amount, currency, rejection_reason, reservation_reason, admin_final_receipt_image_url, created_at, user_edited_at')
         .eq('tracking_code', code)
         .maybeSingle();
 
@@ -415,6 +417,36 @@ const Track = () => {
                     <p className="text-orange-500 text-sm">
                       <strong>الراتب محجوز بسبب:</strong> {request.reservation_reason}
                     </p>
+                  </motion.div>
+                )}
+
+                {/* Edit Button for Reserved Monthly Requests */}
+                {request.status === 'reserved' && request.requestType === 'monthly' && (
+                  <motion.div
+                    className="mt-4"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    {request.user_edited_at ? (
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-center">
+                        <p className="text-green-500 text-sm">
+                          ✅ تم تعديل الطلب في {new Date(request.user_edited_at).toLocaleDateString('ar-EG')}
+                        </p>
+                        <p className="text-muted-foreground text-xs mt-1">بانتظار مراجعة الإدارة</p>
+                      </div>
+                    ) : (
+                      <motion.button
+                        onClick={() => navigate('/edit-reserved', { state: { trackingCode: request.tracking_code } })}
+                        className="w-full py-3 px-4 bg-gradient-to-r from-orange-600 to-orange-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:from-orange-700 hover:to-orange-600 transition-all"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                        </svg>
+                        تعديل الطلب
+                      </motion.button>
+                    )}
                   </motion.div>
                 )}
 
