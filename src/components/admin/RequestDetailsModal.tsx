@@ -217,9 +217,11 @@ const RequestDetailsModal = ({
         updateData.rejection_reason = rejectionReason;
         updateData.admin_final_receipt_image_url = null; // Clear receipt for rejected
         updateData.reservation_reason = null; // Clear any previous reservation reason
+        updateData.user_edited_at = null; // Reset so user can see rejection status
       } else if (newStatus === 'reserved') {
         updateData.reservation_reason = reservationReason;
         updateData.rejection_reason = null; // Clear any previous rejection reason
+        updateData.user_edited_at = null; // Reset so user can edit again
       } else if (newStatus === 'review') {
         // For review status, keep existing values but clear rejection/reservation reasons
         updateData.rejection_reason = null;
