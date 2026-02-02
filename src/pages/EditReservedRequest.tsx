@@ -33,6 +33,7 @@ interface RequestData {
   amount: number;
   recipient_full_name: string;
   zalal_life_account_id: string;
+  method_fields: Record<string, string> | null;
 }
 
 const EditReservedRequest = () => {
@@ -45,6 +46,7 @@ const EditReservedRequest = () => {
   const [request, setRequest] = useState<RequestData | null>(null);
   const [methods, setMethods] = useState<PayoutMethod[]>([]);
   const [selectedMethod, setSelectedMethod] = useState<string>('');
+  const [methodFields, setMethodFields] = useState<Record<string, string>>({});
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
@@ -62,7 +64,7 @@ const EditReservedRequest = () => {
     // Fetch request details
     const { data: requestData, error: requestError } = await supabase
       .from('payout_requests')
-      .select('id, tracking_code, country, payout_method, user_receipt_image_url, reservation_reason, amount, recipient_full_name, zalal_life_account_id, status')
+      .select('id, tracking_code, country, payout_method, user_receipt_image_url, reservation_reason, amount, recipient_full_name, zalal_life_account_id, status, method_fields')
       .eq('tracking_code', trackingCode)
       .maybeSingle();
 
@@ -90,6 +92,7 @@ const EditReservedRequest = () => {
     setRequest(requestData as RequestData);
     setSelectedMethod(requestData.payout_method);
     setReceiptPreview(requestData.user_receipt_image_url);
+    setMethodFields((requestData.method_fields as Record<string, string>) || {});
 
     // Fetch available methods for the country
     const { data: countryData } = await supabase
@@ -129,6 +132,10 @@ const EditReservedRequest = () => {
     }
   };
 
+  // Get current method's required fields
+  const currentMethodConfig = methods.find(m => (m.name || m.nameArabic) === selectedMethod);
+  const requiredFields = currentMethodConfig?.requiredFields || currentMethodConfig?.fields || [];
+
   const handleSubmit = async () => {
     if (!request) return;
 
@@ -140,6 +147,18 @@ const EditReservedRequest = () => {
         variant: 'destructive',
       });
       return;
+    }
+
+    // Validate required fields
+    for (const field of requiredFields) {
+      if (!methodFields[field.name]?.trim()) {
+        toast({
+          title: 'خطأ',
+          description: `يرجى إدخال ${field.labelArabic || field.label}`,
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     setSaving(true);
@@ -168,8 +187,9 @@ const EditReservedRequest = () => {
       // Check if anything actually changed
       const methodChanged = selectedMethod !== request.payout_method;
       const receiptChanged = receiptImage !== null;
+      const fieldsChanged = JSON.stringify(methodFields) !== JSON.stringify(request.method_fields || {});
 
-      if (!methodChanged && !receiptChanged) {
+      if (!methodChanged && !receiptChanged && !fieldsChanged) {
         toast({
           title: 'لا يوجد تغييرات',
           description: 'لم تقم بإجراء أي تعديلات على الطلب',
@@ -183,6 +203,7 @@ const EditReservedRequest = () => {
         .from('payout_requests')
         .update({
           payout_method: selectedMethod,
+          method_fields: methodFields,
           user_receipt_image_url: newReceiptUrl,
           user_edited_at: new Date().toISOString(),
           previous_payout_method: methodChanged ? request.payout_method : null,
@@ -285,7 +306,7 @@ const EditReservedRequest = () => {
               <Wallet className="w-5 h-5" />
               تعديل البيانات
             </CardTitle>
-            <CardDescription>يمكنك تعديل طريقة الصرف وصورة الإيصال فقط</CardDescription>
+            <CardDescription>يمكنك تعديل طريقة الصرف ورقم المحفظة وصورة الإيصال</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Payout Method */}
@@ -316,6 +337,27 @@ const EditReservedRequest = () => {
                 </p>
               )}
             </div>
+
+            {/* Method Fields (Wallet/Account Number) */}
+            {requiredFields.length > 0 && (
+              <div className="space-y-3">
+                {requiredFields.map((field) => (
+                  <div key={field.name} className="space-y-2">
+                    <label className="text-sm font-medium text-orange-300">
+                      {field.labelArabic || field.label} <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type={field.type || 'text'}
+                      value={methodFields[field.name] || ''}
+                      onChange={(e) => setMethodFields(prev => ({ ...prev, [field.name]: e.target.value }))}
+                      placeholder={field.placeholder || field.labelArabic || field.label}
+                      className="w-full px-3 py-2 bg-background/50 border border-orange-500/30 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                      dir="ltr"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Receipt Image */}
             <div className="space-y-2">
