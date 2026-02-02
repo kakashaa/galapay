@@ -140,17 +140,7 @@ const OrganizedPayoutRequests = ({
     fetchRequests();
   }, []);
 
-  // Close filter on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (isFilterOpen) {
-        setIsFilterOpen(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, true);
-    return () => window.removeEventListener('scroll', handleScroll, true);
-  }, [isFilterOpen]);
+  // Filter panel is now manually controlled - no auto-close on scroll
 
   // Fetch available payout methods when country changes
   useEffect(() => {
