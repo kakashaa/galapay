@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.send-coins-status-notification]
 verify_jwt = false
+
+[functions.openclaw-webhook]
+verify_jwt = false
