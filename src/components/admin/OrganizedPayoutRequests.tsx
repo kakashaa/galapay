@@ -18,6 +18,7 @@ import {
   ChevronDown,
   AlertTriangle,
   Coins,
+  Wallet,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -127,6 +128,8 @@ const OrganizedPayoutRequests = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
   const [countryFilter, setCountryFilter] = useState('all');
+  const [payoutMethodFilter, setPayoutMethodFilter] = useState('all');
+  const [availableMethods, setAvailableMethods] = useState<string[]>([]);
   const [minAmount, setMinAmount] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [maxAmount, setMaxAmount] = useState('');
@@ -148,6 +151,25 @@ const OrganizedPayoutRequests = ({
     window.addEventListener('scroll', handleScroll, true);
     return () => window.removeEventListener('scroll', handleScroll, true);
   }, [isFilterOpen]);
+
+  // Fetch available payout methods when country changes
+  useEffect(() => {
+    if (countryFilter === 'all') {
+      setAvailableMethods([]);
+      setPayoutMethodFilter('all');
+      return;
+    }
+    
+    // Get unique payout methods from requests for the selected country
+    const methodsForCountry = requests
+      .filter(r => r.country === countryFilter)
+      .map(r => r.payout_method)
+      .filter(Boolean);
+    
+    const uniqueMethods = [...new Set(methodsForCountry)].sort();
+    setAvailableMethods(uniqueMethods);
+    setPayoutMethodFilter('all'); // Reset payout method filter when country changes
+  }, [countryFilter, requests]);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -186,7 +208,7 @@ const OrganizedPayoutRequests = ({
     return filtered;
   };
 
-  // Apply base filters (search, country, amount, date) to all requests
+  // Apply base filters (search, country, amount, date, payout method) to all requests
   const getBaseFilteredRequests = () => {
     let filtered = requests;
     
@@ -205,6 +227,11 @@ const OrganizedPayoutRequests = ({
     // Filter by country
     if (countryFilter !== 'all') {
       filtered = filtered.filter(r => r.country === countryFilter);
+    }
+
+    // Filter by payout method
+    if (payoutMethodFilter !== 'all') {
+      filtered = filtered.filter(r => r.payout_method === payoutMethodFilter);
     }
 
     // Filter by amount range
@@ -255,6 +282,7 @@ const OrganizedPayoutRequests = ({
 
   const clearFilters = () => {
     setCountryFilter('all');
+    setPayoutMethodFilter('all');
     setMinAmount('');
     setMaxAmount('');
     setSearchQuery('');
@@ -262,7 +290,7 @@ const OrganizedPayoutRequests = ({
     setEndDate(undefined);
   };
 
-  const hasActiveFilters = countryFilter !== 'all' || minAmount !== '' || maxAmount !== '' || searchQuery !== '' || startDate !== undefined || endDate !== undefined;
+  const hasActiveFilters = countryFilter !== 'all' || payoutMethodFilter !== 'all' || minAmount !== '' || maxAmount !== '' || searchQuery !== '' || startDate !== undefined || endDate !== undefined;
 
   // Request Card Component
   const RequestCard = ({ request }: { request: PayoutRequest }) => {
@@ -491,6 +519,27 @@ const OrganizedPayoutRequests = ({
                   </div>
                 </div>
               </div>
+
+              {/* Payout Method Filter - Shows when country is selected */}
+              {countryFilter !== 'all' && (
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Wallet className="w-3 h-3" />
+                    المحفظة / طريقة الدفع
+                  </label>
+                  <Select value={payoutMethodFilter} onValueChange={setPayoutMethodFilter}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder={availableMethods.length > 0 ? "اختر المحفظة" : "جاري التحميل..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">كل المحافظ ({availableMethods.length})</SelectItem>
+                      {availableMethods.map((method) => (
+                        <SelectItem key={method} value={method} className="text-xs">{method}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               
               {/* Date Range Filter */}
               <div className="space-y-1.5">
