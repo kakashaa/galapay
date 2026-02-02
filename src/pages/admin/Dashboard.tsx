@@ -197,16 +197,16 @@ const AdminDashboard = () => {
       return;
     }
     
+    // Get unique payout methods directly from actual requests for this country
     const { data } = await supabase
-      .from('countries_methods')
-      .select('methods')
-      .eq('country_name_arabic', countryName)
-      .eq('is_active', true)
-      .single();
+      .from('payout_requests')
+      .select('payout_method')
+      .eq('country', countryName)
+      .is('deleted_at', null);
     
-    if (data?.methods) {
-      const methods = (data.methods as any[]).map(m => m.name || m.nameArabic).filter(Boolean);
-      setAvailableMethods(methods);
+    if (data && data.length > 0) {
+      const uniqueMethods = [...new Set(data.map(r => r.payout_method))].filter(Boolean).sort();
+      setAvailableMethods(uniqueMethods);
     } else {
       setAvailableMethods([]);
     }
