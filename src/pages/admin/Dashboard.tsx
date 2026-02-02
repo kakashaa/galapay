@@ -813,7 +813,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Payout Method Filter - Shows when country is selected */}
-        {filters.country !== 'all' && availableMethods.length > 0 && (
+        {filters.country !== 'all' && (
           <div className="space-y-2">
             <span className="text-xs text-muted-foreground flex items-center gap-2">
               <Wallet className="w-3 h-3" />
@@ -824,10 +824,10 @@ const AdminDashboard = () => {
               onValueChange={(value) => setFilters(prev => ({ ...prev, payoutMethod: value }))}
             >
               <SelectTrigger className="bg-background text-sm">
-                <SelectValue placeholder="اختر المحفظة" />
+                <SelectValue placeholder={availableMethods.length > 0 ? "اختر المحفظة" : "جاري التحميل..."} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">كل المحافظ</SelectItem>
+                <SelectItem value="all">كل المحافظ ({availableMethods.length})</SelectItem>
                 {availableMethods.map(method => (
                   <SelectItem key={method} value={method}>{method}</SelectItem>
                 ))}
