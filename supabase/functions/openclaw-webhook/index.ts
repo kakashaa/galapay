@@ -122,10 +122,56 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const payload: WebhookPayload = await req.json();
+    // Check content type
+    const contentType = req.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      console.error('Invalid content-type:', contentType);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'يجب إرسال البيانات بصيغة JSON. تأكد من إضافة header: Content-Type: application/json' 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get raw body first
+    const rawBody = await req.text();
+    
+    if (!rawBody || rawBody.trim() === '') {
+      console.error('Empty request body');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'الطلب فارغ. يجب إرسال بيانات JSON',
+          expected_format: {
+            service_type: 'payout|instant|ban_report|special_id|coins',
+            data: { /* request fields */ }
+          }
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse JSON
+    let payload: WebhookPayload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError, 'Raw body:', rawBody.substring(0, 200));
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'بيانات JSON غير صحيحة. تأكد من صحة التنسيق',
+          received_preview: rawBody.substring(0, 100)
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { service_type, data, conversation_id } = payload;
 
-    console.log(`Received ${service_type} request from OpenClaw bot`, { conversation_id });
+    console.log(`Received ${service_type} request from OpenClaw bot`, { conversation_id, rawBodyLength: rawBody.length });
 
     let result: { success: boolean; tracking_code?: string; error?: string };
 
