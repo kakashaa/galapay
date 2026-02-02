@@ -25,6 +25,45 @@ interface InstantPayoutNotificationRequest {
   hostRecipientFullName: string;
 }
 
+// Fast photo upload with timeout
+async function uploadPhoto(
+  botToken: string,
+  chatId: string,
+  imageUrl: string,
+  caption: string
+): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const imageResponse = await fetch(imageUrl, { signal: controller.signal });
+    if (!imageResponse.ok) {
+      clearTimeout(timeout);
+      return false;
+    }
+
+    const imageBlob = await imageResponse.blob();
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    formData.append('photo', imageBlob, 'receipt.jpg');
+    formData.append('caption', caption);
+
+    const uploadResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+    
+    const result = await uploadResponse.json();
+    clearTimeout(timeout);
+    return result.ok;
+  } catch (e) {
+    clearTimeout(timeout);
+    console.error('Photo upload error:', e);
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -37,7 +76,6 @@ serve(async (req) => {
     const TELEGRAM_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID');
     
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-      console.log('Telegram credentials not configured');
       return new Response(
         JSON.stringify({ success: false, error: 'Telegram not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -46,103 +84,86 @@ serve(async (req) => {
 
     const message = `⚡ *طلب سحب فوري جديد*
 
-📋 *كود التتبع:* \`${data.trackingCode}\`
+🔗 *الكود:* \`${data.trackingCode}\`
 
-👤 *معلومات الداعم:*
-• الاسم: ${data.supporterName}
-• الايدي: \`${data.supporterAccountId}\`
-• المبلغ: $${data.supporterAmountUsd}
-• طريقة الدفع: ${data.supporterPaymentMethod}
+┌─────────────────────────
+│ 👤 *الداعم*
+├─────────────────────────
+│ 📛 ${data.supporterName}
+│ 🆔 \`${data.supporterAccountId}\`
+│ 💵 $${data.supporterAmountUsd}
+│ 💳 ${data.supporterPaymentMethod}
+└─────────────────────────
 
-🎤 *معلومات المضيف:*
-• الاسم: ${data.hostName}
-• الايدي: \`${data.hostAccountId}\`
-• الكوينز: ${data.hostCoinsAmount.toLocaleString()}
-• المبلغ للتحويل: $${data.hostPayoutAmount}
-• الرقم المرجعي: \`${data.hostReferenceNumber}\`
+┌─────────────────────────
+│ 🎤 *المضيف*
+├─────────────────────────
+│ 📛 ${data.hostName}
+│ 🆔 \`${data.hostAccountId}\`
+│ 🪙 ${data.hostCoinsAmount.toLocaleString()} كوينز
+│ 💰 *$${data.hostPayoutAmount}*
+│ 🔑 \`${data.hostReferenceNumber}\`
+└─────────────────────────
 
-💸 *تفاصيل التحويل:*
-• البلد: ${data.hostCountry}
-• الهاتف: ${data.hostPhoneNumber}
-• الطريقة: ${data.hostPayoutMethod}
-• اسم المستلم: ${data.hostRecipientFullName}`;
+┌─────────────────────────
+│ 💸 *التحويل*
+├─────────────────────────
+│ 🌍 ${data.hostCountry}
+│ 📱 ${data.hostPhoneNumber}
+│ 💳 ${data.hostPayoutMethod}
+│ 📝 ${data.hostRecipientFullName}
+└─────────────────────────`;
 
-    // Send text message
-    const textResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: message,
-        parse_mode: 'Markdown',
-      }),
-    });
+    // Send all in parallel for speed
+    const promises: Promise<any>[] = [
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: message,
+          parse_mode: 'Markdown',
+        }),
+      }).then(r => r.json()),
+    ];
 
-    const textResult = await textResponse.json();
-    console.log('Telegram text response:', textResult);
-
-    // Send supporter receipt
+    // Add photo uploads in parallel
     if (data.supporterReceiptUrl) {
-      try {
-        console.log('Downloading supporter receipt from:', data.supporterReceiptUrl);
-        const imageResponse = await fetch(data.supporterReceiptUrl);
-        if (imageResponse.ok) {
-          const imageBlob = await imageResponse.blob();
-          const formData = new FormData();
-          formData.append('chat_id', TELEGRAM_CHAT_ID);
-          formData.append('photo', imageBlob, 'supporter-receipt.jpg');
-          formData.append('caption', `📷 إيصال الداعم - ${data.supporterName}`);
-          
-          const uploadResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-            method: 'POST',
-            body: formData,
-          });
-          const photoResult = await uploadResponse.json();
-          console.log('Telegram supporter photo response:', photoResult);
-        }
-      } catch (photoError) {
-        console.error('Failed to send supporter photo:', photoError);
-      }
+      promises.push(
+        uploadPhoto(
+          TELEGRAM_BOT_TOKEN,
+          TELEGRAM_CHAT_ID,
+          data.supporterReceiptUrl,
+          `📷 *إيصال الداعم*\n👤 ${data.supporterName}\n💵 $${data.supporterAmountUsd}`
+        )
+      );
     }
 
-    // Send host receipt
     if (data.hostReceiptUrl) {
-      try {
-        console.log('Downloading host receipt from:', data.hostReceiptUrl);
-        const imageResponse = await fetch(data.hostReceiptUrl);
-        if (imageResponse.ok) {
-          const imageBlob = await imageResponse.blob();
-          const formData = new FormData();
-          formData.append('chat_id', TELEGRAM_CHAT_ID);
-          formData.append('photo', imageBlob, 'host-receipt.jpg');
-          formData.append('caption', `📷 إيصال المضيف - ${data.hostName}\n🔑 المرجع: ${data.hostReferenceNumber}`);
-          
-          const uploadResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-            method: 'POST',
-            body: formData,
-          });
-          const photoResult = await uploadResponse.json();
-          console.log('Telegram host photo response:', photoResult);
-        }
-      } catch (photoError) {
-        console.error('Failed to send host photo:', photoError);
-      }
+      promises.push(
+        uploadPhoto(
+          TELEGRAM_BOT_TOKEN,
+          TELEGRAM_CHAT_ID,
+          data.hostReceiptUrl,
+          `📷 *إيصال المضيف*\n🎤 ${data.hostName}\n🔑 ${data.hostReferenceNumber}`
+        )
+      );
     }
 
-    if (textResult.ok) {
-      return new Response(
-        JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Telegram API error' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const results = await Promise.all(promises);
+    const textResult = results[0];
+
+    return new Response(
+      JSON.stringify({ 
+        success: textResult.ok,
+        supporterPhotoSent: results[1] || false,
+        hostPhotoSent: results[2] || false,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error('Error in send-instant-payout-notification:', error);
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ success: false, error: 'Internal error' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

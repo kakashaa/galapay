@@ -24,6 +24,60 @@ interface NotificationRequest {
   };
 }
 
+// Fast image upload with timeout
+async function sendPhotoFast(
+  botToken: string,
+  chatId: string,
+  imageUrl: string,
+  caption: string
+): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+  try {
+    // Try URL method first (fastest)
+    const urlResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, photo: imageUrl, caption }),
+      signal: controller.signal,
+    });
+    
+    const urlResult = await urlResponse.json();
+    if (urlResult.ok) {
+      clearTimeout(timeout);
+      return true;
+    }
+
+    // Fallback: download and upload
+    const imageResponse = await fetch(imageUrl, { signal: controller.signal });
+    if (!imageResponse.ok) {
+      clearTimeout(timeout);
+      return false;
+    }
+
+    const imageBlob = await imageResponse.blob();
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    formData.append('photo', imageBlob, 'receipt.jpg');
+    formData.append('caption', caption);
+
+    const uploadResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+    
+    const uploadResult = await uploadResponse.json();
+    clearTimeout(timeout);
+    return uploadResult.ok;
+  } catch (e) {
+    clearTimeout(timeout);
+    console.error('Photo send error:', e);
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -36,39 +90,33 @@ serve(async (req) => {
     const TELEGRAM_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID');
     
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-      console.log('Telegram credentials not configured');
       return new Response(
         JSON.stringify({ success: false, error: 'Telegram not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Extract wallet number from methodFields if available
+    // Extract wallet number
     const walletNumber = requestDetails.walletNumber || 
                         requestDetails.methodFields?.walletNumber || 
                         requestDetails.methodFields?.wallet_number ||
                         requestDetails.methodFields?.رقم_المحفظة ||
                         (requestDetails.methodFields ? Object.values(requestDetails.methodFields).find(v => v) : '') || '';
 
-    const message = `🔔 *طلب صرف جديد*
+    const message = `🔔 *طلب صرف شهري جديد*
 
-📋 *تفاصيل الطلب:*
-• كود التتبع: \`${requestDetails.trackingCode}\`
-• ايدي غلا لايف: ${requestDetails.zalalLifeAccountId}
-${requestDetails.zalalLifeUsername ? `• اسم في غلا لايف: ${requestDetails.zalalLifeUsername}` : ''}
-${requestDetails.agencyCode ? `• كود الوكالة: ${requestDetails.agencyCode}` : ''}
-• اسم المستلم: ${requestDetails.recipientName}
-• المبلغ: $${requestDetails.amount}
-• البلد: ${requestDetails.country}
-• طريقة الصرف: ${requestDetails.payoutMethod}
-• رقم الهاتف: ${requestDetails.phoneNumber}
-${walletNumber ? `• رقم المحفظة: \`${walletNumber}\`` : ''}
-${requestDetails.referenceNumber ? `• الرقم المرجعي: \`${requestDetails.referenceNumber}\`` : ''}
+📋 *التفاصيل:*
+┣ 🔗 الكود: \`${requestDetails.trackingCode}\`
+┣ 🆔 الايدي: \`${requestDetails.zalalLifeAccountId}\`
+${requestDetails.zalalLifeUsername ? `┣ 👤 الاسم: ${requestDetails.zalalLifeUsername}\n` : ''}${requestDetails.agencyCode ? `┣ 🏢 الوكالة: ${requestDetails.agencyCode}\n` : ''}┣ 📝 المستلم: ${requestDetails.recipientName}
+┣ 💵 المبلغ: *$${requestDetails.amount}*
+┣ 🌍 البلد: ${requestDetails.country}
+┣ 💳 الطريقة: ${requestDetails.payoutMethod}
+┣ 📱 الهاتف: ${requestDetails.phoneNumber}
+${walletNumber ? `┣ 🔢 المحفظة: \`${walletNumber}\`\n` : ''}${requestDetails.referenceNumber ? `┗ 🔑 المرجع: \`${requestDetails.referenceNumber}\`` : '┗ ✅ جاهز للمعالجة'}`;
 
-📸 صورة الإيصال مرفقة أدناه`;
-
-    // Send text message first
-    const textResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    // Send text and photo in parallel
+    const textPromise = fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -76,64 +124,21 @@ ${requestDetails.referenceNumber ? `• الرقم المرجعي: \`${requestDe
         text: message,
         parse_mode: 'Markdown',
       }),
-    });
+    }).then(r => r.json());
 
-    const textResult = await textResponse.json();
-    console.log('Telegram text response:', textResult);
+    const photoPromise = imageUrl 
+      ? sendPhotoFast(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, imageUrl, `📷 إيصال: ${requestDetails.recipientName} - $${requestDetails.amount}`)
+      : Promise.resolve(false);
 
-    // Try to send the image - first attempt with URL
-    let photoResult = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        photo: imageUrl,
-        caption: `إيصال: ${requestDetails.recipientName} - $${requestDetails.amount}`,
-      }),
-    }).then(res => res.json());
+    const [textResult, photoSent] = await Promise.all([textPromise, photoPromise]);
 
-    console.log('Telegram photo response:', photoResult);
-
-    // If URL method fails, try downloading and uploading the image
-    if (!photoResult.ok && imageUrl) {
-      try {
-        console.log('URL method failed, trying to fetch and upload image...');
-        const imageResponse = await fetch(imageUrl);
-        if (imageResponse.ok) {
-          const imageBlob = await imageResponse.blob();
-          const formData = new FormData();
-          formData.append('chat_id', TELEGRAM_CHAT_ID);
-          formData.append('photo', imageBlob, 'receipt.jpg');
-          formData.append('caption', `إيصال: ${requestDetails.recipientName} - $${requestDetails.amount}`);
-          
-          const uploadResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-            method: 'POST',
-            body: formData,
-          });
-          photoResult = await uploadResponse.json();
-          console.log('Telegram photo upload response:', photoResult);
-        }
-      } catch (uploadError) {
-        console.error('Failed to upload image directly:', uploadError);
-      }
-    }
-
-    if (textResult.ok) {
-      console.log('Telegram notification sent successfully (text sent, photo may have issues)');
-      return new Response(
-        JSON.stringify({ success: true, photoSent: photoResult.ok }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
-      console.error('Telegram API error:', { textResult, photoResult });
-      return new Response(
-        JSON.stringify({ success: false, error: 'Telegram API error' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    return new Response(
+      JSON.stringify({ success: textResult.ok, photoSent }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error('Error in send-telegram-notification:', error);
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ success: false, error: 'Internal error' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
