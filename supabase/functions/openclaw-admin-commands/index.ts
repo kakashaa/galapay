@@ -5,21 +5,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Allowed admin Telegram IDs (add your admin IDs here)
-const ALLOWED_ADMIN_IDS = ['YOUR_TELEGRAM_ADMIN_ID'] // Will be validated by bot
-
 interface AdminCommand {
   action_type: 'admin_command'
-  command: string // approve, reject, reserve, review, ban, reward, paid, complete, etc.
-  tracking_code: string
+  command: string
+  tracking_code?: string
   admin_id: string
   parameters?: {
+    // Common
     rejection_reason?: string
     reservation_reason?: string
     admin_notes?: string
-    reward_amount?: number
-    special_id_value?: string
+    // Image upload (URL or base64)
     final_receipt_url?: string
+    image_url?: string
+    // Ban reports
+    reported_user_id?: string
+    reporter_gala_id?: string
+    ban_type?: 'promotion' | 'insult' | 'defamation'
+    evidence_url?: string
+    description?: string
+    reward_amount?: number
+    // Special ID / VIP gift
+    gala_user_id?: string
+    gala_username?: string
+    special_id_value?: string
+    user_level?: number
+    digit_length?: number
+    pattern_code?: string
+    gift_type?: 'vip' | 'special_id'
   }
 }
 
@@ -65,6 +78,16 @@ function getRequestType(trackingCode: string): { table: string, type: string } |
   }
 }
 
+// Generate random tracking code
+function generateTrackingCode(prefix: string): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let result = ''
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return `${prefix}-${result}`
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -77,62 +100,47 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // Check if request has a body
+    // Validate content type
     const contentType = req.headers.get('content-type')
-    const contentLength = req.headers.get('content-length')
-    
-    // Handle empty body or wrong content type
     if (!contentType?.includes('application/json')) {
-      console.error('Invalid content-type:', contentType)
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'يجب إرسال البيانات بصيغة JSON. تأكد من إضافة header: Content-Type: application/json' 
+          error: 'يجب إرسال البيانات بصيغة JSON' 
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Try to get request text first
     const rawBody = await req.text()
-    
     if (!rawBody || rawBody.trim() === '') {
-      console.error('Empty request body')
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'الطلب فارغ. يجب إرسال بيانات JSON مع الأمر المطلوب',
-          expected_format: {
-            action_type: 'admin_command',
-            command: 'approve|reject|reserve|review|note|pending',
-            tracking_code: 'PAY-XXXXXXXX',
-            admin_id: 'telegram_user_id',
-            parameters: { rejection_reason: '...', admin_notes: '...' }
+          error: 'الطلب فارغ',
+          available_commands: {
+            status_commands: ['approve', 'reject', 'reserve', 'review', 'pending', 'paid', 'complete'],
+            ban_commands: ['create_ban', 'verify_ban', 'reject_ban', 'reward_ban'],
+            gift_commands: ['gift_vip', 'gift_special_id'],
+            utility_commands: ['note', 'upload_receipt']
           }
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Try to parse JSON
     let body: AdminCommand
     try {
       body = JSON.parse(rawBody)
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError, 'Raw body:', rawBody.substring(0, 200))
+    } catch {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'بيانات JSON غير صحيحة. تأكد من صحة التنسيق',
-          received_preview: rawBody.substring(0, 100)
-        }),
+        JSON.stringify({ success: false, error: 'بيانات JSON غير صحيحة' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
     console.log('Received admin command:', JSON.stringify(body))
     
-    // Validate action type
     if (body.action_type !== 'admin_command') {
       return new Response(
         JSON.stringify({ success: false, error: 'نوع الطلب غير صحيح' }),
@@ -142,21 +150,238 @@ Deno.serve(async (req) => {
 
     const { command, tracking_code, admin_id, parameters } = body
 
-    // ❌ CRITICAL: Block ALL delete commands
+    // ❌ Block ALL delete commands
     const blockedCommands = ['delete', 'حذف', 'remove', 'إزالة', 'مسح']
     if (blockedCommands.some(blocked => command.toLowerCase().includes(blocked))) {
       await sendTelegramNotification(`⛔ *محاولة حذف مرفوضة*\n\nالأمر: ${command}\nالكود: ${tracking_code}\n\n_الحذف غير مسموح للبوت_`)
-      
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: '⛔ عفواً، الحذف غير مسموح. يمكنك فقط تحديث الحالات (قبول، رفض، حجز، إلخ)' 
-        }),
+        JSON.stringify({ success: false, error: '⛔ الحذف غير مسموح' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Get request type from tracking code
+    // ========== NEW: CREATE BAN REPORT ==========
+    if (command.toLowerCase() === 'create_ban' || command === 'بلاغ_جديد') {
+      const { reported_user_id, reporter_gala_id, ban_type, evidence_url, description } = parameters || {}
+      
+      if (!reported_user_id || !reporter_gala_id || !ban_type || !evidence_url) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'بيانات ناقصة للبلاغ',
+            required: ['reported_user_id', 'reporter_gala_id', 'ban_type', 'evidence_url']
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('ban_reports')
+        .insert({
+          reported_user_id,
+          reporter_gala_id,
+          ban_type,
+          evidence_url,
+          evidence_type: evidence_url.includes('.mp4') || evidence_url.includes('.mov') ? 'video' : 'image',
+          description: description || 'تم الإبلاغ عبر البوت',
+          is_verified: true // Admin reports are auto-verified
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      await sendTelegramNotification(
+        `🚨 *بلاغ جديد من البوت*\n\n` +
+        `👤 المُبلَّغ عنه: \`${reported_user_id}\`\n` +
+        `📝 النوع: ${ban_type}\n` +
+        `✅ تم التحقق تلقائياً`
+      )
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: '🚨 تم إنشاء البلاغ وتأكيده',
+          ban_id: data.id
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ========== NEW: GIFT VIP ==========
+    if (command.toLowerCase() === 'gift_vip' || command === 'إهداء_vip') {
+      const { gala_user_id, gala_username, admin_notes } = parameters || {}
+      
+      if (!gala_user_id) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'يجب تحديد ايدي المستخدم' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Create approved special ID request as VIP gift
+      const trackingCode = generateTrackingCode('SID')
+      const { data, error } = await supabaseAdmin
+        .from('special_id_requests')
+        .insert({
+          gala_user_id,
+          gala_username: gala_username || null,
+          user_level: 999, // VIP level
+          digit_length: 0,
+          pattern_code: 'VIP_GIFT',
+          profile_screenshot_url: 'https://gift-from-admin.local/vip',
+          status: 'approved',
+          processed_at: new Date().toISOString(),
+          admin_notes: admin_notes || `إهداء VIP من المسؤول ${admin_id}`
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      await sendTelegramNotification(
+        `🎁 *إهداء VIP*\n\n` +
+        `👤 الايدي: \`${gala_user_id}\`\n` +
+        `${gala_username ? `📛 الاسم: ${gala_username}\n` : ''}` +
+        `👑 المسؤول: ${admin_id}`
+      )
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: '🎁 تم إهداء VIP بنجاح',
+          gala_user_id,
+          request_id: data.id
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ========== NEW: GIFT SPECIAL ID ==========
+    if (command.toLowerCase() === 'gift_special_id' || command === 'إهداء_ايدي') {
+      const { gala_user_id, gala_username, special_id_value, admin_notes, digit_length, pattern_code } = parameters || {}
+      
+      if (!gala_user_id) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'يجب تحديد ايدي المستخدم' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const trackingCode = generateTrackingCode('SID')
+      const { data, error } = await supabaseAdmin
+        .from('special_id_requests')
+        .insert({
+          gala_user_id,
+          gala_username: gala_username || null,
+          user_level: 50, // Default level for gift
+          digit_length: digit_length || 6,
+          pattern_code: pattern_code || 'GIFT',
+          preferred_exact_id: special_id_value || null,
+          profile_screenshot_url: 'https://gift-from-admin.local/special-id',
+          status: 'approved',
+          processed_at: new Date().toISOString(),
+          admin_notes: admin_notes || `إهداء ايدي مميز من المسؤول ${admin_id}${special_id_value ? ` - الايدي: ${special_id_value}` : ''}`
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      await sendTelegramNotification(
+        `🎁 *إهداء ايدي مميز*\n\n` +
+        `👤 الايدي: \`${gala_user_id}\`\n` +
+        `${special_id_value ? `🔢 الايدي المميز: \`${special_id_value}\`\n` : ''}` +
+        `👑 المسؤول: ${admin_id}`
+      )
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: '🎁 تم إهداء الايدي المميز بنجاح',
+          gala_user_id,
+          special_id: special_id_value,
+          request_id: data.id
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ========== NEW: UPLOAD RECEIPT IMAGE ==========
+    if (command.toLowerCase() === 'upload_receipt' || command === 'رفع_إيصال') {
+      const { image_url, final_receipt_url } = parameters || {}
+      const imageToUpload = image_url || final_receipt_url
+      
+      if (!tracking_code || !imageToUpload) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'يجب تحديد كود التتبع ورابط الصورة',
+            required: ['tracking_code', 'image_url']
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const requestInfo = getRequestType(tracking_code)
+      if (!requestInfo) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'كود التتبع غير صحيح' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const { table, type } = requestInfo
+      let updateData: Record<string, unknown> = {}
+
+      if (type === 'payout') {
+        updateData = { admin_final_receipt_image_url: imageToUpload }
+      } else if (type === 'instant') {
+        updateData = { admin_final_receipt_url: imageToUpload }
+      } else {
+        return new Response(
+          JSON.stringify({ success: false, error: 'رفع الإيصال متاح فقط لطلبات السحب' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from(table)
+        .update(updateData)
+        .eq('tracking_code', tracking_code)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      await sendTelegramNotification(
+        `📷 *تم رفع إيصال*\n\n` +
+        `📋 الكود: \`${tracking_code}\`\n` +
+        `👑 المسؤول: ${admin_id}`
+      )
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: '📷 تم رفع الإيصال بنجاح',
+          tracking_code
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ========== EXISTING COMMANDS REQUIRE TRACKING CODE ==========
+    if (!tracking_code) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'يجب تحديد كود التتبع',
+          commands_without_tracking: ['create_ban', 'gift_vip', 'gift_special_id']
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const requestInfo = getRequestType(tracking_code)
     if (!requestInfo) {
       return new Response(
@@ -184,7 +409,7 @@ Deno.serve(async (req) => {
             processed_at: new Date().toISOString(),
             rejection_reason: null,
             admin_notes: parameters?.admin_notes || null,
-            admin_final_receipt_image_url: parameters?.final_receipt_url || null
+            admin_final_receipt_image_url: parameters?.final_receipt_url || parameters?.image_url || null
           }
           statusMessage = '✅ تم اعتماد طلب السحب الشهري'
         } else if (type === 'instant') {
@@ -193,7 +418,7 @@ Deno.serve(async (req) => {
             processed_at: new Date().toISOString(),
             rejection_reason: null,
             admin_notes: parameters?.admin_notes || null,
-            admin_final_receipt_url: parameters?.final_receipt_url || null
+            admin_final_receipt_url: parameters?.final_receipt_url || parameters?.image_url || null
           }
           statusMessage = '✅ تم اعتماد طلب السحب الفوري'
         } else if (type === 'coins') {
@@ -264,7 +489,7 @@ Deno.serve(async (req) => {
         }
         break
 
-      // ⏸️ RESERVE (payout only)
+      // ⏸️ RESERVE
       case 'reserve':
       case 'حجز':
       case 'محجوز':
@@ -306,7 +531,7 @@ Deno.serve(async (req) => {
         }
         break
 
-      // 🎁 REWARD (ban reports only)
+      // 🎁 REWARD (ban reports)
       case 'reward':
       case 'مكافأة':
         if (type === 'ban') {
@@ -333,7 +558,7 @@ Deno.serve(async (req) => {
         statusMessage = '📝 تم إضافة ملاحظة'
         break
 
-      // ↩️ PENDING (reset to pending)
+      // ↩️ PENDING
       case 'pending':
       case 'انتظار':
         if (type === 'payout') {
@@ -359,20 +584,61 @@ Deno.serve(async (req) => {
         statusMessage = '↩️ تم إرجاع الطلب للانتظار'
         break
 
+      // ✅ VERIFY BAN
+      case 'verify_ban':
+      case 'تحقق_بلاغ':
+        if (type === 'ban') {
+          updateData = {
+            is_verified: true,
+            processed_at: new Date().toISOString(),
+            admin_notes: parameters?.admin_notes || 'تم التحقق من البلاغ'
+          }
+          statusMessage = '✅ تم التحقق من البلاغ'
+        } else {
+          return new Response(
+            JSON.stringify({ success: false, error: 'هذا الأمر للبلاغات فقط' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        break
+
+      // ❌ REJECT BAN
+      case 'reject_ban':
+      case 'رفض_بلاغ':
+        if (type === 'ban') {
+          updateData = {
+            is_verified: false,
+            processed_at: new Date().toISOString(),
+            admin_notes: parameters?.rejection_reason || 'البلاغ غير صحيح'
+          }
+          statusMessage = '❌ تم رفض البلاغ'
+        } else {
+          return new Response(
+            JSON.stringify({ success: false, error: 'هذا الأمر للبلاغات فقط' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        break
+
       default:
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `الأمر "${command}" غير معروف. الأوامر المتاحة: approve/paid, reject, reserve, review, reward, note, pending` 
+            error: `الأمر "${command}" غير معروف`,
+            available_commands: {
+              status: 'approve, reject, reserve, review, pending',
+              ban: 'create_ban, verify_ban, reject_ban, reward',
+              gift: 'gift_vip, gift_special_id',
+              utility: 'note, upload_receipt'
+            }
           }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
     }
 
-    // Execute update (using tracking_code for lookup)
+    // Execute update
     let query;
     if (type === 'ban') {
-      // Ban reports use 'id' not 'tracking_code'
       const trackingId = tracking_code.replace('BAN-', '')
       query = supabaseAdmin
         .from(table)
@@ -406,7 +672,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Send confirmation to Telegram
+    // Send confirmation
     await sendTelegramNotification(
       `${statusMessage}\n\n` +
       `📋 *الكود:* \`${tracking_code}\`\n` +
