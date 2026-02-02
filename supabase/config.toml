@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.openclaw-admin-commands]
 verify_jwt = false
+
+[functions.openclaw-training]
+verify_jwt = false
