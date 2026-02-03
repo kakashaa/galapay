@@ -1,17 +1,55 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Shield, KeyRound } from 'lucide-react';
+import { Loader2, Shield, KeyRound, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import StarField from '@/components/StarField';
 import { useAdminAuth } from '@/hooks/use-admin-auth';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Button } from '@/components/ui/button';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, loading: authLoading } = useAdminAuth();
   const [loading, setLoading] = useState(false);
   const [code, setCode] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleForceRefresh = async () => {
+    setRefreshing(true);
+    toast({
+      title: 'جاري التحديث...',
+      description: 'سيتم تحميل آخر نسخة من التطبيق',
+    });
+
+    try {
+      // Unregister all service workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+
+      // Clear all caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+
+      // Clear localStorage cache keys (keep admin session)
+      const adminSession = localStorage.getItem('ghala_admin_session');
+      const savedRequests = localStorage.getItem('savedPayoutRequests');
+      
+      // Force reload after short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error) {
+      console.error('Error during refresh:', error);
+      window.location.reload();
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -140,6 +178,29 @@ const AdminLogin = () => {
         >
           العودة للصفحة الرئيسية
         </motion.button>
+
+        {/* Force Refresh Button */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-4"
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleForceRefresh}
+            disabled={refreshing}
+            className="w-full gap-2 border-primary/30 hover:bg-primary/10"
+          >
+            {refreshing ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            تحديث آخر نسخة
+          </Button>
+        </motion.div>
       </div>
     </div>
   );
