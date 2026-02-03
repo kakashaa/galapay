@@ -18,6 +18,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
+import { useAdminAuth } from '@/hooks/use-admin-auth';
 import InstantRequestDetailsModal from '@/components/admin/InstantRequestDetailsModal';
 import {
   Select,
@@ -64,13 +65,12 @@ const statusLabels: Record<string, string> = {
 
 const InstantDashboard = () => {
   const navigate = useNavigate();
+  const { session, loading: authLoading, isAuthenticated, isSuperAdmin: isSuperAdminAuth, logout } = useAdminAuth();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<InstantPayoutRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<'admin' | 'staff' | 'super_admin'>('admin');
-  const [currentUserId, setCurrentUserId] = useState('');
   const [activeTab, setActiveTab] = useState('home');
   const [stats, setStats] = useState<Stats>({
     total: 0,
@@ -82,44 +82,20 @@ const InstantDashboard = () => {
     totalPendingAmount: 0,
   });
 
-  const isSuperAdmin = userRole === 'super_admin';
+  const isSuperAdmin = isSuperAdminAuth;
+  const currentUserId = session?.username || '';
 
   useEffect(() => {
-    checkAuthAndFetch();
-  }, []);
+    if (!authLoading && !isAuthenticated) {
+      navigate('/admin/login');
+    }
+  }, [authLoading, isAuthenticated, navigate]);
 
   useEffect(() => {
-    if (currentUserId) {
+    if (isAuthenticated) {
       fetchRequests();
     }
-  }, [statusFilter, currentUserId]);
-
-  const checkAuthAndFetch = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
-      navigate('/admin/login');
-      return;
-    }
-
-    setCurrentUserId(session.user.id);
-
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', session.user.id)
-      .in('role', ['admin', 'staff', 'super_admin'])
-      .maybeSingle();
-
-    if (!roleData) {
-      await supabase.auth.signOut();
-      navigate('/admin/login');
-      return;
-    }
-
-    setUserRole(roleData.role as 'admin' | 'staff' | 'super_admin');
-  };
+  }, [statusFilter, isAuthenticated]);
 
   const fetchRequests = async () => {
     try {
@@ -511,7 +487,7 @@ const InstantDashboard = () => {
     { id: 'requests', icon: Zap, label: 'الطلبات', badge: pendingRequests.length },
   ];
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-warning" />

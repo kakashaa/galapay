@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAdminAuth } from '@/hooks/use-admin-auth';
 import { motion } from 'framer-motion';
 import StarField from '@/components/StarField';
 import { Input } from '@/components/ui/input';
@@ -60,51 +61,30 @@ const statusColors: Record<string, string> = {
 
 const CoinsDashboard = () => {
   const navigate = useNavigate();
+  const { session, loading: authLoading, isAuthenticated, isSuperAdmin: isSuperAdminAuth, logout } = useAdminAuth();
   const [requests, setRequests] = useState<CoinsRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<CoinsRequest | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'rejected'>('pending');
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  const isSuperAdmin = isSuperAdminAuth;
+  const currentUserId = session?.username || '';
 
   useEffect(() => {
-    if (currentUserId) {
+    if (!authLoading && !isAuthenticated) {
+      navigate('/admin/login');
+    }
+  }, [authLoading, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
       fetchRequests();
+      setLoading(false);
     }
-  }, [currentUserId, activeTab, searchQuery]);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate('/admin/login');
-      return;
-    }
-
-    setCurrentUserId(session.user.id);
-
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', session.user.id)
-      .in('role', ['admin', 'staff', 'super_admin'])
-      .maybeSingle();
-
-    if (!roleData) {
-      await supabase.auth.signOut();
-      navigate('/admin/login');
-      return;
-    }
-
-    setIsSuperAdmin(roleData.role === 'super_admin');
-    setLoading(false);
-  };
+  }, [isAuthenticated, activeTab, searchQuery]);
 
   const fetchRequests = async () => {
     try {
@@ -195,8 +175,8 @@ const CoinsDashboard = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    logout();
     navigate('/admin/login');
   };
 
@@ -210,7 +190,7 @@ const CoinsDashboard = () => {
     return { pending, completed, rejected, totalCoins };
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen premium-bg flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />

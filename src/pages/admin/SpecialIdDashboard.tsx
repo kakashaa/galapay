@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useAdminAuth } from "@/hooks/use-admin-auth";
 import {
   Crown,
   ArrowRight,
@@ -48,6 +49,7 @@ interface SpecialIdRequest {
 
 export default function SpecialIdDashboard() {
   const navigate = useNavigate();
+  const { loading: authLoading, isAuthenticated } = useAdminAuth();
   const [requests, setRequests] = useState<SpecialIdRequest[]>([]);
   const [allRequests, setAllRequests] = useState<SpecialIdRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,12 +61,22 @@ export default function SpecialIdDashboard() {
   const [rejectionReason, setRejectionReason] = useState("");
 
   useEffect(() => {
-    fetchRequests();
-  }, [filter]);
+    if (!authLoading && !isAuthenticated) {
+      navigate('/admin/login');
+    }
+  }, [authLoading, isAuthenticated, navigate]);
 
   useEffect(() => {
-    fetchAllStats();
-  }, []);
+    if (isAuthenticated) {
+      fetchRequests();
+    }
+  }, [filter, isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAllStats();
+    }
+  }, [isAuthenticated]);
 
   const fetchAllStats = async () => {
     try {
@@ -331,7 +343,7 @@ export default function SpecialIdDashboard() {
         </div>
 
         {/* Requests List */}
-        {loading ? (
+        {(authLoading || loading) ? (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
