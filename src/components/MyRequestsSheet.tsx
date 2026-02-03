@@ -138,6 +138,74 @@ export const MyRequestsSheet = ({ open, onOpenChange }: MyRequestsSheetProps) =>
     }
   }, [open, savedRequests]);
 
+  // Set up realtime subscription for status updates
+  useEffect(() => {
+    if (!open) return;
+
+    const payoutCodes = savedRequests.filter(r => r.type === 'payout').map(r => r.trackingCode);
+    const instantCodes = savedRequests.filter(r => r.type === 'instant').map(r => r.trackingCode);
+    
+    const channels: any[] = [];
+
+    if (payoutCodes.length > 0) {
+      const payoutChannel = supabase
+        .channel('my-requests-payout-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'payout_requests',
+          },
+          (payload) => {
+            const updated = payload.new as any;
+            if (payoutCodes.includes(updated.tracking_code)) {
+              setRequestStatuses(prev => 
+                prev.map(r => 
+                  r.tracking_code === updated.tracking_code 
+                    ? { ...r, status: updated.status, amount: updated.amount, currency: updated.currency }
+                    : r
+                )
+              );
+            }
+          }
+        )
+        .subscribe();
+      channels.push(payoutChannel);
+    }
+
+    if (instantCodes.length > 0) {
+      const instantChannel = supabase
+        .channel('my-requests-instant-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'instant_payout_requests',
+          },
+          (payload) => {
+            const updated = payload.new as any;
+            if (instantCodes.includes(updated.tracking_code)) {
+              setRequestStatuses(prev => 
+                prev.map(r => 
+                  r.tracking_code === updated.tracking_code 
+                    ? { ...r, status: updated.status, amount: updated.host_payout_amount, currency: updated.host_currency }
+                    : r
+                )
+              );
+            }
+          }
+        )
+        .subscribe();
+      channels.push(instantChannel);
+    }
+
+    return () => {
+      channels.forEach(channel => supabase.removeChannel(channel));
+    };
+  }, [open, savedRequests]);
+
   const fetchRequestStatuses = async () => {
     setLoading(true);
     try {
