@@ -124,12 +124,18 @@ const CoinsDashboard = () => {
 
     setProcessing(true);
     try {
+      // Note: processed_by expects UUID but we use custom PIN auth
+      // Store admin username in admin_notes prefix instead
+      const notesWithAdmin = currentUserId 
+        ? `[معالج بواسطة: ${currentUserId}] ${adminNotes || ''}`.trim()
+        : adminNotes || null;
+
       const { error } = await supabase
         .from('coins_payout_requests')
         .update({
           status,
-          admin_notes: adminNotes || null,
-          processed_by: currentUserId,
+          admin_notes: notesWithAdmin,
+          processed_by: null, // Don't set UUID - using custom PIN auth
           processed_at: new Date().toISOString(),
         })
         .eq('id', selectedRequest.id);
