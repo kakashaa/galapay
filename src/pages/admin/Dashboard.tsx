@@ -227,47 +227,46 @@ const AdminDashboard = () => {
         });
       }
 
-      if (isSuperAdmin) {
-        let query = supabase
-          .from('payout_requests')
-          .select('*')
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false });
+      // Allow all authenticated admins to view requests (view-only for non-super admins)
+      let query = supabase
+        .from('payout_requests')
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
 
-        if (filters.status && filters.status !== 'all') {
-          query = query.eq('status', filters.status as 'pending' | 'review' | 'paid' | 'rejected');
-        }
-        if (filters.country && filters.country !== 'all') {
-          query = query.eq('country', filters.country);
-        }
-        if (filters.search) {
-          query = query.or(`tracking_code.ilike.%${filters.search}%,zalal_life_account_id.ilike.%${filters.search}%,reference_number.ilike.%${filters.search}%`);
-        }
-        if (filters.adminFilter && filters.adminFilter !== 'all') {
-          query = query.eq('processed_by', filters.adminFilter);
-        }
-        if (filters.minAmount && !isNaN(Number(filters.minAmount))) {
-          query = query.gte('amount', Number(filters.minAmount));
-        }
-        if (filters.maxAmount && !isNaN(Number(filters.maxAmount))) {
-          query = query.lte('amount', Number(filters.maxAmount));
-        }
-        if (filters.payoutMethod && filters.payoutMethod !== 'all') {
-          query = query.eq('payout_method', filters.payoutMethod);
-        }
-
-        const { data } = await query;
-        let filteredData = (data as PayoutRequest[]) || [];
-        
-        // Filter by bulk IDs if loaded
-        if (bulkSearchIds.length > 0) {
-          filteredData = filteredData.filter(r => 
-            bulkSearchIds.includes(r.zalal_life_account_id)
-          );
-        }
-        
-        setAllRequests(filteredData);
+      if (filters.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status as 'pending' | 'review' | 'paid' | 'rejected');
       }
+      if (filters.country && filters.country !== 'all') {
+        query = query.eq('country', filters.country);
+      }
+      if (filters.search) {
+        query = query.or(`tracking_code.ilike.%${filters.search}%,zalal_life_account_id.ilike.%${filters.search}%,reference_number.ilike.%${filters.search}%`);
+      }
+      if (filters.adminFilter && filters.adminFilter !== 'all') {
+        query = query.eq('processed_by', filters.adminFilter);
+      }
+      if (filters.minAmount && !isNaN(Number(filters.minAmount))) {
+        query = query.gte('amount', Number(filters.minAmount));
+      }
+      if (filters.maxAmount && !isNaN(Number(filters.maxAmount))) {
+        query = query.lte('amount', Number(filters.maxAmount));
+      }
+      if (filters.payoutMethod && filters.payoutMethod !== 'all') {
+        query = query.eq('payout_method', filters.payoutMethod);
+      }
+
+      const { data } = await query;
+      let filteredData = (data as PayoutRequest[]) || [];
+      
+      // Filter by bulk IDs if loaded
+      if (bulkSearchIds.length > 0) {
+        filteredData = filteredData.filter(r => 
+          bulkSearchIds.includes(r.zalal_life_account_id)
+        );
+      }
+      
+      setAllRequests(filteredData);
 
     } catch (error) {
       console.error('Error:', error);
