@@ -1,60 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wallet, Zap, ShieldBan, Crown, LogOut, Loader2, Coins } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import StarField from '@/components/StarField';
+import { useAdminAuth } from '@/hooks/use-admin-auth';
 
 const AdminPortal = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState('');
+  const { session, loading, logout, isAuthenticated } = useAdminAuth();
 
   useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    if (!loading && !isAuthenticated) {
       navigate('/admin/login');
-      return;
     }
+  }, [loading, isAuthenticated, navigate]);
 
-    // Check if user has admin role
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', session.user.id)
-      .in('role', ['admin', 'staff', 'super_admin'])
-      .maybeSingle();
-
-    if (!roleData) {
-      await supabase.auth.signOut();
-      navigate('/admin/login');
-      return;
-    }
-
-    // Get display name
-    const { data: profileData } = await supabase
-      .from('admin_profiles')
-      .select('display_name')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
-
-    if (profileData) {
-      setUserName(profileData.display_name);
-    }
-
-    setLoading(false);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    logout();
     navigate('/admin/login');
   };
 
-  if (loading) {
+  if (loading || !isAuthenticated) {
     return (
       <div className="min-h-screen premium-bg flex items-center justify-center">
         <motion.div
@@ -131,7 +97,7 @@ const AdminPortal = () => {
             </motion.div>
             <div>
               <h1 className="text-lg font-bold glow-text">غلا لايف</h1>
-              <p className="text-xs text-muted-foreground">مرحباً {userName}</p>
+              <p className="text-xs text-muted-foreground">مرحباً {session?.username}</p>
             </div>
           </div>
           <motion.button
