@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useAdminAuth } from '@/hooks/use-admin-auth';
 import {
   ShieldBan,
   ArrowRight,
@@ -55,6 +56,7 @@ const BAN_TYPE_INFO: Record<BanType, { label: string; icon: React.ReactNode; dur
 
 export default function BanDashboard() {
   const navigate = useNavigate();
+  const { session, loading: authLoading, isAuthenticated, isSuperAdmin: isSuperAdminAuth } = useAdminAuth();
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<BanReport[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('pending');
@@ -62,41 +64,30 @@ export default function BanDashboard() {
   const [selectedReport, setSelectedReport] = useState<BanReport | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  
+  const isSuperAdmin = isSuperAdminAuth;
+  const currentUserId = session?.username || '';
 
   useEffect(() => {
-    checkAuth();
-  }, []);
-
-  useEffect(() => {
-    if (isSuperAdmin) {
-      fetchReports();
-    }
-  }, [filter, isSuperAdmin]);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    if (!authLoading && !isAuthenticated) {
       navigate('/admin/login');
       return;
     }
-
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', session.user.id)
-      .eq('role', 'super_admin')
-      .maybeSingle();
-
-    if (!roleData) {
+    if (!authLoading && isAuthenticated && !isSuperAdmin) {
       toast.error('لا تملك صلاحية الوصول لهذه الصفحة');
       navigate('/admin');
       return;
     }
+    if (isAuthenticated && isSuperAdmin) {
+      setLoading(false);
+    }
+  }, [authLoading, isAuthenticated, isSuperAdmin, navigate]);
 
-    setIsSuperAdmin(true);
-    setLoading(false);
-  };
+  useEffect(() => {
+    if (isAuthenticated && isSuperAdmin) {
+      fetchReports();
+    }
+  }, [filter, isAuthenticated, isSuperAdmin]);
 
   const fetchReports = async () => {
     try {
@@ -126,8 +117,6 @@ export default function BanDashboard() {
   const handleVerify = async (report: BanReport) => {
     setIsProcessing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
       // Calculate expiry for non-permanent bans
       let expiresAt = null;
       if (report.ban_type !== 'promotion') {
@@ -142,7 +131,7 @@ export default function BanDashboard() {
           is_verified: true,
           expires_at: expiresAt,
           admin_notes: adminNotes || null,
-          processed_by: session?.user.id,
+          processed_by: currentUserId || null,
           processed_at: new Date().toISOString(),
         })
         .eq('id', report.id);
@@ -164,14 +153,12 @@ export default function BanDashboard() {
   const handleReject = async (report: BanReport) => {
     setIsProcessing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
       const { error } = await supabase
         .from('ban_reports')
         .update({
           is_verified: false,
           admin_notes: adminNotes || null,
-          processed_by: session?.user.id,
+          processed_by: currentUserId || null,
           processed_at: new Date().toISOString(),
         })
         .eq('id', report.id);
@@ -225,7 +212,7 @@ export default function BanDashboard() {
     unpaidRewards: reports.filter(r => r.is_verified && r.reward_amount && !r.reward_paid).length,
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
