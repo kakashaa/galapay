@@ -145,11 +145,17 @@ const InstantRequestDetailsModal = ({
       }
 
       const nowIso = new Date().toISOString();
+      
+      // Note: processed_by expects UUID but we use custom PIN auth
+      // Store admin username in admin_notes prefix instead
+      const notesWithAdmin = currentUserId 
+        ? `[معالج بواسطة: ${currentUserId}] ${adminNotes || ''}`.trim()
+        : adminNotes || null;
 
       const updateData: Record<string, unknown> = {
         status: newStatus,
-        admin_notes: adminNotes || null,
-        processed_by: currentUserId || null,
+        admin_notes: notesWithAdmin,
+        processed_by: null, // Don't set UUID - using custom PIN auth
         processed_at: nowIso,
       };
 

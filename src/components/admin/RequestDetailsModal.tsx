@@ -200,11 +200,17 @@ const RequestDetailsModal = ({
 
       // Build update object based on status
       const nowIso = new Date().toISOString();
+      
+      // Note: processed_by expects UUID but our custom PIN auth uses usernames
+      // Store the username in admin_notes prefix instead
+      const notesWithAdmin = currentUserId 
+        ? `[معالج بواسطة: ${currentUserId}] ${adminNotes || ''}`.trim()
+        : adminNotes || null;
 
       const updateData: Record<string, unknown> = {
         status: newStatus,
-        admin_notes: adminNotes || null,
-        processed_by: currentUserId || null,
+        admin_notes: notesWithAdmin,
+        processed_by: null, // Don't set UUID - using custom PIN auth
         processed_at: nowIso,
       };
 
@@ -253,15 +259,19 @@ const RequestDetailsModal = ({
         reserved: `حجز الطلب: ${reservationReason}`,
       };
 
+      // Note: audit_log.user_id expects UUID, but we use custom PIN auth
+      // Store admin username in notes instead
       await supabase.from('audit_log').insert({
         request_id: requestId,
-        user_id: currentUserId || null,
+        user_id: null, // Don't set UUID - using custom PIN auth
         action: actionDescriptions[newStatus] || `Changed status to ${newStatus}`,
         old_status: request?.status,
         new_status: newStatus,
-        notes: newStatus === 'rejected' ? rejectionReason : 
-               newStatus === 'reserved' ? reservationReason : 
-               (adminNotes || null),
+        notes: `${currentUserId ? `[${currentUserId}] ` : ''}${
+          newStatus === 'rejected' ? rejectionReason : 
+          newStatus === 'reserved' ? reservationReason : 
+          (adminNotes || '')
+        }`.trim() || null,
       });
 
       toast({
