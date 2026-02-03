@@ -18,135 +18,44 @@ interface BanReportNotificationRequest {
   reward?: number;
 }
 
-// Enhanced media upload
-async function sendMedia(
-  botToken: string,
-  chatId: string,
-  mediaUrl: string,
-  caption: string,
-  isVideo: boolean
-): Promise<{ sent: boolean; error?: string }> {
-  console.log(`📎 Sending ${isVideo ? 'video' : 'photo'}:`, mediaUrl.substring(0, 100));
-  
-  try {
-    // Download media first
-    console.log('📎 Downloading media...');
-    const mediaResponse = await fetch(mediaUrl);
-    
-    if (!mediaResponse.ok) {
-      console.error('📎 Download failed:', mediaResponse.status);
-      return { sent: false, error: `Download failed: ${mediaResponse.status}` };
-    }
-
-    const contentType = mediaResponse.headers.get('content-type');
-    const mediaBuffer = await mediaResponse.arrayBuffer();
-    console.log(`📎 Media size: ${mediaBuffer.byteLength} bytes, type: ${contentType}`);
-    
-    if (mediaBuffer.byteLength === 0) {
-      return { sent: false, error: 'Empty media file' };
-    }
-
-    const formData = new FormData();
-    formData.append('chat_id', chatId);
-    formData.append('caption', caption.substring(0, 1024));
-    formData.append('parse_mode', 'Markdown');
-
-    const endpoint = isVideo ? 'sendVideo' : 'sendPhoto';
-    const fieldName = isVideo ? 'video' : 'photo';
-    const fileName = isVideo ? 'evidence.mp4' : 'evidence.jpg';
-    
-    const blob = new Blob([mediaBuffer], { type: contentType || (isVideo ? 'video/mp4' : 'image/jpeg') });
-    formData.append(fieldName, blob, fileName);
-
-    console.log(`📎 Uploading to Telegram as ${endpoint}...`);
-    const uploadResponse = await fetch(`https://api.telegram.org/bot${botToken}/${endpoint}`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    const result = await uploadResponse.json();
-    console.log('📎 Upload result:', JSON.stringify(result));
-    
-    return { sent: result.ok, error: result.description };
-    
-  } catch (error) {
-    console.error('📎 Media send error:', error);
-    return { sent: false, error: String(error) };
-  }
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const startTime = Date.now();
-  console.log('🚨 Starting ban report notification...');
-
   try {
     const data: BanReportNotificationRequest = await req.json();
-    console.log('📋 Report for user:', data.reportedUserId);
     
     const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
     const TELEGRAM_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID');
     
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+      console.log('Telegram credentials not configured');
       return new Response(
         JSON.stringify({ success: false, error: 'Telegram not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Ban type mapping
-    const banTypeInfo: Record<string, { emoji: string; arabic: string; duration: string }> = {
-      'promotion': { emoji: '📢', arabic: 'ترويج لتطبيق آخر', duration: '🔴 دائم' },
-      'insult': { emoji: '🤬', arabic: 'شتم أو إهانة', duration: '⏰ 24 ساعة' },
-      'defamation': { emoji: '📛', arabic: 'تشهير', duration: '⏰ 24 ساعة' },
-      'ترويج': { emoji: '📢', arabic: 'ترويج لتطبيق آخر', duration: '🔴 دائم' },
-      'شتم': { emoji: '🤬', arabic: 'شتم أو إهانة', duration: '⏰ 24 ساعة' },
-      'تشهير': { emoji: '📛', arabic: 'تشهير', duration: '⏰ 24 ساعة' },
-    };
-
-    const typeInfo = banTypeInfo[data.banType] || { emoji: '⚠️', arabic: data.banType, duration: data.banTypeDuration };
-    const banDuration = data.banTypeDuration || typeInfo.duration;
-    const isPermanent = data.banType === 'ترويج' || data.banType === 'promotion';
+    // Get ban duration based on type
+    const banDuration = data.banTypeDuration || (data.banType === 'ترويج' ? 'دائم' : '24 ساعة');
 
     const message = `🚨 *بلاغ تبنيد جديد*
 
-╔══════════════════════════════╗
-║     📋 *تفاصيل البلاغ*
-╠══════════════════════════════╣
-║
-║  🎯 *الايدي المبلغ عنه:*
-║  \`${data.reportedUserId}\`
-║
-╠──────────────────────────────╣
-║
-║  ${typeInfo.emoji} *نوع المخالفة:*
-║  ${typeInfo.arabic}
-║
-╠──────────────────────────────╣
-║
-║  ⏱️ *مدة البند:*
-║  ${banDuration} ${isPermanent ? '🔒' : ''}
-║
-${data.reward ? `╠──────────────────────────────╣
-║
-║  💰 *المكافأة:*
-║  ${data.reward.toLocaleString()} كوينز
-║
-` : ''}╚══════════════════════════════╝
+📋 *تفاصيل البلاغ:*
+• الايدي: \`${data.reportedUserId}\`
+• سبب البند: *${data.banType}*
+• نوع البند: ${data.banType === 'ترويج' ? 'دائم 🔴' : 'عادي'}
+• مدة البند: *${banDuration}* ⏰
+${data.reward ? `• المكافأة: ${data.reward.toLocaleString()} كوينز 💰` : ''}
 
-${data.description ? `📝 *الوصف:*
-━━━━━━━━━━━━━━━━━━━━
-${data.description.substring(0, 500)}
-━━━━━━━━━━━━━━━━━━━━
+📝 *التفاصيل:*
+${data.description}
 
-` : ''}👮 *المُبلِّغ:* \`${data.reporterGalaId}\`
-📎 *الدليل:* ${data.evidenceType === 'video' ? '🎬 فيديو' : '📷 صورة'}`;
+👤 المُبلِّغ: \`${data.reporterGalaId}\`
+📎 الدليل: ${data.evidenceType === 'video' ? '🎬 فيديو' : '📷 صورة'}`;
 
-    // Send text message
-    console.log('📤 Sending text message...');
+    // Send text message first
     const textResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -158,43 +67,71 @@ ${data.description.substring(0, 500)}
     });
 
     const textResult = await textResponse.json();
-    console.log('📤 Text result:', textResult.ok ? 'SUCCESS' : 'FAILED', textResult.description || '');
+    console.log('Telegram text response:', textResult);
 
-    // Send evidence media
-    let mediaResult: { sent: boolean; error?: string } = { sent: false, error: 'No evidence URL' };
+    // Send evidence (photo or video)
+    let mediaResult: any = { ok: false };
+    
     if (data.evidenceUrl) {
-      const mediaCaption = `🚨 *دليل البلاغ*
+      try {
+        // First, download the media file
+        console.log('Downloading media from:', data.evidenceUrl);
+        const mediaResponse = await fetch(data.evidenceUrl);
+        
+        if (!mediaResponse.ok) {
+          console.error('Failed to download media:', mediaResponse.status);
+        } else {
+          const mediaBlob = await mediaResponse.blob();
+          const formData = new FormData();
+          formData.append('chat_id', TELEGRAM_CHAT_ID);
+          
+          const caption = `🚨 الايدي: ${data.reportedUserId}\n📌 سبب البند: ${data.banType}\n⏰ المدة: ${banDuration}`;
+          
+          if (data.evidenceType === 'video') {
+            formData.append('video', mediaBlob, 'evidence.mp4');
+            formData.append('caption', caption);
+            
+            const uploadResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo`, {
+              method: 'POST',
+              body: formData,
+            });
+            mediaResult = await uploadResponse.json();
+          } else {
+            formData.append('photo', mediaBlob, 'evidence.jpg');
+            formData.append('caption', caption);
+            
+            const uploadResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+              method: 'POST',
+              body: formData,
+            });
+            mediaResult = await uploadResponse.json();
+          }
+        }
+        
+        console.log('Telegram media response:', mediaResult);
+      } catch (mediaError) {
+        console.error('Failed to send media:', mediaError);
+      }
+    }
 
-🎯 الايدي: \`${data.reportedUserId}\`
-${typeInfo.emoji} السبب: ${typeInfo.arabic}
-⏱️ المدة: ${banDuration}`;
-
-      mediaResult = await sendMedia(
-        TELEGRAM_BOT_TOKEN,
-        TELEGRAM_CHAT_ID,
-        data.evidenceUrl,
-        mediaCaption,
-        data.evidenceType === 'video'
+    if (textResult.ok) {
+      console.log('Ban report notification sent successfully');
+      return new Response(
+        JSON.stringify({ success: true, mediaSent: mediaResult.ok }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      console.error('Telegram API error:', textResult);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Telegram API error' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const duration = Date.now() - startTime;
-    console.log(`✅ Completed in ${duration}ms - Text: ${textResult.ok}, Media: ${mediaResult.sent}`);
-
-    return new Response(
-      JSON.stringify({ 
-        success: textResult.ok, 
-        mediaSent: mediaResult.sent,
-        mediaError: mediaResult.error,
-        duration 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('Error in send-ban-report-notification:', error);
     return new Response(
-      JSON.stringify({ success: false, error: String(error) }),
+      JSON.stringify({ success: false, error: 'Internal error' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
