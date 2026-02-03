@@ -9,7 +9,7 @@ const ADMIN_ACCOUNTS = [
   { username: 'جنجون', email: 'jnjun@ghala.admin', password: 'gnassaf11', role: 'admin' },
   { username: 'بيسو', email: 'biso@ghala.admin', password: 'bsassaf11', role: 'admin' },
   { username: 'ريلاكس', email: 'relax@ghala.admin', password: 'nazassaf11', role: 'admin' },
-  { username: 'naz', email: 'naz@ghala.admin', password: '1653814$$', role: 'super_admin' },
+  { username: 'naz', email: 'naz@ghala.admin', password: 'nazG11', role: 'super_admin' },
 ]
 
 Deno.serve(async (req) => {
