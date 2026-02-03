@@ -1,91 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Shield, User, Lock, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Shield, KeyRound } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import StarField from '@/components/StarField';
-
-// Username to email mapping for Arabic usernames
-const USERNAME_MAP: Record<string, string> = {
-  'جنجون': 'jnjun@ghala.admin',
-  'بيسو': 'biso@ghala.admin',
-  'ريلاكس': 'relax@ghala.admin',
-  'naz': 'naz@ghala.admin',
-};
+import { useAdminAuth } from '@/hooks/use-admin-auth';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const { login, isAuthenticated, loading: authLoading } = useAdminAuth();
   const [loading, setLoading] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [code, setCode] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/admin');
+    }
+  }, [isAuthenticated, authLoading, navigate]);
+
+  const handleLogin = async (value: string) => {
+    if (value.length !== 6) return;
+    
     setLoading(true);
 
-    try {
-      // Clear any existing invalid session before login
-      await supabase.auth.signOut();
-      
-      // Map Arabic username to email
-      const email = USERNAME_MAP[username.trim()];
-      
-      if (!email) {
-        toast({
-          title: 'خطأ',
-          description: 'اسم المستخدم غير صحيح',
-          variant: 'destructive',
-        });
-        setLoading(false);
-        return;
-      }
+    // Small delay for UX
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const result = login(value);
 
-      if (error) throw error;
-
-      // Check if user has admin, staff, or super_admin role
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', data.user.id)
-        .in('role', ['admin', 'staff', 'super_admin'])
-        .maybeSingle();
-
-      if (roleError) throw roleError;
-
-      if (!roleData) {
-        await supabase.auth.signOut();
-        toast({
-          title: 'خطأ',
-          description: 'ليس لديك صلاحية الوصول',
-          variant: 'destructive',
-        });
-        return;
-      }
-
+    if (result.success) {
       toast({
         title: 'مرحباً!',
-        description: `تم تسجيل الدخول بنجاح`,
+        description: 'تم تسجيل الدخول بنجاح',
       });
-      
       navigate('/admin');
-    } catch (error: any) {
-      console.error('Error:', error);
+    } else {
       toast({
         title: 'خطأ',
-        description: 'اسم المستخدم أو كلمة المرور غير صحيحة',
+        description: result.error || 'الرمز غير صحيح',
         variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
+      setCode('');
+    }
+
+    setLoading(false);
+  };
+
+  const handleCodeChange = (value: string) => {
+    setCode(value);
+    if (value.length === 6) {
+      handleLogin(value);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen premium-bg flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen premium-bg flex flex-col items-center justify-center p-6 relative overflow-hidden" dir="rtl">
@@ -111,76 +86,49 @@ const AdminLogin = () => {
         </motion.div>
 
         {/* Login Form */}
-        <motion.form 
-          onSubmit={handleLogin} 
+        <motion.div 
           className="neon-card p-8 space-y-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground">
-              اسم المستخدم
-            </label>
-            <div className="relative">
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary">
-                <User className="w-5 h-5" />
-              </div>
-              <input
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="premium-input pr-12"
-                placeholder="أدخل اسم المستخدم"
-              />
+          <div className="text-center space-y-2">
+            <div className="w-12 h-12 mx-auto rounded-full bg-primary/20 flex items-center justify-center mb-4">
+              <KeyRound className="w-6 h-6 text-primary" />
             </div>
+            <label className="block text-lg font-medium text-foreground">
+              أدخل رمز الدخول
+            </label>
+            <p className="text-sm text-muted-foreground">
+              رمز مكون من 6 أرقام
+            </p>
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground">
-              كلمة المرور
-            </label>
-            <div className="relative">
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary">
-                <Lock className="w-5 h-5" />
-              </div>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="premium-input pr-12 pl-12"
-                placeholder="••••••••"
-                dir="ltr"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
+          <div className="flex justify-center" dir="ltr">
+            <InputOTP
+              maxLength={6}
+              value={code}
+              onChange={handleCodeChange}
+              disabled={loading}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} className="w-12 h-14 text-xl border-primary/30 bg-background/50" />
+                <InputOTPSlot index={1} className="w-12 h-14 text-xl border-primary/30 bg-background/50" />
+                <InputOTPSlot index={2} className="w-12 h-14 text-xl border-primary/30 bg-background/50" />
+                <InputOTPSlot index={3} className="w-12 h-14 text-xl border-primary/30 bg-background/50" />
+                <InputOTPSlot index={4} className="w-12 h-14 text-xl border-primary/30 bg-background/50" />
+                <InputOTPSlot index={5} className="w-12 h-14 text-xl border-primary/30 bg-background/50" />
+              </InputOTPGroup>
+            </InputOTP>
           </div>
 
-          <motion.button
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold text-lg rounded-xl btn-glow disabled:opacity-50 flex items-center justify-center gap-2"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                جاري التحميل...
-              </>
-            ) : (
-              'تسجيل الدخول'
-            )}
-          </motion.button>
-        </motion.form>
+          {loading && (
+            <div className="flex items-center justify-center gap-2 text-primary">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>جاري التحقق...</span>
+            </div>
+          )}
+        </motion.div>
 
         <motion.button
           onClick={() => navigate('/')}
