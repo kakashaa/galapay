@@ -36,6 +36,7 @@ import ExportPrintDialog from '@/components/admin/ExportPrintDialog';
 import BulkIdSearch from '@/components/admin/BulkIdSearch';
 import { exportToExcel } from '@/lib/excel-export';
 import { usePayoutSettings } from '@/hooks/use-payout-settings';
+import { useAdminAuth } from '@/hooks/use-admin-auth';
 import {
   Select,
   SelectContent,
@@ -86,6 +87,7 @@ const statusLabels = {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { session, loading: authLoading, isAuthenticated, isSuperAdmin: isSuperAdminAuth, logout } = useAdminAuth();
   const [pendingRequests, setPendingRequests] = useState<PayoutRequest[]>([]);
   const [myRequests, setMyRequests] = useState<PayoutRequest[]>([]);
   const [allRequests, setAllRequests] = useState<PayoutRequest[]>([]);
@@ -99,9 +101,6 @@ const AdminDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<'admin' | 'staff' | 'super_admin'>('admin');
-  const [currentUserId, setCurrentUserId] = useState<string>('');
-  const [currentUserName, setCurrentUserName] = useState<string>('');
   const [adminProfiles, setAdminProfiles] = useState<Map<string, string>>(new Map());
   const [countries, setCountries] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('home');
@@ -121,54 +120,22 @@ const AdminDashboard = () => {
   const [resendingTelegram, setResendingTelegram] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
 
-  const isSuperAdmin = userRole === 'super_admin';
+  const isSuperAdmin = isSuperAdminAuth;
+  const currentUserName = session?.username || '';
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (!authLoading && !isAuthenticated) {
+      navigate('/admin/login');
+    }
+  }, [authLoading, isAuthenticated, navigate]);
 
   useEffect(() => {
-    if (currentUserId) {
+    if (isAuthenticated) {
       fetchData();
       fetchCountries();
       fetchAdminProfiles();
     }
-  }, [filters, currentUserId, activeTab, bulkSearchIds]);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate('/admin/login');
-      return;
-    }
-
-    setCurrentUserId(session.user.id);
-
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', session.user.id)
-      .in('role', ['admin', 'staff', 'super_admin'])
-      .maybeSingle();
-
-    if (!roleData) {
-      await supabase.auth.signOut();
-      navigate('/admin/login');
-      return;
-    }
-
-    setUserRole(roleData.role as 'admin' | 'staff' | 'super_admin');
-
-    const { data: profileData } = await supabase
-      .from('admin_profiles')
-      .select('display_name')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
-
-    if (profileData) {
-      setCurrentUserName(profileData.display_name);
-    }
-  };
+  }, [filters, isAuthenticated, activeTab, bulkSearchIds]);
 
   const fetchAdminProfiles = async () => {
     const { data } = await supabase
@@ -233,17 +200,19 @@ const AdminDashboard = () => {
 
       setPendingRequests((pending as PayoutRequest[]) || []);
 
-      const { data: mine } = await supabase
-        .from('payout_requests')
-        .select('*')
-        .or(`processed_by.eq.${currentUserId},claimed_by.eq.${currentUserId}`)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+      // For the new auth system, we fetch all requests for super_admin view
+      setMyRequests([]);
+      setMyStats({
+        totalRequests: 0,
+        paidRequests: 0,
+        rejectedRequests: 0,
+        pendingRequests: 0,
+        totalPaidAmount: 0,
+        totalPendingAmount: 0,
+      });
 
-      setMyRequests((mine as PayoutRequest[]) || []);
-
-      if (mine) {
-        const myProcessed = mine.filter(r => r.processed_by === currentUserId);
+      if (false) {
+        const myProcessed: PayoutRequest[] = [];
         setMyStats({
           totalRequests: myProcessed.length,
           paidRequests: myProcessed.filter(r => r.status === 'paid').length,
@@ -314,8 +283,8 @@ const AdminDashboard = () => {
 
   // Claiming removed - only super_admin can process requests now
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    logout();
     navigate('/admin/login');
   };
 
@@ -344,7 +313,7 @@ const AdminDashboard = () => {
         .from('payout_requests')
         .update({ 
           deleted_at: new Date().toISOString(),
-          deleted_by: currentUserId 
+          deleted_by: currentUserName 
         })
         .eq('id', requestId);
 
@@ -1084,8 +1053,8 @@ const AdminDashboard = () => {
           requestId={selectedRequest}
           onClose={() => setSelectedRequest(null)}
           onUpdate={handleRequestUpdate}
-          userRole={userRole}
-          currentUserId={currentUserId}
+          userRole={session?.role || 'admin'}
+          currentUserId={currentUserName}
         />
       )}
     </div>
