@@ -26,6 +26,9 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
+      // Clear any existing invalid session before login
+      await supabase.auth.signOut();
+      
       // Map Arabic username to email
       const email = USERNAME_MAP[username.trim()];
       
