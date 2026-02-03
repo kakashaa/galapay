@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, forwardRef } from 'react';
 
 interface Star {
   x: number;
@@ -10,7 +10,11 @@ interface Star {
   pulseSpeed: number;
 }
 
-export const StarField = ({ starCount = 50 }: { starCount?: number }) => {
+interface StarFieldProps {
+  starCount?: number;
+}
+
+export const StarField = forwardRef<HTMLCanvasElement, StarFieldProps>(({ starCount = 50 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const starsRef = useRef<Star[]>([]);
   const animationRef = useRef<number>(0);
@@ -113,6 +117,8 @@ export const StarField = ({ starCount = 50 }: { starCount?: number }) => {
       style={{ opacity: 0.6 }}
     />
   );
-};
+});
+
+StarField.displayName = 'StarField';
 
 export default StarField;

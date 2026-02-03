@@ -217,12 +217,19 @@ const InstantRequestDetailsModal = ({
   const handleRevertRejection = async () => {
     setUpdating(true);
     try {
+      // Note: processed_by expects UUID but we use custom PIN auth
+      // Store admin username in admin_notes prefix instead
+      const revertNote = currentUserId 
+        ? `[تراجع بواسطة: ${currentUserId}]`
+        : null;
+
       const { error } = await supabase
         .from('instant_payout_requests')
         .update({
           status: 'pending',
           rejection_reason: null,
-          processed_by: currentUserId || null,
+          admin_notes: revertNote,
+          processed_by: null, // Don't set UUID - using custom PIN auth
           processed_at: new Date().toISOString(),
         })
         .eq('id', requestId);
