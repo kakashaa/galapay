@@ -4,6 +4,7 @@ import { ArrowRight, Upload, CheckCircle2, User, DollarSign, MapPin, Loader2, Al
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { notifyNewInstantPayout } from '@/hooks/use-webhook-notification';
 
 const COINS_PER_DOLLAR = 8500;
 
@@ -282,6 +283,23 @@ const InstantPayoutRequest = () => {
       } catch (notifError) {
         console.error('Telegram notification failed:', notifError);
         // Don't fail the whole submission if notification fails
+      }
+
+      // Send Webhook notification
+      try {
+        await notifyNewInstantPayout({
+          id: trackingCode,
+          tracking_code: trackingCode,
+          supporter_name: supporterName,
+          supporter_account_id: supporterAccountId,
+          host_name: hostName,
+          host_account_id: hostAccountId,
+          supporter_amount_usd: parseFloat(supporterAmountUsd),
+          host_coins_amount: hostCoinsAmount,
+          created_at: new Date().toISOString(),
+        });
+      } catch (webhookError) {
+        console.error('Webhook notification failed:', webhookError);
       }
       
       // Navigate to success page

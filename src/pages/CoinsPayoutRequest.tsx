@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { notifyNewCoinsPayout } from '@/hooks/use-webhook-notification';
 
 // Conversion rate: $1 = 8,700 coins
 const COINS_PER_DOLLAR = 8700;
@@ -121,6 +122,21 @@ const CoinsPayoutRequest = () => {
         });
       } catch (notifyError) {
         console.error('Error sending Telegram notification:', notifyError);
+      }
+
+      // Send Webhook notification
+      try {
+        await notifyNewCoinsPayout({
+          id: requestData.tracking_code, // Use tracking_code as we don't have id in response
+          tracking_code: requestData.tracking_code,
+          gala_account_id: formData.galaAccountId.trim(),
+          gala_username: formData.galaUsername.trim() || undefined,
+          amount_usd: parseFloat(formData.amountUsd),
+          coins_amount: coinsAmount,
+          created_at: new Date().toISOString(),
+        });
+      } catch (webhookError) {
+        console.error('Error sending webhook notification:', webhookError);
       }
 
       toast({

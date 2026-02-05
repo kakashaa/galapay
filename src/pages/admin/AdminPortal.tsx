@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Zap, ShieldBan, Crown, LogOut, Loader2, Coins } from 'lucide-react';
+import { Wallet, Zap, ShieldBan, Crown, LogOut, Loader2, Coins, Webhook } from 'lucide-react';
 import { motion } from 'framer-motion';
 import StarField from '@/components/StarField';
 import { useAdminAuth } from '@/hooks/use-admin-auth';
@@ -77,6 +77,15 @@ const AdminPortal = () => {
       gradient: 'from-orange-500 to-amber-600',
       glowColor: 'hsla(25, 95%, 53%, 0.4)',
       badge: '👑 مميز',
+    },
+    {
+      title: 'Webhooks',
+      subtitle: 'إدارة الإشعارات الخارجية',
+      icon: Webhook,
+      path: '/admin/webhooks',
+      gradient: 'from-purple-500 to-indigo-600',
+      glowColor: 'hsla(260, 60%, 50%, 0.4)',
+      badge: '🔗 API',
     },
   ];
 

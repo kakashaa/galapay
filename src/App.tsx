@@ -18,6 +18,7 @@ import InstantAdminDashboard from "./pages/admin/InstantDashboard";
 import BanDashboard from "./pages/admin/BanDashboard";
 import SpecialIdDashboard from "./pages/admin/SpecialIdDashboard";
 import CoinsDashboard from "./pages/admin/CoinsDashboard";
+import WebhooksDashboard from "./pages/admin/WebhooksDashboard";
 import InstantPayoutIntro from "./pages/instant/InstantPayoutIntro";
 import InstantPayoutBanks from "./pages/instant/InstantPayoutBanks";
 import InstantPayoutRequest from "./pages/instant/InstantPayoutRequest";
@@ -54,6 +55,7 @@ const App = () => (
           <Route path="/admin/bans" element={<BanDashboard />} />
           <Route path="/admin/special-id" element={<SpecialIdDashboard />} />
           <Route path="/admin/coins" element={<CoinsDashboard />} />
+          <Route path="/admin/webhooks" element={<WebhooksDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

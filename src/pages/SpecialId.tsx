@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSavedRequests } from "@/hooks/use-saved-requests";
+import { notifyNewSpecialIdRequest } from "@/hooks/use-webhook-notification";
 import {
   Dialog,
   DialogContent,
@@ -405,6 +406,21 @@ export default function SpecialIdPage() {
         });
       } catch (notifError) {
         console.error("Notification error:", notifError);
+      }
+
+      // Send Webhook notification
+      try {
+        await notifyNewSpecialIdRequest({
+          id: data.id,
+          gala_user_id: galaUserId.trim(),
+          gala_username: galaUsername.trim() || undefined,
+          user_level: parseInt(userLevel),
+          digit_length: selectedDigitLength,
+          pattern_code: selectedPattern,
+          created_at: new Date().toISOString(),
+        });
+      } catch (webhookError) {
+        console.error("Webhook error:", webhookError);
       }
 
       // Save request to local storage for tracking
