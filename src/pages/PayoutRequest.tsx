@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PayoutPolicyDialog } from '@/components/PayoutPolicyDialog';
+import { notifyNewPayoutRequest } from '@/hooks/use-webhook-notification';
 
 interface Country {
   id: string;
@@ -734,6 +735,23 @@ const PayoutRequest = () => {
           }
         }
       });
+
+      // Send Webhook notification
+      try {
+        await notifyNewPayoutRequest({
+          id: trackingData,
+          tracking_code: trackingData,
+          zalal_life_username: formData.zalalLifeUsername || undefined,
+          zalal_life_account_id: formData.zalalLifeAccountId,
+          amount: parseFloat(formData.amount),
+          currency: 'USD',
+          country: selectedCountry.country_name_arabic,
+          payout_method: selectedMethod.name || selectedMethod.nameArabic || '',
+          created_at: new Date().toISOString(),
+        });
+      } catch (webhookError) {
+        console.error('Webhook notification failed:', webhookError);
+      }
 
       navigate('/success', { state: { trackingCode: trackingData } });
 

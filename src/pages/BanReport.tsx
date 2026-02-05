@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useSavedRequests } from "@/hooks/use-saved-requests";
+import { notifyNewBanReport } from "@/hooks/use-webhook-notification";
 import { 
   ShieldBan, 
   Search, 
@@ -212,6 +213,19 @@ export default function BanReportPage() {
       } catch (telegramError) {
         console.error('Telegram notification failed:', telegramError);
         // Don't fail the whole submission if notification fails
+      }
+
+      // Send Webhook notification
+      try {
+        await notifyNewBanReport({
+          id: data.id,
+          reporter_gala_id: reporterGalaId,
+          reported_user_id: reportedUserId,
+          ban_type: banType,
+          created_at: new Date().toISOString(),
+        });
+      } catch (webhookError) {
+        console.error('Webhook notification failed:', webhookError);
       }
 
       // Save report to local storage for tracking

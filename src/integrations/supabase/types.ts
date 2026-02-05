@@ -561,6 +561,45 @@ export type Database = {
           },
         ]
       }
+      notification_log: {
+        Row: {
+          error_message: string | null
+          id: string
+          payload: Json
+          request_id: string
+          request_type: string
+          response_body: string | null
+          response_code: number | null
+          sent_at: string
+          status: string
+          tracking_code: string | null
+        }
+        Insert: {
+          error_message?: string | null
+          id?: string
+          payload?: Json
+          request_id: string
+          request_type: string
+          response_body?: string | null
+          response_code?: number | null
+          sent_at?: string
+          status?: string
+          tracking_code?: string | null
+        }
+        Update: {
+          error_message?: string | null
+          id?: string
+          payload?: Json
+          request_id?: string
+          request_type?: string
+          response_body?: string | null
+          response_code?: number | null
+          sent_at?: string
+          status?: string
+          tracking_code?: string | null
+        }
+        Relationships: []
+      }
       payout_requests: {
         Row: {
           admin_final_receipt_image_url: string | null
@@ -843,6 +882,33 @@ export type Database = {
           title?: string
           updated_at?: string
           video_url?: string
+        }
+        Relationships: []
+      }
+      webhook_config: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          webhook_url: string
+        }
+        Insert: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          webhook_url: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          webhook_url?: string
         }
         Relationships: []
       }
