@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, Settings, Zap, BookOpen, ChevronLeft, Heart, Crown } from 'lucide-react';
+import { Wallet, Search, AlertCircle, CheckCircle2, FileText, Sparkles, Settings, Zap, BookOpen, ChevronLeft, Heart, Crown, Gamepad2 } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { MyRequestsSheet } from '@/components/MyRequestsSheet';
@@ -16,7 +16,6 @@ import { FadeIn } from '@/components/AnimatedCard';
 import StarField from '@/components/StarField';
 import { useTapFeedback } from '@/hooks/use-haptic-feedback';
 import TopSpotlightBoxes from '@/components/TopSpotlightBoxes';
-import GameVoting from '@/components/GameVoting';
 
 // Track bouncing state for main buttons
 const useBounceAnimation = () => {
@@ -355,9 +354,25 @@ const Index = () => {
           <ServiceIconsGrid />
         </FadeIn>
 
-        {/* Game Voting Section */}
+        {/* Game Voting Button */}
         <FadeIn delay={0.5} className="z-10 w-full max-w-sm px-4 mb-6">
-          <GameVoting />
+          <motion.button
+            onClick={() => navigate('/game-voting')}
+            className="w-full p-4 rounded-2xl neon-card border-warning/30 hover:border-warning/50 transition-all"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-warning/20 to-amber-600/10 flex items-center justify-center">
+                <Gamepad2 className="w-7 h-7 text-warning" />
+              </div>
+              <div className="flex-1 text-right">
+                <h3 className="font-bold text-base text-foreground">🎮 صوّت لألعابك المفضلة</h3>
+                <p className="text-xs text-muted-foreground mt-1">اختر 4 ألعاب واربح جوائز!</p>
+              </div>
+              <ChevronLeft className="w-5 h-5 text-muted-foreground" />
+            </div>
+          </motion.button>
         </FadeIn>
       </div>
 
