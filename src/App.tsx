@@ -25,6 +25,7 @@ import InstantPayoutBanks from "./pages/instant/InstantPayoutBanks";
 import InstantPayoutRequest from "./pages/instant/InstantPayoutRequest";
 import CoinsPayoutRequest from "./pages/CoinsPayoutRequest";
 import EditReservedRequest from "./pages/EditReservedRequest";
+import GameVotingPage from "./pages/GameVotingPage";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/instant/request" element={<InstantPayoutRequest />} />
           <Route path="/coins-payout" element={<CoinsPayoutRequest />} />
           <Route path="/edit-reserved" element={<EditReservedRequest />} />
+          <Route path="/game-voting" element={<GameVotingPage />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminPortal />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
