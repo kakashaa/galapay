@@ -87,6 +87,15 @@ const AdminPortal = () => {
       glowColor: 'hsla(260, 60%, 50%, 0.4)',
       badge: '🔗 API',
     },
+    {
+      title: 'تصويت الألعاب',
+      subtitle: 'إدارة جلسات التصويت',
+      icon: Crown,
+      path: '/admin/voting',
+      gradient: 'from-pink-500 to-rose-600',
+      glowColor: 'hsla(330, 70%, 50%, 0.4)',
+      badge: '🗳️ تصويت',
+    },
   ];
 
   return (
