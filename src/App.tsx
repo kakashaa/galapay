@@ -19,13 +19,13 @@ import BanDashboard from "./pages/admin/BanDashboard";
 import SpecialIdDashboard from "./pages/admin/SpecialIdDashboard";
 import CoinsDashboard from "./pages/admin/CoinsDashboard";
 import WebhooksDashboard from "./pages/admin/WebhooksDashboard";
+import VotingDashboard from "./pages/admin/VotingDashboard";
 import InstantPayoutIntro from "./pages/instant/InstantPayoutIntro";
 import InstantPayoutBanks from "./pages/instant/InstantPayoutBanks";
 import InstantPayoutRequest from "./pages/instant/InstantPayoutRequest";
 import CoinsPayoutRequest from "./pages/CoinsPayoutRequest";
 import EditReservedRequest from "./pages/EditReservedRequest";
 import NotFound from "./pages/NotFound";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -56,6 +56,7 @@ const App = () => (
           <Route path="/admin/special-id" element={<SpecialIdDashboard />} />
           <Route path="/admin/coins" element={<CoinsDashboard />} />
           <Route path="/admin/webhooks" element={<WebhooksDashboard />} />
+          <Route path="/admin/voting" element={<VotingDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

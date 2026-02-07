@@ -400,6 +400,45 @@ export type Database = {
         }
         Relationships: []
       }
+      game_votes: {
+        Row: {
+          game_id: string
+          id: string
+          session_id: string
+          voted_at: string
+          voter_identifier: string
+        }
+        Insert: {
+          game_id: string
+          id?: string
+          session_id: string
+          voted_at?: string
+          voter_identifier: string
+        }
+        Update: {
+          game_id?: string
+          id?: string
+          session_id?: string
+          voted_at?: string
+          voter_identifier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_votes_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "voting_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_votes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "voting_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hosts: {
         Row: {
           ai_praise_text: string | null
@@ -885,6 +924,75 @@ export type Database = {
         }
         Relationships: []
       }
+      voting_games: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_arabic: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_arabic: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_arabic?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      voting_sessions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          is_active: boolean | null
+          results_sent: boolean | null
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          is_active?: boolean | null
+          results_sent?: boolean | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          is_active?: boolean | null
+          results_sent?: boolean | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       webhook_config: {
         Row: {
           api_key: string
@@ -918,6 +1026,13 @@ export type Database = {
     }
     Functions: {
       generate_tracking_code: { Args: never; Returns: string }
+      get_session_vote_counts: {
+        Args: { p_session_id: string }
+        Returns: {
+          game_id: string
+          vote_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

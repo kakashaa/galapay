@@ -16,6 +16,7 @@ import { FadeIn } from '@/components/AnimatedCard';
 import StarField from '@/components/StarField';
 import { useTapFeedback } from '@/hooks/use-haptic-feedback';
 import TopSpotlightBoxes from '@/components/TopSpotlightBoxes';
+import GameVoting from '@/components/GameVoting';
 
 // Track bouncing state for main buttons
 const useBounceAnimation = () => {
@@ -352,6 +353,11 @@ const Index = () => {
         {/* Service Icons Grid */}
         <FadeIn delay={0.4} className="z-10 mb-4">
           <ServiceIconsGrid />
+        </FadeIn>
+
+        {/* Game Voting Section */}
+        <FadeIn delay={0.5} className="z-10 w-full max-w-sm px-4 mb-6">
+          <GameVoting />
         </FadeIn>
       </div>
 
