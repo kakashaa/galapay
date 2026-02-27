@@ -41,12 +41,13 @@ interface RequiredField {
   required?: boolean;
 }
 
-// Check if today is the last day of the month
+// Check if today is within the allowed payout window (last 2 days of the month)
 const isLastDayOfMonth = (): boolean => {
   const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.getDate() === 1;
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const currentDay = today.getDate();
+  // Allow the last 2 days of the month (e.g., 27-28 for Feb, 30-31 for months with 31 days)
+  return currentDay >= lastDayOfMonth - 1;
 };
 
 // Get next last day of month
