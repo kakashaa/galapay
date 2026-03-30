@@ -30,6 +30,11 @@
   </head>
 
   <body>
+    <script>
+      if (window.location.hostname === 'galapay.lovable.app') {
+        window.location.replace('https://galachatpay.lovable.app' + window.location.pathname + window.location.search + window.location.hash);
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

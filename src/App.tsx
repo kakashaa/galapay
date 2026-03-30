@@ -29,10 +29,6 @@ import GameVotingPage from "./pages/GameVotingPage";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
-// Redirect galapay.lovable.app to galachatpay.lovable.app
-if (window.location.hostname === 'galapay.lovable.app') {
-  window.location.replace('https://galachatpay.lovable.app' + window.location.pathname + window.location.search + window.location.hash);
-}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
