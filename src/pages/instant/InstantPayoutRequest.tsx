@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Upload, CheckCircle2, User, DollarSign, MapPin, Loader2, AlertCircle, Lock, CreditCard, Coins } from 'lucide-react';
+import { ArrowRight, Upload, CheckCircle2, User, DollarSign, MapPin, Loader2, AlertCircle, Lock, CreditCard, Coins, Ban } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { notifyNewInstantPayout } from '@/hooks/use-webhook-notification';
+import { useInstantPayoutSettings } from '@/hooks/use-instant-payout-settings';
 
 const COINS_PER_DOLLAR = 8500;
 
@@ -39,6 +40,7 @@ interface Country {
 const InstantPayoutRequest = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { instantPayoutEnabled, loading: settingsLoading } = useInstantPayoutSettings();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -321,6 +323,28 @@ const InstantPayoutRequest = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (!settingsLoading && !instantPayoutEnabled) {
+    return (
+      <div className="min-h-screen premium-bg flex items-center justify-center p-5" dir="rtl">
+        <div className="glass-card p-8 text-center space-y-4 max-w-sm w-full">
+          <div className="w-16 h-16 mx-auto rounded-full bg-destructive/20 flex items-center justify-center">
+            <Ban className="w-8 h-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">السحب الفوري متوقف حالياً</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            عذراً، خدمة السحب الفوري متوقفة مؤقتاً. سيتم إعادة تفعيلها قريباً إن شاء الله.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full py-3 rounded-xl font-bold bg-muted text-muted-foreground hover:bg-muted/80 transition-all"
+          >
+            العودة للرئيسية
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen premium-bg" dir="rtl">
