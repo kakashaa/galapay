@@ -40,6 +40,7 @@ interface Country {
 const InstantPayoutRequest = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { instantPayoutEnabled, loading: settingsLoading } = useInstantPayoutSettings();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
