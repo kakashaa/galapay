@@ -30,6 +30,28 @@ const InstantPayoutIntro = () => {
     },
   ];
 
+  if (!settingsLoading && !instantPayoutEnabled) {
+    return (
+      <div className="min-h-screen premium-bg flex items-center justify-center p-5" dir="rtl">
+        <div className="glass-card p-8 text-center space-y-4 max-w-sm w-full">
+          <div className="w-16 h-16 mx-auto rounded-full bg-destructive/20 flex items-center justify-center">
+            <Ban className="w-8 h-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">السحب الفوري متوقف حالياً</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            عذراً، خدمة السحب الفوري متوقفة مؤقتاً. سيتم إعادة تفعيلها قريباً إن شاء الله.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full py-3 rounded-xl font-bold bg-muted text-muted-foreground hover:bg-muted/80 transition-all"
+          >
+            العودة للرئيسية
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen premium-bg" dir="rtl">
       {/* Header */}
