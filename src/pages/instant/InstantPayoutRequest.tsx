@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Upload, CheckCircle2, User, DollarSign, MapPin, Loader2, AlertCircle, Lock, CreditCard, Coins } from 'lucide-react';
+import { ArrowRight, Upload, CheckCircle2, User, DollarSign, MapPin, Loader2, AlertCircle, Lock, CreditCard, Coins, Ban } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { notifyNewInstantPayout } from '@/hooks/use-webhook-notification';
+import { useInstantPayoutSettings } from '@/hooks/use-instant-payout-settings';
 
 const COINS_PER_DOLLAR = 8500;
 
