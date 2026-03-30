@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Zap, Users, Wallet, Shield, ChevronLeft, CheckCircle2, Info, AlertCircle, DollarSign } from 'lucide-react';
+import { ArrowRight, Zap, Users, Wallet, Shield, ChevronLeft, CheckCircle2, Info, AlertCircle, DollarSign, Ban } from 'lucide-react';
+import { useInstantPayoutSettings } from '@/hooks/use-instant-payout-settings';
 
 const InstantPayoutIntro = () => {
   const navigate = useNavigate();
   const [understood, setUnderstood] = useState(false);
+  const { instantPayoutEnabled, loading: settingsLoading } = useInstantPayoutSettings();
 
   const handleContinue = () => {
     navigate('/instant/banks');
